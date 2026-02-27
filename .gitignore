@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+frontend-handshake/dist/
+frontend-poaforge/dist/
+
+# Hardhat
+cache/
+artifacts/
+coverage/
+coverage.json
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Local setup (private, not committed)
+local/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vercel
+.vercel/
+
+# Cursor / IDE (do not push)
+.cursor/
+*Cursor Master Prompt*
+*Master Prompt*.md
+
+# Notes (exclude if you have private notes)
+NOTES*
+*.notes
+
+# Planning / private (keep in local/ - these patterns catch strays)
+*SECRETS*
+*HANDSHAKE_MAINNET*
+*TEST-HANDSHAKE*
+DEPLOY_MAINNET.md
+SETUP_CHECKLIST.md
+
+# Misc
+*.tgz

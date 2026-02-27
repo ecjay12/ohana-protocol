@@ -1,0 +1,38 @@
+"""
+Ohana Protocol - Standalone indexer schema for Handshake vouch events.
+VouchCategory, Vouch entities for proxyVouchCalc transitive trust.
+"""
+enum VouchStatus {
+  None
+  Pending
+  Accepted
+  Denied
+}
+
+enum VouchCategory {
+  Skill
+  Trust
+  Attendance
+}
+
+type Vouch @entity {
+  id: ID!
+  target: String! @index
+  voucher: String! @index
+  category: String! @index
+  status: String! @index
+  timestamp: BigInt! @index
+  updatedAt: BigInt! @index
+  blockNumber: Int! @index
+  transactionHash: String!
+  source: String @index
+}
+
+type VouchCategoryStats @entity {
+  id: ID!
+  target: String! @index
+  category: String! @index
+  acceptedCount: Int!
+  pendingCount: Int!
+  lastUpdated: BigInt!
+}

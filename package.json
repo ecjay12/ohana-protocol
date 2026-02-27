@@ -1,0 +1,32 @@
+{
+  "name": "ohana-protocol",
+  "version": "0.1.0",
+  "description": "Ohana Protocol MVP - POAP Forge, Handshake, Reputation Station",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile && node -e \"const a=require('./artifacts/contracts/core/OhanaHandshakeRegistry.sol/OhanaHandshakeRegistry.json'); require('fs').writeFileSync('./frontend-handshake/shared/HandshakeAbi.json', JSON.stringify({abi:a.abi}))\"",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy:multichain": "hardhat run scripts/deployMultiChain.js",
+    "deploy:create2": "hardhat run scripts/deployCreate2.js",
+    "deploy:mainnet": "hardhat run scripts/deployCreate2.js --network lukso && hardhat run scripts/deployCreate2.js --network base",
+    "frontend:handshake": "cd frontend-handshake && npm install && npm run dev",
+    "frontend:poaforge": "cd frontend-poaforge && npm install && npm run dev"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "docx": "^9.6.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@lukso/lsp-smart-contracts": "^0.16.7",
+    "@lukso/lsp17contractextension-contracts": "^0.16.7",
+    "@lukso/lsp7-contracts": "^0.16.3",
+    "@lukso/lsp8-contracts": "^0.16.2",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
+  }
+}

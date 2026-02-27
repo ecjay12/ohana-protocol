@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  /* Figma Design Color Palette - Light Mode */
+  --color-figma-purple-light: #E2E0FF;
+  --color-figma-purple-alt: #E2ECFF;
+  --color-figma-pink: #FF4092;
+  --color-figma-pink-alt: #FF6B9D;
+  --color-figma-purple: #8B5CF6;
+  --color-figma-purple-light: #A78BFA;
+  --color-figma-purple-dark: #4C1D95;
+  --color-figma-purple-darker: #5B21B6;
+  
+  /* Dark Mode Colors */
+  --color-dark-bg: #1a1a2e;
+  --color-dark-bg-alt: #16213e;
+  --color-dark-card: #2d2d44;
+  --color-dark-card-alt: #1e293b;
+  
+  /* Theme Variables - Light Mode (default) */
+  --bg-primary: #E2E0FF;
+  --bg-card: #FFFFFF;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --accent-pink: #FF4092;
+  --accent-purple: #8B5CF6;
+  --footer-bg: #4C1D95;
+  
+  /* Legacy colors (keeping for compatibility) */
+  --color-neon-lime: #84cc16;
+  --color-deep-teal-700: #0f766e;
+  --color-deep-teal-900: #134e4a;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+  --color-green: #22c55e;
+  --color-brand: #84cc16;
+  --color-brand-soft: #d9f99d;
+  --color-brand-dark: #65a30d;
+  --color-surface: #f8fafc;
+  
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 8px 30px rgba(15, 23, 42, 0.12);
+  --shadow-glass: 0 8px 32px rgba(15, 118, 110, 0.1);
+}
+
+/* Dark Mode Theme Variables */
+[data-theme="dark"] {
+  --bg-primary: #1a1a2e;
+  --bg-card: #2d2d44;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-pink: #FF6B9D;
+  --accent-purple: #A78BFA;
+  --footer-bg: #0f0f1e;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Inter", sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Glassmorphic card style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* iOS-style toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #FF4092;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}

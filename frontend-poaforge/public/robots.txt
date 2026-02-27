@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://poapforge.ohana.io/sitemap.xml
+
+# Disallow admin/manage pages
+Disallow: /manage/
+Disallow: /profile
+
+# Allow event pages
+Allow: /event/
+Allow: /events
+Allow: /blog
+Allow: /create

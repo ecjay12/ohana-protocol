@@ -1,0 +1,16 @@
+{
+  "handshakeAddresses": {
+    "1": "",
+    "42": "0xfd86a8c73827AE39F4630C6e498e8CCdDD183d4D",
+    "4201": "0x469C39f862856D6D4620A2a23eA12C4D2C78B549",
+    "8453": "0x4756E9c6e8a3c4eC749D5953C8c6FE61E76BB5a9",
+    "84532": "0x4fcC091A73a72E4ed24369c272a8c348e74D6FCD"
+  },
+  "chains": {
+    "1": { "name": "Ethereum", "rpc": "https://eth.llamarpc.com" },
+    "42": { "name": "LUKSO", "rpc": "https://rpc.mainnet.lukso.network" },
+    "4201": { "name": "LUKSO Testnet", "rpc": "https://rpc.testnet.lukso.network" },
+    "8453": { "name": "Base", "rpc": "https://mainnet.base.org" },
+    "84532": { "name": "Base Sepolia", "rpc": "https://sepolia.base.org" }
+  }
+}

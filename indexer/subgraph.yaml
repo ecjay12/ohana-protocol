@@ -1,0 +1,31 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Handshake
+    network: lukso-testnet
+    source:
+      # Replace with your HandshakeProxy address from chainConfig.json (LUKSO: 0x93472DF4C6A0d86bFE1776a48D297bE75fcd0acA)
+      address: "0x469C39f862856D6D4620A2a23eA12C4D2C78B549"
+      abi: Handshake
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Vouch
+        - VouchCategoryStats
+      abis:
+        - name: Handshake
+          file: ../artifacts/contracts/core/Handshake.sol/Handshake.json
+      eventHandlers:
+        - event: VouchRequested(indexed address,indexed address,uint8)
+          handler: handleVouchRequested
+        - event: VouchAccepted(indexed address,indexed address)
+          handler: handleVouchAccepted
+        - event: VouchDenied(indexed address,indexed address)
+          handler: handleVouchDenied
+        - event: VouchCancelled(indexed address,indexed address)
+          handler: handleVouchCancelled
