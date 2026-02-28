@@ -5,6 +5,7 @@ node_modules/
 dist/
 frontend-handshake/dist/
 frontend-poaforge/dist/
+frontend-miniapp/dist/
 
 # Hardhat
 cache/
@@ -45,6 +46,7 @@ Thumbs.db
 # Notes (exclude if you have private notes)
 NOTES*
 *.notes
+paop*.txt
 
 # Planning / private (keep in local/ - these patterns catch strays)
 *SECRETS*
@@ -52,6 +54,9 @@ NOTES*
 *TEST-HANDSHAKE*
 DEPLOY_MAINNET.md
 SETUP_CHECKLIST.md
+
+# TypeScript build info
+*.tsbuildinfo
 
 # Misc
 *.tgz

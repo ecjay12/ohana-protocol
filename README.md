@@ -9,6 +9,7 @@ Handshake is the vouch layer for Web3. Get vouched, vouch for others, and build 
 ### Live
 
 - **Frontend**: Deployed on Vercel (see `frontend-handshake/DEPLOY.md`)
+- **Mini-dapp**: LUKSO Universal Profile widget (see `frontend-miniapp/DEPLOY.md`)
 - **Networks**: LUKSO mainnet (42), Base mainnet (8453), LUKSO Testnet (4201), Base Sepolia (84532)
 
 ### Deployed Contracts
@@ -26,9 +27,10 @@ Handshake is the vouch layer for Web3. Get vouched, vouch for others, and build 
 ohana-protocol/
 ├── contracts/           # Solidity: OhanaHandshakeRegistry, Handshake, LSP17VouchExtension
 ├── scripts/             # Deploy, setFee, setFeeCollector, withdrawFees
-├── frontend-handshake/  # React + Vite + Tailwind
+├── frontend-handshake/  # React + Vite + Tailwind (main app)
 │   ├── src/
 │   └── shared/chainConfig.json
+├── frontend-miniapp/    # LUKSO mini-dapp for Universal Profiles
 ├── test/
 └── frontend-poaforge/   # POAP Forge (separate dapp)
 ```

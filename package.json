@@ -11,7 +11,8 @@
     "deploy:create2": "hardhat run scripts/deployCreate2.js",
     "deploy:mainnet": "hardhat run scripts/deployCreate2.js --network lukso && hardhat run scripts/deployCreate2.js --network base",
     "frontend:handshake": "cd frontend-handshake && npm install && npm run dev",
-    "frontend:poaforge": "cd frontend-poaforge && npm install && npm run dev"
+    "frontend:poaforge": "cd frontend-poaforge && npm install && npm run dev",
+    "frontend:miniapp": "cd frontend-miniapp && npm install && npm run dev"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
