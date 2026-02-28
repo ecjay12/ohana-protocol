@@ -40,9 +40,19 @@ npm run build
 - `theme` — `cyberpunk` | `nature` | `gold` | `minimal`
 - `chainId` — LUKSO (42) or LUKSO Testnet (4201)
 
+## LUKSO UP Provider
+
+When embedded in LUKSO apps (e.g. [universaleverything.io](https://universaleverything.io)), the miniapp uses [@lukso/up-provider](https://docs.lukso.tech/learn/mini-apps/connect-upprovider/):
+
+- **contextAccounts**: The profile owner (UP hosting the mini-app in its Grid) — no `?address=` needed
+- **accounts**: The visitor's connected UP — one-click connect from the parent page
+
+Add the miniapp to your LUKSO Grid; visitors can vouch without a separate Connect flow.
+
 ## Embedding
 
-The miniapp accepts the profile address via:
+The miniapp accepts the profile address via (priority order):
 
-1. **URL**: `?address=0x...`
-2. **postMessage**: `{ type: 'ohana-handshake-address', address: '0x...' }` from the host (for iframe embedding)
+1. **LUKSO UP Provider** `contextAccounts` (when in LUKSO Grid)
+2. **URL**: `?address=0x...`
+3. **postMessage**: `{ type: 'ohana-handshake-address', address: '0x...' }` from the host

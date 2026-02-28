@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@erc725/erc725.js": "^0.28.2",
+    "@lukso/up-provider": "^0.3.7",
     "ethers": "^6.9.0",
     "lucide-react": "^0.564.0",
     "react": "^18.3.1",

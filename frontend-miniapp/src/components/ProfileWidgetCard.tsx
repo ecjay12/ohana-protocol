@@ -1,18 +1,42 @@
 /**
  * Main profile widget card: stats, Vouch/Revoke, reputation ring.
+ * Supports LUKSO UP Provider (one-click when embedded) and injected wallet fallback.
  */
 import { useState, useEffect } from "react";
 import { ExternalLink } from "lucide-react";
 import { ReputationRing } from "./ReputationRing";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
-import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { VOUCH_FEE_DISPLAY } from "@/config/contracts";
+import type { BrowserProvider } from "ethers";
+import type { WalletOption } from "@/hooks/useInjectedWallet";
 
 const HANDSHAKE_APP_URL = "https://handshake.ohana.gg";
 const DOCS_URL = "https://docs.ohana.gg";
 const SUPPORT_URL = "https://discord.gg/ohana";
 const PRIVACY_URL = "https://ohana.gg/privacy";
+
+interface UPProviderContext {
+  account: string | null;
+  provider: BrowserProvider | null;
+  chainId: number;
+  isConnected: boolean;
+  isInUPContext: boolean;
+}
+
+interface InjectedWalletState {
+  isConnected: boolean;
+  accounts: string[];
+  chainId: number;
+  provider: BrowserProvider | null;
+  availableWallets: WalletOption[];
+  error: string | null;
+  connect: () => void;
+  connectWith: (wallet: WalletOption) => void;
+  disconnect: () => void;
+  switchChain: (chainId: number) => void;
+  chains: Record<number, { name: string; rpc: string }>;
+}
 
 interface ProfileWidgetCardProps {
   profileAddress: string;
@@ -21,6 +45,8 @@ interface ProfileWidgetCardProps {
   profileName?: string | null;
   loading: boolean;
   onRefetch: () => void;
+  upProviderContext?: UPProviderContext;
+  injectedWallet: InjectedWalletState;
 }
 
 function truncateAddress(addr: string): string {
@@ -35,12 +61,14 @@ export function ProfileWidgetCard({
   profileName,
   loading,
   onRefetch,
+  upProviderContext,
+  injectedWallet,
 }: ProfileWidgetCardProps) {
   const {
-    isConnected,
+    isConnected: injConnected,
     accounts,
-    chainId,
-    provider,
+    chainId: injChainId,
+    provider: injProvider,
     availableWallets,
     error: walletError,
     connect,
@@ -48,9 +76,13 @@ export function ProfileWidgetCard({
     disconnect,
     switchChain,
     chains,
-  } = useInjectedWallet();
+  } = injectedWallet;
 
-  const account = accounts[0] ?? null;
+  const useUP = upProviderContext?.isInUPContext && upProviderContext?.isConnected;
+  const account = useUP ? (upProviderContext?.account ?? null) : (accounts[0] ?? null);
+  const provider = useUP ? upProviderContext?.provider : injProvider;
+  const chainId = useUP ? (upProviderContext?.chainId ?? 4201) : injChainId;
+  const isConnected = useUP || injConnected;
   const { vouch, removeVouch, getVouch, txPending, error: handshakeError, isSupported } = useHandshake(
     provider,
     chainId,
@@ -133,16 +165,22 @@ export function ProfileWidgetCard({
       {!loading && (
         <>
           {!isConnected ? (
-            <WalletConnect
-              isConnected={false}
-              account={null}
-              availableWallets={availableWallets}
-              error={walletError}
-              onConnect={connect}
-              onConnectWith={connectWith}
-              onDisconnect={disconnect}
-              className="w-full justify-center"
-            />
+            upProviderContext?.isInUPContext ? (
+              <p className="text-center text-sm text-theme-text-muted">
+                Connect via the parent page to vouch.
+              </p>
+            ) : (
+              <WalletConnect
+                isConnected={false}
+                account={null}
+                availableWallets={availableWallets}
+                error={walletError}
+                onConnect={connect}
+                onConnectWith={connectWith}
+                onDisconnect={disconnect}
+                className="w-full justify-center"
+              />
+            )
           ) : (
             <div className="flex flex-col gap-3">
               {account?.toLowerCase() === profileAddress.toLowerCase() ? (
@@ -221,6 +259,7 @@ export function ProfileWidgetCard({
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
           className="rounded border border-theme-border bg-theme-surface px-2 py-1 text-xs text-theme-text"
+          disabled={upProviderContext?.isInUPContext}
         >
           {Object.entries(chains).map(([id, c]) => (
             <option key={id} value={id}>

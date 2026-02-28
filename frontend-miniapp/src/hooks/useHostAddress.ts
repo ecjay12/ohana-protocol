@@ -1,5 +1,7 @@
 /**
- * Address from URL (?address=0x...) or postMessage from host (iframe embedding).
+ * Profile address resolution (who to vouch for).
+ * Priority: 1) LUKSO UP Provider contextAccounts, 2) URL ?address=, 3) postMessage.
+ * @see https://docs.lukso.tech/learn/mini-apps/connect-upprovider/
  */
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -14,7 +16,7 @@ function getAllowedOrigins(): Set<string> {
   return new Set([same, ...list]);
 }
 
-export function useHostAddress(): string | null {
+export function useHostAddress(contextAccountFromUP: string | null): string | null {
   const [searchParams] = useSearchParams();
   const urlAddress = searchParams.get("address")?.trim() ?? null;
   const [postMessageAddress, setPostMessageAddress] = useState<string | null>(null);
@@ -37,5 +39,6 @@ export function useHostAddress(): string | null {
     return () => window.removeEventListener("message", handler);
   }, [allowedOrigins]);
 
-  return postMessageAddress ?? urlAddress;
+  // Priority: UP Provider context (when embedded in LUKSO) > URL > postMessage
+  return contextAccountFromUP ?? postMessageAddress ?? urlAddress;
 }

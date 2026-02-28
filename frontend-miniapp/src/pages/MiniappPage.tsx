@@ -1,7 +1,9 @@
 /**
- * Single-page miniapp: profile widget for address from URL or postMessage.
+ * Single-page miniapp: profile widget for address from LUKSO UP Provider, URL, or postMessage.
+ * @see https://docs.lukso.tech/learn/mini-apps/connect-upprovider/
  */
 import { useSearchParams } from "react-router-dom";
+import { useUPProvider } from "@/hooks/useUPProvider";
 import { useHostAddress } from "@/hooks/useHostAddress";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
 import { useProfileData } from "@/hooks/useProfileData";
@@ -14,9 +16,10 @@ export function MiniappPage() {
   const chainIdParam = searchParams.get("chainId");
   const chainId = chainIdParam ? parseInt(chainIdParam, 10) : 4201;
 
-  const profileAddress = useHostAddress();
-  const { chainId: walletChainId } = useInjectedWallet();
-  const effectiveChainId = [42, 4201].includes(chainId) ? chainId : walletChainId;
+  const { contextAccount, account: upAccount, provider: upProvider, chainId: upChainId, isInUPContext, isConnected: upConnected } = useUPProvider();
+  const profileAddress = useHostAddress(contextAccount);
+  const injectedWallet = useInjectedWallet();
+  const effectiveChainId = isInUPContext ? upChainId : ([42, 4201].includes(chainId) ? chainId : injectedWallet.chainId);
 
   const { received, given, loading, error, refetch } = useHandshakeReadOnly(
     effectiveChainId,
@@ -70,6 +73,14 @@ export function MiniappPage() {
           profileName={profile?.name}
           loading={loading}
           onRefetch={refetch}
+          upProviderContext={{
+            account: upAccount,
+            provider: upProvider,
+            chainId: upChainId,
+            isConnected: upConnected,
+            isInUPContext,
+          }}
+          injectedWallet={injectedWallet}
         />
       </div>
     </div>
