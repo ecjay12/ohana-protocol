@@ -57,7 +57,7 @@ export function WalletConnect({
               className="flex items-center gap-2 rounded-lg bg-theme-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
             >
               <Wallet className="h-4 w-4" />
-              {w.label}
+              Sign in with {w.label}
             </button>
           ))}
         </div>
@@ -74,7 +74,7 @@ export function WalletConnect({
         className="flex items-center gap-2 rounded-lg bg-theme-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
       >
         <Wallet className="h-4 w-4" />
-        Connect wallet
+        Sign in to vouch
       </button>
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>

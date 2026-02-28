@@ -61,11 +61,11 @@ export function MiniappPage() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      <div className="absolute right-4 top-4 z-10">
+    <div className="relative min-h-screen min-h-[100dvh]">
+      <div className="absolute right-2 top-2 z-10 sm:right-4 sm:top-4">
         <ThemeSwitcher />
       </div>
-      <div className="flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="flex min-h-screen min-h-[100dvh] flex-col items-center justify-center p-3 sm:p-6">
         <ProfileWidgetCard
           profileAddress={profileAddress}
           received={received}

@@ -130,22 +130,22 @@ export function ProfileWidgetCard({
   const handleDisplay = profileName ? (profileName.startsWith("@") ? profileName : `@${profileName}`) : null;
 
   return (
-    <div className="miniapp-card glass-card flex w-full max-w-md flex-col gap-6 rounded-2xl p-6">
+    <div className="miniapp-card glass-card flex w-full max-w-md flex-col gap-4 rounded-2xl p-4 sm:p-5">
       <header className="text-center">
-        <h1 className="text-xl font-semibold text-theme-text">Handshake</h1>
-        <p className="text-sm text-theme-text-muted">Reputation Layer</p>
+        <h1 className="text-lg font-semibold text-theme-text">Handshake</h1>
+        <p className="text-xs text-theme-text-muted">Reputation Layer</p>
       </header>
 
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
         <div className="flex-shrink-0">
-          <ReputationRing received={received} className="text-theme-accent" />
+          <ReputationRing received={received} className="text-theme-accent" size={52} strokeWidth={5} />
         </div>
-        <div className="flex-1 text-center sm:text-left">
-          <p className="font-medium text-theme-text">
+        <div className="flex-1 text-center sm:text-left min-w-0">
+          <p className="font-medium text-theme-text text-sm truncate">
             {handleDisplay ?? truncateAddress(profileAddress)}
           </p>
-          <p className="text-sm text-theme-text-muted">{truncateAddress(profileAddress)}</p>
-          <div className="mt-2 flex gap-4 text-sm">
+          <p className="text-xs text-theme-text-muted">{truncateAddress(profileAddress)}</p>
+          <div className="mt-1.5 flex gap-3 text-sm">
             <span>
               <strong className="text-theme-text">{received}</strong>{" "}
               <span className="text-theme-text-muted">Received</span>
@@ -154,17 +154,14 @@ export function ProfileWidgetCard({
               <strong className="text-theme-text">{given}</strong>{" "}
               <span className="text-theme-text-muted">Given</span>
             </span>
+            {loading && <span className="text-theme-text-dim">·</span>}
+            {loading && <span className="text-xs text-theme-text-dim">Loading…</span>}
           </div>
         </div>
       </div>
 
-      {loading && (
-        <p className="text-center text-sm text-theme-text-muted">Loading…</p>
-      )}
-
-      {!loading && (
-        <>
-          {!isConnected ? (
+      <>
+        {!isConnected ? (
             upProviderContext?.isInUPContext ? (
               <p className="text-center text-sm text-theme-text-muted">
                 Connect via the parent page to vouch.
@@ -232,11 +229,10 @@ export function ProfileWidgetCard({
             </div>
           )}
 
-          {(handshakeError || walletError) && (
-            <p className="text-center text-sm text-red-500">{handshakeError ?? walletError}</p>
-          )}
-        </>
-      )}
+        {(handshakeError || walletError) && (
+          <p className="text-center text-sm text-red-500">{handshakeError ?? walletError}</p>
+        )}
+      </>
 
       <a
         href={`${HANDSHAKE_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
@@ -254,7 +250,7 @@ export function ProfileWidgetCard({
         </p>
       )}
 
-      <footer className="mt-auto flex flex-wrap items-center justify-between gap-4 border-t border-theme-border pt-4">
+      <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-theme-border pt-3">
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
