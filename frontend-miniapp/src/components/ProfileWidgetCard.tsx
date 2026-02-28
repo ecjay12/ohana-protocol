@@ -78,6 +78,7 @@ export function ProfileWidgetCard({
     chains,
   } = injectedWallet;
 
+  const isEmbedded = typeof window !== "undefined" && window.self !== window.top;
   const useUP = upProviderContext?.isInUPContext && upProviderContext?.isConnected;
   const account = useUP ? (upProviderContext?.account ?? null) : (accounts[0] ?? null);
   const provider = useUP ? upProviderContext?.provider : injProvider;
@@ -162,7 +163,7 @@ export function ProfileWidgetCard({
 
       <>
         {!isConnected ? (
-            upProviderContext?.isInUPContext ? (
+            isEmbedded ? (
               <p className="text-center text-sm text-theme-text-muted">
                 Connect via the parent page to vouch.
               </p>
@@ -255,7 +256,7 @@ export function ProfileWidgetCard({
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
           className="rounded border border-theme-border bg-theme-surface px-2 py-1 text-xs text-theme-text"
-          disabled={upProviderContext?.isInUPContext}
+          disabled={isEmbedded}
         >
           {Object.entries(chains).map(([id, c]) => (
             <option key={id} value={id}>

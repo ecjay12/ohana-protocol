@@ -7,8 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "../frontend-handshake/shared"),
-      "@contracts": path.resolve(__dirname, "../frontend-handshake/shared/HandshakeAbi.json"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@contracts": path.resolve(__dirname, "shared/HandshakeAbi.json"),
     },
   },
 });

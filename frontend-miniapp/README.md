@@ -2,15 +2,21 @@
 
 LUKSO mini-dapp that users add to their Universal Profile so visitors can vouch for them.
 
+## Live URL
+
+**Production:** https://frontend-miniapp-ecjay12s-projects.vercel.app
+
+Add `?address=0xYOUR_UP` when using as a link. When added to LUKSO Grid, the profile address comes from context.
+
 ## Add to Your Universal Profile
 
 1. Edit your LSP3 profile metadata (via [LUKSO Profile Editor](https://profile.lukso.network) or similar).
-2. Add this to your `links` array:
+2. Add this to your `links` array or LUKSO Grid:
 
 ```json
 {
   "title": "Handshake",
-  "url": "https://miniapp.ohana.gg/?address=0xYOUR_UP_ADDRESS"
+  "url": "https://frontend-miniapp-ecjay12s-projects.vercel.app/?address=0xYOUR_UP_ADDRESS"
 }
 ```
 

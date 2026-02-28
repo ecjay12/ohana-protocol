@@ -25,6 +25,8 @@ git push origin main
 4. Deploy. You’ll get a URL like `https://ohana-miniapp-xxx.vercel.app`.
 5. **Custom domain** (optional): e.g. `miniapp.ohana.gg` in Project → Settings → Domains.
 
+**Production URL:** https://frontend-miniapp-ecjay12s-projects.vercel.app (find exact URL in Vercel Dashboard → Project → Domains)
+
 ### Option B: Vercel CLI
 
 ```bash
