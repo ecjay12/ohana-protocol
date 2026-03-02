@@ -30,11 +30,6 @@ jobs:
           cache-dependency-path: frontend-miniapp/package-lock.json
 
       - name: Install
-        run: npm ci
-        continue-on-error: true
-
-      - name: Install (fallback)
-        if: failure()
         run: npm install
 
       - name: Build

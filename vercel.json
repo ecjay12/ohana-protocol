@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd frontend-miniapp && npm install",
+  "buildCommand": "cd frontend-miniapp && npm run build",
+  "outputDirectory": "frontend-miniapp/dist",
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "frame-ancestors *" }
+      ]
+    }
+  ]
+}
