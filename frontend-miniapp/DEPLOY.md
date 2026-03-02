@@ -5,8 +5,8 @@ Per [LUKSO mini-app docs](https://docs.lukso.tech/learn/mini-apps/). The miniapp
 ## Vercel Dashboard
 
 1. [vercel.com](https://vercel.com) → **Add New Project** → Import repo.
-2. Configure:
-   - **Root Directory**: `frontend-miniapp`
+2. Configure (critical):
+   - **Root Directory**: `frontend-miniapp` (click Edit, set this — required for monorepo)
    - **Framework Preset**: Vite
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
