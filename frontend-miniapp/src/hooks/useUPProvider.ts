@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 import { BrowserProvider } from "ethers";
 import { createClientUPProvider } from "@lukso/up-provider";
 
-const upProvider = createClientUPProvider();
+const inIframe = typeof window !== "undefined" && window.self !== window.top;
 
 export interface UPProviderState {
   /** Profile owner (UP hosting the mini-app) - who to vouch for */
@@ -32,9 +32,10 @@ export function useUPProvider(): UPProviderState {
   const [chainId, setChainId] = useState<number>(4201);
   const [isInUPContext, setIsInUPContext] = useState(false);
 
-  const updateFromProvider = useCallback(() => {
-    const ctx = upProvider.contextAccounts;
-    const acc = upProvider.accounts;
+  const updateFromProvider = useCallback((upProvider: ReturnType<typeof createClientUPProvider>) => {
+    try {
+      const ctx = upProvider.contextAccounts;
+      const acc = upProvider.accounts;
     const ctx0 = ctx?.[0] ?? null;
     const acc0 = acc?.[0] ?? null;
     setContextAccount(ctx0);
@@ -46,14 +47,25 @@ export function useUPProvider(): UPProviderState {
     } else {
       setProvider(null);
     }
+    } catch {
+      // No UP found when standalone - ignore
+    }
   }, []);
 
   useEffect(() => {
+    if (!inIframe) return;
+
     let mounted = true;
+    let upProvider: ReturnType<typeof createClientUPProvider>;
+    try {
+      upProvider = createClientUPProvider();
+    } catch {
+      return;
+    }
 
     function sync() {
       if (!mounted) return;
-      updateFromProvider();
+      updateFromProvider(upProvider);
     }
 
     sync();
@@ -61,7 +73,7 @@ export function useUPProvider(): UPProviderState {
     const onAccountsChanged = () => sync();
     const onContextAccountsChanged = () => sync();
     const onChainChanged = () => {
-      if (mounted) setChainId(upProvider.chainId ?? 4201);
+      if (mounted) try { setChainId(upProvider.chainId ?? 4201); } catch { /* ignore */ }
     };
     const onInitialized = () => sync();
 
@@ -70,7 +82,11 @@ export function useUPProvider(): UPProviderState {
     upProvider.on("chainChanged", onChainChanged);
     upProvider.on("initialized", onInitialized);
 
-    upProvider.resume(500);
+    try {
+      upProvider.resume(500);
+    } catch {
+      // No UP found - ignore
+    }
 
     const poll = setInterval(sync, 1000);
     const stop = setTimeout(() => clearInterval(poll), 5000);
