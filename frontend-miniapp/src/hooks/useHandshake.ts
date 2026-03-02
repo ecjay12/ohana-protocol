@@ -3,7 +3,6 @@
  */
 import { useCallback, useState, useEffect, useMemo } from "react";
 import { Contract, BrowserProvider, JsonRpcProvider, getAddress } from "ethers";
-// @ts-expect-error - JSON artifact
 import HandshakeArtifact from "@contracts";
 import { getHandshakeAddress } from "@/config/contracts";
 import { CHAINS } from "@/hooks/useInjectedWallet";

@@ -11,6 +11,14 @@ import { createClientUPProvider } from "@lukso/up-provider";
 
 const inIframe = typeof window !== "undefined" && window.self !== window.top;
 
+/** Only use UP Provider when embedded in a LUKSO host (e.g. universaleverything.io). Skip when in Vercel preview, localhost, etc. */
+function shouldUseUPProvider(): boolean {
+  if (!inIframe || typeof document === "undefined") return false;
+  const ref = document.referrer || "";
+  if (ref.includes("vercel.com") || ref.includes("localhost") || ref.includes("127.0.0.1")) return false;
+  return ref.includes("universaleverything") || ref.includes("lukso") || ref.includes("universalprofile");
+}
+
 export interface UPProviderState {
   /** Profile owner (UP hosting the mini-app) - who to vouch for */
   contextAccount: string | null;
@@ -53,7 +61,7 @@ export function useUPProvider(): UPProviderState {
   }, []);
 
   useEffect(() => {
-    if (!inIframe) return;
+    if (!shouldUseUPProvider()) return;
 
     let mounted = true;
     let upProvider: ReturnType<typeof createClientUPProvider>;

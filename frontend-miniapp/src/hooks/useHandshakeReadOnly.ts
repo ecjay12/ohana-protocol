@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Contract, JsonRpcProvider, getAddress } from "ethers";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import { getHandshakeAddress } from "@/config/contracts";
-// @ts-expect-error - JSON artifact
 import HandshakeArtifact from "@contracts";
 
 const ABI = HandshakeArtifact?.abi ?? [];

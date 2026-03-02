@@ -1,0 +1,44 @@
+name: Miniapp CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "frontend-miniapp/**"
+      - ".github/workflows/miniapp-ci.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "frontend-miniapp/**"
+      - ".github/workflows/miniapp-ci.yml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-miniapp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend-miniapp/.nvmrc
+          cache: "npm"
+          cache-dependency-path: frontend-miniapp/package-lock.json
+
+      - name: Install
+        run: npm ci
+        continue-on-error: true
+
+      - name: Install (fallback)
+        if: failure()
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test

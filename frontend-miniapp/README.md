@@ -73,11 +73,23 @@ npm run dev
 
 From repo root: `npm run frontend:miniapp`
 
-## Build
+## Build & Test
 
 ```bash
 npm run build
+npm run test
 ```
+
+CI runs on push/PR via `.github/workflows/miniapp-ci.yml`.
+
+## Vercel Deployment
+
+1. Connect the repo to Vercel.
+2. Set **Root Directory** to `frontend-miniapp`.
+3. Build command: `npm run build` (default)
+4. Output directory: `dist` (default)
+
+The `vercel.json` in this folder configures SPA rewrites and `frame-ancestors *` for iframe embedding.
 
 ## URL Parameters
 
