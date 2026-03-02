@@ -1,8 +1,8 @@
 /**
  * LUKSO UP Provider integration for mini-apps.
- * When embedded in LUKSO apps (e.g. universaleverything.io), provides:
- * - contextAccounts: the profile owner (UP hosting the mini-app in its Grid)
- * - accounts: the visitor's connected UP
+ * When embedded in LUKSO Grid (e.g. LUKSO app, universaleverything.io):
+ * - contextAccount = profile owner (already connected from parent — who to vouch for)
+ * - account = visitor (who signs in on the parent UI — who is vouching)
  * @see https://docs.lukso.tech/learn/mini-apps/connect-upprovider/
  */
 import { useState, useEffect, useCallback } from "react";
@@ -11,12 +11,12 @@ import { createClientUPProvider } from "@lukso/up-provider";
 
 const inIframe = typeof window !== "undefined" && window.self !== window.top;
 
-/** Only use UP Provider when embedded in a LUKSO host (e.g. universaleverything.io). Skip when in Vercel preview, localhost, etc. */
+/** Use UP Provider when in an iframe, except on known non-LUKSO hosts (Vercel preview, localhost) to avoid "No UP found" there. */
 function shouldUseUPProvider(): boolean {
   if (!inIframe || typeof document === "undefined") return false;
-  const ref = document.referrer || "";
+  const ref = (document.referrer || "").toLowerCase();
   if (ref.includes("vercel.com") || ref.includes("localhost") || ref.includes("127.0.0.1")) return false;
-  return ref.includes("universaleverything") || ref.includes("lukso") || ref.includes("universalprofile");
+  return true;
 }
 
 export interface UPProviderState {
@@ -40,23 +40,28 @@ export function useUPProvider(): UPProviderState {
   const [chainId, setChainId] = useState<number>(4201);
   const [isInUPContext, setIsInUPContext] = useState(false);
 
-  const updateFromProvider = useCallback((upProvider: ReturnType<typeof createClientUPProvider>) => {
+  const updateFromProvider = useCallback((upProvider: ReturnType<typeof createClientUPProvider> | null) => {
+    if (!upProvider) return;
     try {
       const ctx = upProvider.contextAccounts;
       const acc = upProvider.accounts;
-    const ctx0 = ctx?.[0] ?? null;
-    const acc0 = acc?.[0] ?? null;
-    setContextAccount(ctx0);
-    setAccount(acc0);
-    setChainId(upProvider.chainId ?? 4201);
-    setIsInUPContext(ctx != null && ctx.length > 0);
-    if (acc0) {
-      setProvider(new BrowserProvider(upProvider as unknown as import("ethers").Eip1193Provider));
-    } else {
-      setProvider(null);
-    }
+      const ctx0 = ctx?.[0] ?? null;
+      const acc0 = acc?.[0] ?? null;
+      setContextAccount(ctx0);
+      setAccount(acc0);
+      setChainId(upProvider.chainId ?? 4201);
+      setIsInUPContext(ctx != null && ctx.length > 0);
+      if (acc0) {
+        setProvider(new BrowserProvider(upProvider as unknown as import("ethers").Eip1193Provider));
+      } else {
+        setProvider(null);
+      }
     } catch {
-      // No UP found when standalone - ignore
+      // Library can throw e.g. "No UP found" — treat as no context
+      setContextAccount(null);
+      setAccount(null);
+      setProvider(null);
+      setIsInUPContext(false);
     }
   }, []);
 
@@ -64,7 +69,7 @@ export function useUPProvider(): UPProviderState {
     if (!shouldUseUPProvider()) return;
 
     let mounted = true;
-    let upProvider: ReturnType<typeof createClientUPProvider>;
+    let upProvider: ReturnType<typeof createClientUPProvider> | null = null;
     try {
       upProvider = createClientUPProvider();
     } catch {
@@ -72,41 +77,50 @@ export function useUPProvider(): UPProviderState {
     }
 
     function sync() {
-      if (!mounted) return;
-      updateFromProvider(upProvider);
+      if (!mounted || !upProvider) return;
+      try {
+        updateFromProvider(upProvider);
+      } catch {
+        // ignore
+      }
     }
-
-    sync();
 
     const onAccountsChanged = () => sync();
     const onContextAccountsChanged = () => sync();
     const onChainChanged = () => {
-      if (mounted) try { setChainId(upProvider.chainId ?? 4201); } catch { /* ignore */ }
+      if (mounted && upProvider) try { setChainId(upProvider.chainId ?? 4201); } catch { /* ignore */ }
     };
     const onInitialized = () => sync();
 
-    upProvider.on("accountsChanged", onAccountsChanged);
-    upProvider.on("contextAccountsChanged", onContextAccountsChanged);
-    upProvider.on("chainChanged", onChainChanged);
-    upProvider.on("initialized", onInitialized);
-
     try {
+      upProvider.on("accountsChanged", onAccountsChanged);
+      upProvider.on("contextAccountsChanged", onContextAccountsChanged);
+      upProvider.on("chainChanged", onChainChanged);
+      upProvider.on("initialized", onInitialized);
+      sync();
       upProvider.resume(500);
     } catch {
-      // No UP found - ignore
+      upProvider = null;
+      setContextAccount(null);
+      setAccount(null);
+      setProvider(null);
+      setIsInUPContext(false);
+      return;
     }
 
-    const poll = setInterval(sync, 1000);
-    const stop = setTimeout(() => clearInterval(poll), 5000);
+    const poll = setInterval(sync, 1500);
+    const stop = setTimeout(() => clearInterval(poll), 8000);
 
     return () => {
       mounted = false;
       clearInterval(poll);
       clearTimeout(stop);
-      upProvider.removeListener("accountsChanged", onAccountsChanged);
-      upProvider.removeListener("contextAccountsChanged", onContextAccountsChanged);
-      upProvider.removeListener("chainChanged", onChainChanged);
-      upProvider.removeListener("initialized", onInitialized);
+      if (upProvider) {
+        upProvider.removeListener("accountsChanged", onAccountsChanged);
+        upProvider.removeListener("contextAccountsChanged", onContextAccountsChanged);
+        upProvider.removeListener("chainChanged", onChainChanged);
+        upProvider.removeListener("initialized", onInitialized);
+      }
     };
   }, [updateFromProvider]);
 

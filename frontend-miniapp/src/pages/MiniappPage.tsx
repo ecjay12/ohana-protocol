@@ -131,6 +131,7 @@ export function MiniappPage() {
   const chainIdParam = searchParams.get("chainId");
   const chainId = chainIdParam ? parseInt(chainIdParam, 10) : 4201;
 
+  // Single source: profile to vouch for = contextAccount (from LUKSO Grid) or ?address= (standalone)
   const { contextAccount, account: upAccount, provider: upProvider, chainId: upChainId, isInUPContext, isConnected: upConnected } = useUPProvider();
   const profileAddress = useHostAddress(contextAccount);
   const injectedWallet = useInjectedWallet();
