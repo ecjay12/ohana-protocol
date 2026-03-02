@@ -5,18 +5,19 @@ import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 
 export const THEMES = [
-  { id: "cyberpunk", label: "Cyberpunk Neon" },
-  { id: "nature", label: "Nature & Glass" },
-  { id: "gold", label: "Gold & Luxury" },
-  { id: "minimal", label: "Minimalist" },
+  { id: "serene", label: "Network" },
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "cyberpunk", label: "Cyber Punk" },
+  { id: "lyx", label: "Lyx" },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
 
 export function ThemeSwitcher({ className = "" }: { className?: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const themeParam = searchParams.get("theme") ?? "cyberpunk";
-  const theme = THEMES.some((t) => t.id === themeParam) ? themeParam : "cyberpunk";
+  const themeParam = searchParams.get("theme") ?? "serene";
+  const theme = THEMES.some((t) => t.id === themeParam) ? themeParam : "serene";
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

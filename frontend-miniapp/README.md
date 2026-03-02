@@ -1,26 +1,61 @@
 # Handshake Mini-Dapp
 
-LUKSO mini-dapp that users add to their Universal Profile so visitors can vouch for them.
+LUKSO mini-dapp that users add to their Universal Profile so visitors can vouch for them. Built per [LUKSO mini-app docs](https://docs.lukso.tech/learn/mini-apps/).
 
 ## Live URL
 
 **Production:** https://frontend-miniapp-ecjay12s-projects.vercel.app
 
-Add `?address=0xYOUR_UP` when using as a link. When added to LUKSO Grid, the profile address comes from context.
+## Add to Your Universal Profile (LSP28 Grid)
 
-## Add to Your Universal Profile
+Per [LUKSO: Setting Your Grid](https://docs.lukso.tech/learn/mini-apps/setting-your-grid/):
 
-1. Edit your LSP3 profile metadata (via [LUKSO Profile Editor](https://profile.lukso.network) or similar).
-2. Add this to your `links` array or LUKSO Grid:
+1. Create your Grid JSON with an IFRAME element:
 
 ```json
 {
-  "title": "Handshake",
-  "url": "https://frontend-miniapp-ecjay12s-projects.vercel.app/?address=0xYOUR_UP_ADDRESS"
+  "LSP28TheGrid": [
+    {
+      "title": "Handshake",
+      "gridColumns": 2,
+      "visibility": "public",
+      "grid": [
+        {
+          "width": 2,
+          "height": 3,
+          "type": "IFRAME",
+          "properties": {
+            "src": "https://frontend-miniapp-ecjay12s-projects.vercel.app",
+            "allow": "accelerometer; autoplay; clipboard-write",
+            "sandbox": "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
+            "allowfullscreen": true,
+            "referrerpolicy": "no-referrer"
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
-3. Replace `0xYOUR_UP_ADDRESS` with your Universal Profile address.
+2. Encode as VerifiableURI and set via `setData(bytes32,bytes)` on your Universal Profile. Use `@erc725/erc725.js` and the LSP28 schema (data key `keccak256('LSP28TheGrid')`).
+
+3. When visitors view your profile on [universaleverything.io](https://universaleverything.io), the profile address comes from `contextAccounts` — no `?address=` needed.
+
+## Direct Links (standalone)
+
+For links outside the Grid, append `?address=0xYOUR_UP`:
+
+```
+https://frontend-miniapp-ecjay12s-projects.vercel.app/?address=0xYourUPAddress
+```
+
+## LUKSO UP Provider
+
+When embedded in LUKSO apps (e.g. universaleverything.io), the miniapp uses [@lukso/up-provider](https://docs.lukso.tech/learn/mini-apps/connect-upprovider/):
+
+- **contextAccounts**: Profile owner (UP hosting the mini-app in its Grid)
+- **accounts**: Visitor's connected account — one-click connect from the parent page
 
 ## Development
 
@@ -28,11 +63,7 @@ Add `?address=0xYOUR_UP` when using as a link. When added to LUKSO Grid, the pro
 npm run dev
 ```
 
-From repo root:
-
-```bash
-npm run frontend:miniapp
-```
+From repo root: `npm run frontend:miniapp`
 
 ## Build
 
@@ -42,23 +73,10 @@ npm run build
 
 ## URL Parameters
 
-- `address` — Profile owner's Universal Profile address (required for widget)
-- `theme` — `cyberpunk` | `nature` | `gold` | `minimal`
+- `address` — Profile owner's UP address (for standalone links)
+- `theme` — `serene` | `dark` | `light` | `cyberpunk` | `lyx`
 - `chainId` — LUKSO (42) or LUKSO Testnet (4201)
 
-## LUKSO UP Provider
+## Testing Locally
 
-When embedded in LUKSO apps (e.g. [universaleverything.io](https://universaleverything.io)), the miniapp uses [@lukso/up-provider](https://docs.lukso.tech/learn/mini-apps/connect-upprovider/):
-
-- **contextAccounts**: The profile owner (UP hosting the mini-app in its Grid) — no `?address=` needed
-- **accounts**: The visitor's connected UP — one-click connect from the parent page
-
-Add the miniapp to your LUKSO Grid; visitors can vouch without a separate Connect flow.
-
-## Embedding
-
-The miniapp accepts the profile address via (priority order):
-
-1. **LUKSO UP Provider** `contextAccounts` (when in LUKSO Grid)
-2. **URL**: `?address=0x...`
-3. **postMessage**: `{ type: 'ohana-handshake-address', address: '0x...' }` from the host
+Per [LUKSO: Testing Mini-Apps Locally](https://docs.lukso.tech/learn/mini-apps/testing-miniapps/), use [localtunnel](https://github.com/localtunnel/localtunnel) to expose your dev server and add the tunnel URL to your Grid for testing on universaleverything.io.

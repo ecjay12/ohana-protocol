@@ -1,40 +1,19 @@
-# Deploy Handshake Mini-Dapp to GitHub + Vercel
+# Deploy Handshake Mini-Dapp to Vercel
 
-## 1. Push to GitHub
+Per [LUKSO mini-app docs](https://docs.lukso.tech/learn/mini-apps/). The miniapp must be iframe-embeddable for LSP28 Grid.
 
-```bash
-# From repo root
-git add .
-git status   # Verify no .env, local/, or private files
-git commit -m "Add frontend-miniapp"
-git push origin main
-```
+## Vercel Dashboard
 
-## 2. Deploy to Vercel
-
-### Option A: Vercel Dashboard (recommended)
-
-1. Go to [vercel.com](https://vercel.com) and sign in.
-2. **Add New Project** → Import `ecjay12/ohana-protocol`.
-3. Configure:
-   - **Root Directory**: `frontend-miniapp` (click Edit, set to `frontend-miniapp`)
+1. [vercel.com](https://vercel.com) → **Add New Project** → Import repo.
+2. Configure:
+   - **Root Directory**: `frontend-miniapp`
    - **Framework Preset**: Vite
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-   - **Install Command**: `npm install` (runs in frontend-miniapp)
-4. Deploy. You’ll get a URL like `https://ohana-miniapp-xxx.vercel.app`.
-5. **Custom domain** (optional): e.g. `miniapp.ohana.gg` in Project → Settings → Domains.
+3. Deploy.
 
-**Production URL:** https://frontend-miniapp-ecjay12s-projects.vercel.app (find exact URL in Vercel Dashboard → Project → Domains)
+**Production URL:** https://frontend-miniapp-ecjay12s-projects.vercel.app (check Vercel Dashboard → Domains)
 
-### Option B: Vercel CLI
+## Headers
 
-```bash
-cd frontend-miniapp
-vercel
-# Follow prompts; set root to frontend-miniapp when asked
-```
-
-### Monorepo note
-
-If the main Handshake app is already a Vercel project, create a **separate** Vercel project for the miniapp. Each project uses its own Root Directory (`frontend-handshake` vs `frontend-miniapp`).
+`vercel.json` sets `Content-Security-Policy: frame-ancestors *` so the app can be embedded in iframes (LUKSO Grid, universaleverything.io).

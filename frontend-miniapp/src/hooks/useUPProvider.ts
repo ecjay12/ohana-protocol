@@ -35,11 +35,13 @@ export function useUPProvider(): UPProviderState {
   const updateFromProvider = useCallback(() => {
     const ctx = upProvider.contextAccounts;
     const acc = upProvider.accounts;
-    setContextAccount(ctx?.[0] ?? null);
-    setAccount(acc?.[0] ?? null);
+    const ctx0 = ctx?.[0] ?? null;
+    const acc0 = acc?.[0] ?? null;
+    setContextAccount(ctx0);
+    setAccount(acc0);
     setChainId(upProvider.chainId ?? 4201);
     setIsInUPContext(ctx != null && ctx.length > 0);
-    if (acc?.[0]) {
+    if (acc0) {
       setProvider(new BrowserProvider(upProvider as unknown as import("ethers").Eip1193Provider));
     } else {
       setProvider(null);

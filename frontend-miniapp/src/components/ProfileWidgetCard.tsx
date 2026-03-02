@@ -4,7 +4,6 @@
  */
 import { useState, useEffect } from "react";
 import { ExternalLink } from "lucide-react";
-import { ReputationRing } from "./ReputationRing";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
 import { VOUCH_FEE_DISPLAY } from "@/config/contracts";
@@ -78,7 +77,6 @@ export function ProfileWidgetCard({
     chains,
   } = injectedWallet;
 
-  const isEmbedded = typeof window !== "undefined" && window.self !== window.top;
   const useUP = upProviderContext?.isInUPContext && upProviderContext?.isConnected;
   const account = useUP ? (upProviderContext?.account ?? null) : (accounts[0] ?? null);
   const provider = useUP ? upProviderContext?.provider : injProvider;
@@ -130,6 +128,9 @@ export function ProfileWidgetCard({
   const feeDisplay = VOUCH_FEE_DISPLAY[chainId] ?? { amount: "0.1", symbol: "LYX" };
   const handleDisplay = profileName ? (profileName.startsWith("@") ? profileName : `@${profileName}`) : null;
 
+  const profileLabel = handleDisplay ?? truncateAddress(profileAddress);
+  const isOwnProfile = isConnected && account && profileAddress && account.toLowerCase() === profileAddress.toLowerCase();
+
   return (
     <div className="miniapp-card glass-card flex w-full max-w-md flex-col gap-4 rounded-2xl p-4 sm:p-5">
       <header className="text-center">
@@ -137,16 +138,16 @@ export function ProfileWidgetCard({
         <p className="text-xs text-theme-text-muted">Reputation Layer</p>
       </header>
 
-      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-        <div className="flex-shrink-0">
-          <ReputationRing received={received} className="text-theme-accent" size={52} strokeWidth={5} />
-        </div>
-        <div className="flex-1 text-center sm:text-left min-w-0">
-          <p className="font-medium text-theme-text text-sm truncate">
-            {handleDisplay ?? truncateAddress(profileAddress)}
-          </p>
-          <p className="text-xs text-theme-text-muted">{truncateAddress(profileAddress)}</p>
-          <div className="mt-1.5 flex gap-3 text-sm">
+      <div className="rounded-lg border border-theme-border bg-theme-surface-strong/50 px-3 py-2">
+        <p className="text-xs text-theme-text-muted">Vouch for</p>
+        <p className="font-medium text-theme-text text-sm truncate" title={profileAddress}>
+          {profileLabel}
+        </p>
+        <p className="text-xs text-theme-text-dim font-mono">{truncateAddress(profileAddress)}</p>
+      </div>
+
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex gap-4 text-sm">
             <span>
               <strong className="text-theme-text">{received}</strong>{" "}
               <span className="text-theme-text-muted">Received</span>
@@ -157,17 +158,15 @@ export function ProfileWidgetCard({
             </span>
             {loading && <span className="text-theme-text-dim">·</span>}
             {loading && <span className="text-xs text-theme-text-dim">Loading…</span>}
-          </div>
         </div>
       </div>
 
       <>
         {!isConnected ? (
-            isEmbedded ? (
-              <p className="text-center text-sm text-theme-text-muted">
-                Connect via the parent page to vouch.
+            <div className="flex w-full flex-col items-center gap-2">
+              <p className="text-center text-xs text-theme-text-muted">
+                Sign in to vouch for this profile
               </p>
-            ) : (
               <WalletConnect
                 isConnected={false}
                 account={null}
@@ -178,10 +177,10 @@ export function ProfileWidgetCard({
                 onDisconnect={disconnect}
                 className="w-full justify-center"
               />
-            )
+            </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {account?.toLowerCase() === profileAddress.toLowerCase() ? (
+              {isOwnProfile ? (
                 <p className="text-center text-sm text-theme-text-muted">
                   This is your profile. Share the link so others can vouch for you.
                 </p>
@@ -256,7 +255,7 @@ export function ProfileWidgetCard({
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
           className="rounded border border-theme-border bg-theme-surface px-2 py-1 text-xs text-theme-text"
-          disabled={isEmbedded}
+          disabled={upProviderContext?.isInUPContext}
         >
           {Object.entries(chains).map(([id, c]) => (
             <option key={id} value={id}>

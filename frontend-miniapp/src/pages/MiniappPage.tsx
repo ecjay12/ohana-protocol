@@ -1,8 +1,11 @@
 /**
- * Single-page miniapp: profile widget for address from LUKSO UP Provider, URL, or postMessage.
+ * Single-page miniapp: profile widget for LUKSO Universal Profiles.
+ * Profile from contextAccounts when in LUKSO Grid, else URL ?address=.
  * @see https://docs.lukso.tech/learn/mini-apps/connect-upprovider/
+ * @see https://docs.lukso.tech/learn/mini-apps/setting-your-grid/
  */
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUPProvider } from "@/hooks/useUPProvider";
 import { useHostAddress } from "@/hooks/useHostAddress";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
@@ -10,6 +13,73 @@ import { useProfileData } from "@/hooks/useProfileData";
 import { ProfileWidgetCard } from "@/components/ProfileWidgetCard";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { getAddress } from "ethers";
+
+function NoProfileSetup() {
+  const [addressInput, setAddressInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://frontend-miniapp-ecjay12s-projects.vercel.app";
+
+  const handleTryAddress = () => {
+    const trimmed = addressInput.trim();
+    if (!trimmed) return;
+    setError(null);
+    try {
+      const addr = getAddress(trimmed);
+      navigate(`/?address=${encodeURIComponent(addr)}`);
+    } catch {
+      setError("Invalid address");
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="glass-card max-w-md rounded-2xl p-8 text-center">
+        <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake</h1>
+        <p className="mb-4 text-sm text-theme-text-muted">Reputation Layer</p>
+
+        <p className="mb-4 text-sm text-theme-text-muted">
+          <strong>Standalone:</strong> Enter a Universal Profile address to view vouches:
+        </p>
+        <div className="mb-4 flex gap-2">
+          <input
+            type="text"
+            placeholder="0x..."
+            value={addressInput}
+            onChange={(e) => setAddressInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleTryAddress()}
+            className="flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text placeholder:text-theme-text-dim focus:border-theme-accent focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleTryAddress}
+            className="miniapp-btn-primary rounded-lg px-4 py-2 text-sm font-medium"
+          >
+            View
+          </button>
+        </div>
+        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+
+        <p className="mb-2 text-xs font-medium text-theme-text">Or add to your LSP28 Grid:</p>
+        <code className="mb-4 block break-all rounded bg-theme-surface-strong px-3 py-2 text-xs text-theme-text">
+          {baseUrl}
+        </code>
+        <p className="text-xs text-theme-text-dim">
+          When visitors view your profile on{" "}
+          <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
+            universaleverything.io
+          </a>
+          , the profile comes from context.{" "}
+          <a href="https://docs.lukso.tech/learn/mini-apps/setting-your-grid/" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
+            LUKSO docs
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function MiniappPage() {
   const [searchParams] = useSearchParams();
@@ -29,23 +99,7 @@ export function MiniappPage() {
 
   if (!profileAddress) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-6">
-        <div className="glass-card max-w-md rounded-2xl p-8 text-center">
-          <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake</h1>
-          <p className="mb-4 text-sm text-theme-text-muted">Reputation Layer</p>
-          <p className="text-theme-text-muted">
-            Add this miniapp to your Universal Profile by including this link in your LSP3 profile:
-          </p>
-          <code className="mt-2 block break-all rounded bg-theme-surface-strong px-3 py-2 text-sm text-theme-text">
-            {typeof window !== "undefined"
-              ? `${window.location.origin}/?address=0xYourUPAddress`
-              : "https://miniapp.ohana.gg/?address=0xYourUPAddress"}
-          </code>
-          <p className="mt-4 text-xs text-theme-text-dim">
-            Replace <code>0xYourUPAddress</code> with your Universal Profile address.
-          </p>
-        </div>
-      </div>
+      <NoProfileSetup />
     );
   }
 

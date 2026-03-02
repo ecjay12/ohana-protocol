@@ -1,0 +1,10 @@
+{
+  "name": "Handshake",
+  "short_name": "Handshake",
+  "description": "Reputation layer for LUKSO Universal Profiles. Vouch for identities on-chain.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#050508",
+  "orientation": "portrait-primary"
+}
