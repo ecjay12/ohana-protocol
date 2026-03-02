@@ -8,10 +8,9 @@ LUKSO mini-dapp that users add to their Universal Profile so visitors can vouch 
 
 ## Quick Start — Add to Your LUKSO Profile
 
-1. Copy the Grid JSON below (or use the [LUKSO Profile Editor](https://profile.lukso.network) if it supports LSP28).
-2. Encode it as a VerifiableURI with `@erc725/erc725.js` (see [LUKSO: Setting Your Grid](https://docs.lukso.tech/learn/mini-apps/setting-your-grid/)).
-3. Call `setData(0x724141d9918ce69e6b8afcf53a91748466086ba2c74b94cab43c649ae2ac23ff, encodedValue)` on your Universal Profile.
-4. Visit your profile on [universaleverything.io](https://universaleverything.io) — the Handshake miniapp will appear in your Grid.
+**One-click:** Go to [Add to my profile](https://frontend-miniapp-ecjay12s-projects.vercel.app/add-to-grid) → Connect your LUKSO wallet → Click "Set Grid" → Sign the transaction. Done.
+
+**Manual:** Copy the Grid JSON below, encode it, and call `setData` on your UP (see [LUKSO: Setting Your Grid](https://docs.lukso.tech/learn/mini-apps/setting-your-grid/)).
 
 ## Add to Your Universal Profile (LSP28 Grid)
 

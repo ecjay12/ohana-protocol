@@ -5,7 +5,7 @@
  * @see https://docs.lukso.tech/learn/mini-apps/setting-your-grid/
  */
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useUPProvider } from "@/hooks/useUPProvider";
 import { useHostAddress } from "@/hooks/useHostAddress";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
@@ -14,13 +14,16 @@ import { ProfileWidgetCard } from "@/components/ProfileWidgetCard";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { getAddress } from "ethers";
+import { MINIAPP_PRODUCTION_URL } from "@/config/contracts";
+import { Copy, Check } from "lucide-react";
 
 function NoProfileSetup() {
   const [addressInput, setAddressInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://frontend-miniapp-ecjay12s-projects.vercel.app";
+  const baseUrl = MINIAPP_PRODUCTION_URL;
 
   const handleTryAddress = () => {
     const trimmed = addressInput.trim();
@@ -62,10 +65,38 @@ function NoProfileSetup() {
         </div>
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
-        <p className="mb-2 text-xs font-medium text-theme-text">Or add to your LSP28 Grid:</p>
-        <code className="mb-4 block break-all rounded bg-theme-surface-strong px-3 py-2 text-xs text-theme-text">
-          {baseUrl}/?address=0xYourUP
-        </code>
+        <p className="mb-2 text-xs font-medium text-theme-text">Add to your LSP28 Grid:</p>
+        <Link
+          to="/add-to-grid"
+          className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
+        >
+          Add to my profile (one-click)
+        </Link>
+        <p className="mb-2 text-xs text-theme-text-muted">Or copy URL for manual setup:</p>
+        <div className="mb-4 flex items-center gap-2 rounded bg-theme-surface-strong px-3 py-2">
+          <code className="flex-1 break-all text-xs text-theme-text">
+            {baseUrl}/?address=0xYourUP
+          </code>
+          <button
+            type="button"
+            onClick={async () => {
+              const url = `${baseUrl}/?address=0xYourUP`;
+              try {
+                await navigator.clipboard.writeText(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              } catch {
+                navigator.clipboard?.writeText?.(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }
+            }}
+            className="miniapp-btn-secondary flex shrink-0 items-center gap-1 rounded px-2 py-1.5 text-xs font-medium"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
         <p className="text-xs text-theme-text-dim">
           Use <code className="rounded bg-theme-surface-strong px-1">?address=0xYourUP</code> in the iframe src so the profile loads even if context is delayed.{" "}
           <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">

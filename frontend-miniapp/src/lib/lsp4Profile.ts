@@ -18,6 +18,7 @@ const LSP26_VALUE_KEY = keccak256(toUtf8Bytes("LSP26Value"));
 const LSP27_VALUE_KEY = keccak256(toUtf8Bytes("LSP27Value"));
 
 const IPFS_GATEWAYS = [
+  "https://api.universalprofile.cloud/ipfs/",
   "https://ipfs.io/ipfs/",
   "https://gateway.pinata.cloud/ipfs/",
   "https://cloudflare-ipfs.com/ipfs/",
@@ -64,20 +65,21 @@ export interface ProfileData {
   lsp27Data?: LSP26Data;
 }
 
-function ipfsToHttp(ipfsUrl: string): string {
+function ipfsToHttp(ipfsUrl: string, gatewayIndex = 0): string {
   const hash = ipfsUrl.replace(/^ipfs:\/\//i, "").trim();
   if (!/^Qm[1-9A-HJ-NP-Za-km-z]{44}$|^b[a-z2-7]{58,}$/i.test(hash)) {
     throw new Error("Invalid IPFS hash format");
   }
-  return `${IPFS_GATEWAYS[0]}${hash}`;
+  const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
+  return `${gateway}${hash}`;
 }
 
-async function fetchJSON(url: string): Promise<unknown> {
+async function fetchJSON(url: string, gatewayIndex = 0): Promise<unknown> {
   const normalizedUrl = url.replace(/^ifps:\/\//i, "ipfs://");
   if (!/^https?:\/\//i.test(normalizedUrl) && !/^ipfs:\/\//i.test(normalizedUrl)) {
     throw new Error("Invalid URL scheme");
   }
-  const httpUrl = /^ipfs:\/\//i.test(normalizedUrl) ? ipfsToHttp(normalizedUrl) : normalizedUrl;
+  const httpUrl = /^ipfs:\/\//i.test(normalizedUrl) ? ipfsToHttp(normalizedUrl, gatewayIndex) : normalizedUrl;
   try {
     const urlObj = new URL(httpUrl);
     if (urlObj.hostname === "localhost" || urlObj.hostname === "127.0.0.1" || urlObj.hostname.startsWith("192.168.") || urlObj.hostname.startsWith("10.")) {
@@ -89,9 +91,13 @@ async function fetchJSON(url: string): Promise<unknown> {
   const response = await fetch(httpUrl, {
     method: "GET",
     headers: { Accept: "application/json" },
+    referrerPolicy: "no-referrer",
     signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) {
+    if (/^ipfs:\/\//i.test(normalizedUrl) && gatewayIndex < IPFS_GATEWAYS.length - 1) {
+      return fetchJSON(url, gatewayIndex + 1);
+    }
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   return response.json();

@@ -3,10 +3,11 @@
  * Supports LUKSO UP Provider (one-click when embedded) and injected wallet fallback.
  */
 import { useState, useEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ExternalLink, Copy, Check } from "lucide-react";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
-import { VOUCH_FEE_DISPLAY } from "@/config/contracts";
+import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL } from "@/config/contracts";
 import type { BrowserProvider } from "ethers";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 
@@ -132,6 +133,26 @@ export function ProfileWidgetCard({
   const profileLabel = handleDisplay ?? truncateAddress(profileAddress);
   const isOwnProfile = isConnected && account && profileAddress && account.toLowerCase() === profileAddress.toLowerCase();
 
+  const gridUrl = `${MINIAPP_PRODUCTION_URL}/?address=${encodeURIComponent(profileAddress)}`;
+  const [copied, setCopied] = useState(false);
+  const handleCopyGridUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(gridUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select and copy
+      const el = document.createElement("input");
+      el.value = gridUrl;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="miniapp-card glass-card flex w-full max-w-md flex-col gap-4 rounded-2xl p-4 sm:p-5">
       <header className="text-center">
@@ -188,9 +209,34 @@ export function ProfileWidgetCard({
           ) : (
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
-                <p className="text-center text-sm text-theme-text-muted">
-                  This is your profile. Share the link so others can vouch for you.
-                </p>
+                <div className="flex flex-col gap-3">
+                  <p className="text-center text-sm text-theme-text-muted">
+                    This is your profile. Add Handshake to your LUKSO Grid so visitors can vouch for you.
+                  </p>
+                  <div className="rounded-lg border border-theme-border bg-theme-surface-strong/50 px-3 py-2">
+                    <p className="mb-2 text-xs font-medium text-theme-text-muted">URL for your Grid iframe:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 truncate text-xs text-theme-text" title={gridUrl}>
+                        {gridUrl}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={handleCopyGridUrl}
+                        className="miniapp-btn-secondary flex shrink-0 items-center gap-1 rounded px-2 py-1.5 text-xs font-medium"
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-theme-text-dim">
+                      Go to{" "}
+                      <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
+                        universaleverything.io
+                      </a>
+                      , open your profile → Edit Grid → Add IFRAME widget → paste this URL → Save. Approve the transaction in your wallet to complete.
+                    </p>
+                  </div>
+                </div>
               ) : isSupported ? (
                 <>
                   <div className="flex gap-2">
@@ -241,15 +287,33 @@ export function ProfileWidgetCard({
         )}
       </>
 
-      <a
-        href={`${HANDSHAKE_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1 text-sm text-theme-accent hover:underline"
-      >
-        View vouch activity
-        <ExternalLink className="h-3.5 w-3.5" />
-      </a>
+      <div className="flex flex-col items-center gap-2">
+        <a
+          href={`${HANDSHAKE_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1 text-sm text-theme-accent hover:underline"
+        >
+          View vouch activity
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link
+            to="/add-to-grid"
+            className="miniapp-btn-primary flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+          >
+            Add to my profile
+          </Link>
+          <button
+            type="button"
+            onClick={handleCopyGridUrl}
+            className="miniapp-btn-secondary flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied" : "Copy URL"}
+          </button>
+        </div>
+      </div>
 
       {received > 0 && (
         <p className="text-center text-xs text-theme-text-muted">
