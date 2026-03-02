@@ -1,6 +1,8 @@
 /**
  * Wallet connect button. Shows connect or connected address.
+ * When multiple wallets available, user picks one then signs in.
  */
+import { useState } from "react";
 import { Wallet } from "lucide-react";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 
@@ -45,33 +47,45 @@ export function WalletConnect({
     );
   }
 
-  if (availableWallets.length > 1) {
-    return (
-      <div className={`flex flex-col gap-2 ${className}`}>
-        <div className="flex flex-wrap gap-2">
-          {availableWallets.map((w) => (
-            <button
-              key={w.label}
-              type="button"
-              onClick={() => onConnectWith(w)}
-              className="flex items-center gap-2 rounded-lg bg-theme-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              <Wallet className="h-4 w-4" />
-              Sign in with {w.label}
-            </button>
-          ))}
-        </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-      </div>
-    );
-  }
+  const [selectedWallet, setSelectedWallet] = useState<WalletOption | null>(
+    availableWallets[0] ?? null
+  );
+
+  const handleSignIn = () => {
+    if (availableWallets.length === 1) {
+      onConnect();
+    } else if (selectedWallet) {
+      onConnectWith(selectedWallet);
+    }
+  };
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
+    <div className={`flex flex-col gap-2 ${className}`}>
+      {availableWallets.length > 1 && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-theme-text-muted">Choose wallet</label>
+          <select
+            value={selectedWallet ? availableWallets.indexOf(selectedWallet).toString() : ""}
+            onChange={(e) => {
+              const i = parseInt(e.target.value, 10);
+              setSelectedWallet(Number.isNaN(i) ? null : availableWallets[i] ?? null);
+            }}
+            className="rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text focus:border-theme-accent focus:outline-none"
+          >
+            <option value="">Select wallet…</option>
+            {availableWallets.map((w, i) => (
+              <option key={i} value={i}>
+                {w.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <button
         type="button"
-        onClick={onConnect}
-        className="flex items-center gap-2 rounded-lg bg-theme-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        onClick={handleSignIn}
+        disabled={!selectedWallet && availableWallets.length > 1}
+        className="flex items-center justify-center gap-2 rounded-lg bg-theme-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Wallet className="h-4 w-4" />
         Sign in to vouch
