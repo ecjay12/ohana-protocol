@@ -51,40 +51,38 @@ export function useUPProvider(): UPProviderState {
   useEffect(() => {
     let mounted = true;
 
-    async function init() {
-      try {
-        const isMiniApp = await upProvider.isMiniApp;
-        if (!mounted) return;
-        if (isMiniApp) {
-          updateFromProvider();
-        }
-      } catch {
-        // Not in mini-app context
-      }
+    function sync() {
+      if (!mounted) return;
+      updateFromProvider();
     }
 
-    init();
-    updateFromProvider();
+    sync();
 
-    const onAccountsChanged = () => {
-      if (mounted) updateFromProvider();
-    };
-    const onContextAccountsChanged = () => {
-      if (mounted) updateFromProvider();
-    };
+    const onAccountsChanged = () => sync();
+    const onContextAccountsChanged = () => sync();
     const onChainChanged = () => {
       if (mounted) setChainId(upProvider.chainId ?? 4201);
     };
+    const onInitialized = () => sync();
 
     upProvider.on("accountsChanged", onAccountsChanged);
     upProvider.on("contextAccountsChanged", onContextAccountsChanged);
     upProvider.on("chainChanged", onChainChanged);
+    upProvider.on("initialized", onInitialized);
+
+    upProvider.resume(500);
+
+    const poll = setInterval(sync, 1000);
+    const stop = setTimeout(() => clearInterval(poll), 5000);
 
     return () => {
       mounted = false;
+      clearInterval(poll);
+      clearTimeout(stop);
       upProvider.removeListener("accountsChanged", onAccountsChanged);
       upProvider.removeListener("contextAccountsChanged", onContextAccountsChanged);
       upProvider.removeListener("chainChanged", onChainChanged);
+      upProvider.removeListener("initialized", onInitialized);
     };
   }, [updateFromProvider]);
 

@@ -32,7 +32,7 @@ Per [LUKSO: Setting Your Grid](https://docs.lukso.tech/learn/mini-apps/setting-y
           "height": 3,
           "type": "IFRAME",
           "properties": {
-            "src": "https://frontend-miniapp-ecjay12s-projects.vercel.app",
+            "src": "https://frontend-miniapp-ecjay12s-projects.vercel.app/?address=0xYOUR_UP_ADDRESS",
             "allow": "accelerometer; autoplay; clipboard-write",
             "sandbox": "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
             "allowfullscreen": true,
@@ -44,6 +44,8 @@ Per [LUKSO: Setting Your Grid](https://docs.lukso.tech/learn/mini-apps/setting-y
   ]
 }
 ```
+
+Replace `0xYOUR_UP_ADDRESS` with your Universal Profile address. This provides a fallback when `contextAccounts` from the parent is delayed. On universaleverything.io, `contextAccounts` is also passed automatically.
 
 2. Encode as VerifiableURI and set via `setData(bytes32,bytes)` on your Universal Profile. Use `@erc725/erc725.js` and the LSP28 schema (data key `keccak256('LSP28TheGrid')`).
 

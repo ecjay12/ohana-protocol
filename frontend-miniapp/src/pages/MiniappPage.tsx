@@ -4,7 +4,7 @@
  * @see https://docs.lukso.tech/learn/mini-apps/connect-upprovider/
  * @see https://docs.lukso.tech/learn/mini-apps/setting-your-grid/
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUPProvider } from "@/hooks/useUPProvider";
 import { useHostAddress } from "@/hooks/useHostAddress";
@@ -64,18 +64,32 @@ function NoProfileSetup() {
 
         <p className="mb-2 text-xs font-medium text-theme-text">Or add to your LSP28 Grid:</p>
         <code className="mb-4 block break-all rounded bg-theme-surface-strong px-3 py-2 text-xs text-theme-text">
-          {baseUrl}
+          {baseUrl}/?address=0xYourUP
         </code>
         <p className="text-xs text-theme-text-dim">
-          When visitors view your profile on{" "}
+          Use <code className="rounded bg-theme-surface-strong px-1">?address=0xYourUP</code> in the iframe src so the profile loads even if context is delayed.{" "}
           <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
             universaleverything.io
-          </a>
-          , the profile comes from context.{" "}
+          </a>{" "}
+          passes context automatically.{" "}
           <a href="https://docs.lukso.tech/learn/mini-apps/setting-your-grid/" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
             LUKSO docs
           </a>
         </p>
+      </div>
+    </div>
+  );
+}
+
+const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+function GridLoading() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="glass-card max-w-md rounded-2xl p-8 text-center">
+        <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake</h1>
+        <p className="text-sm text-theme-text-muted">Loading profile from LUKSO…</p>
+        <p className="mt-2 text-xs text-theme-text-dim">Connecting to parent page</p>
       </div>
     </div>
   );
@@ -91,6 +105,17 @@ export function MiniappPage() {
   const injectedWallet = useInjectedWallet();
   const effectiveChainId = isInUPContext ? upChainId : ([42, 4201].includes(chainId) ? chainId : injectedWallet.chainId);
 
+  const [waitingForContext, setWaitingForContext] = useState(inIframe && !profileAddress);
+
+  useEffect(() => {
+    if (!inIframe || profileAddress) {
+      setWaitingForContext(false);
+      return;
+    }
+    const t = setTimeout(() => setWaitingForContext(false), 4000);
+    return () => clearTimeout(t);
+  }, [profileAddress]);
+
   const { received, given, loading, error, refetch } = useHandshakeReadOnly(
     effectiveChainId,
     profileAddress
@@ -98,9 +123,8 @@ export function MiniappPage() {
   const { profile } = useProfileData(effectiveChainId, profileAddress);
 
   if (!profileAddress) {
-    return (
-      <NoProfileSetup />
-    );
+    if (waitingForContext) return <GridLoading />;
+    return <NoProfileSetup />;
   }
 
   if (error) {

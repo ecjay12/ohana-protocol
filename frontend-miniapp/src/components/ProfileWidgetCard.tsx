@@ -77,13 +77,14 @@ export function ProfileWidgetCard({
     chains,
   } = injectedWallet;
 
-  const useUP = upProviderContext?.isInUPContext && upProviderContext?.isConnected;
+  const isInUPContext = upProviderContext?.isInUPContext ?? false;
+  const useUP = isInUPContext;
   const account = useUP ? (upProviderContext?.account ?? null) : (accounts[0] ?? null);
   const provider = useUP ? upProviderContext?.provider : injProvider;
   const chainId = useUP ? (upProviderContext?.chainId ?? 4201) : injChainId;
-  const isConnected = useUP || injConnected;
+  const isConnected = useUP ? (upProviderContext?.isConnected ?? false) : injConnected;
   const { vouch, removeVouch, getVouch, txPending, error: handshakeError, isSupported } = useHandshake(
-    provider,
+    provider ?? null,
     chainId,
     isConnected ? account : null
   );
@@ -163,21 +164,27 @@ export function ProfileWidgetCard({
 
       <>
         {!isConnected ? (
-            <div className="flex w-full flex-col items-center gap-2">
-              <p className="text-center text-xs text-theme-text-muted">
-                Sign in to vouch for this profile
+            isInUPContext ? (
+              <p className="text-center text-sm text-theme-text-muted">
+                Sign in on the page above to vouch for this profile.
               </p>
-              <WalletConnect
-                isConnected={false}
-                account={null}
-                availableWallets={availableWallets}
-                error={walletError}
-                onConnect={connect}
-                onConnectWith={connectWith}
-                onDisconnect={disconnect}
-                className="w-full justify-center"
-              />
-            </div>
+            ) : (
+              <div className="flex w-full flex-col items-center gap-2">
+                <p className="text-center text-xs text-theme-text-muted">
+                  Sign in to vouch for this profile
+                </p>
+                <WalletConnect
+                  isConnected={false}
+                  account={null}
+                  availableWallets={availableWallets}
+                  error={walletError}
+                  onConnect={connect}
+                  onConnectWith={connectWith}
+                  onDisconnect={disconnect}
+                  className="w-full justify-center"
+                />
+              </div>
+            )
           ) : (
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
