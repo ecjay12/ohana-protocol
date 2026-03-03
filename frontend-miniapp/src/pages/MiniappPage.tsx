@@ -135,7 +135,14 @@ export function MiniappPage() {
   const { contextAccount, account: upAccount, provider: upProvider, chainId: upChainId, isInUPContext, isConnected: upConnected } = useUPProvider();
   const profileAddress = useHostAddress(contextAccount);
   const injectedWallet = useInjectedWallet();
-  const effectiveChainId = isInUPContext ? upChainId : ([42, 4201].includes(chainId) ? chainId : injectedWallet.chainId);
+  // Prefer connected wallet's chain when standalone so we read from the correct network
+  const effectiveChainId = isInUPContext
+    ? upChainId
+    : injectedWallet.isConnected && [42, 4201].includes(injectedWallet.chainId)
+      ? injectedWallet.chainId
+      : [42, 4201].includes(chainId)
+        ? chainId
+        : 4201;
 
   const [waitingForContext, setWaitingForContext] = useState(inIframe && !profileAddress);
 
@@ -176,7 +183,7 @@ export function MiniappPage() {
       <div className="absolute right-0.5 top-0.5 z-10 sm:right-2 sm:top-2">
         <ThemeSwitcher />
       </div>
-      <div className={`flex flex-col items-center ${inGrid ? "min-h-0 justify-start p-0" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
+      <div className={`flex flex-col items-center ${inGrid ? "min-h-0 justify-start w-full p-2 sm:p-3" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
         <ProfileWidgetCard
           profileAddress={profileAddress}
           received={received}

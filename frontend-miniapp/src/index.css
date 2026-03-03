@@ -318,6 +318,14 @@
   background-color: var(--theme-surface-strong);
 }
 
+.bg-theme-accent {
+  background-color: var(--theme-accent);
+}
+
+.bg-theme-accent-soft {
+  background-color: var(--theme-accent-soft);
+}
+
 .text-theme-text {
   color: var(--theme-text);
 }

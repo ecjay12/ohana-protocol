@@ -49,7 +49,9 @@ export function useUPProvider(): UPProviderState {
       const acc0 = acc?.[0] ?? null;
       setContextAccount(ctx0);
       setAccount(acc0);
-      setChainId(upProvider.chainId ?? 4201);
+      const raw = upProvider.chainId ?? 4201;
+      const num = typeof raw === "string" ? (raw.startsWith("0x") ? parseInt(raw, 16) : parseInt(raw, 10)) : Number(raw);
+      setChainId(Number.isNaN(num) ? 4201 : num);
       setIsInUPContext(ctx != null && ctx.length > 0);
       if (acc0) {
         setProvider(new BrowserProvider(upProvider as unknown as import("ethers").Eip1193Provider));
@@ -87,8 +89,14 @@ export function useUPProvider(): UPProviderState {
 
     const onAccountsChanged = () => sync();
     const onContextAccountsChanged = () => sync();
-    const onChainChanged = () => {
-      if (mounted && upProvider) try { setChainId(upProvider.chainId ?? 4201); } catch { /* ignore */ }
+    const     onChainChanged = () => {
+      if (mounted && upProvider) {
+        try {
+          const raw = upProvider.chainId ?? 4201;
+          const num = typeof raw === "string" ? (raw.startsWith("0x") ? parseInt(raw, 16) : parseInt(raw, 10)) : Number(raw);
+          setChainId(Number.isNaN(num) ? 4201 : num);
+        } catch { /* ignore */ }
+      }
     };
     const onInitialized = () => sync();
 

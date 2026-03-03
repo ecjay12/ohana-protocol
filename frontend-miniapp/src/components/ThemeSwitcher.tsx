@@ -28,6 +28,14 @@ function getStoredTheme(): ThemeId {
   return "serene";
 }
 
+export function useTheme(): ThemeId {
+  const [searchParams] = useSearchParams();
+  const urlTheme = searchParams.get("theme");
+  const storedTheme = getStoredTheme();
+  const themeParam = urlTheme ?? storedTheme;
+  return THEMES.some((t) => t.id === themeParam) ? (themeParam as ThemeId) : "serene";
+}
+
 export function ThemeSwitcher({ className = "" }: { className?: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTheme = searchParams.get("theme");

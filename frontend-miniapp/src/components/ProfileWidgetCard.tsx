@@ -2,12 +2,14 @@
  * Main profile widget card: stats, Vouch/Revoke, reputation ring.
  * Supports LUKSO UP Provider (one-click when embedded) and injected wallet fallback.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
 import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL, FULL_APP_URL } from "@/config/contracts";
+import { THEME_LOGOS } from "@/config/themeLogos";
+import { useTheme } from "@/components/ThemeSwitcher";
 import type { BrowserProvider } from "ethers";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 const DOCS_URL = "https://docs.ohana.gg";
@@ -82,7 +84,7 @@ export function ProfileWidgetCard({
   const provider = useUP ? upProviderContext?.provider : injProvider;
   const chainId = useUP ? (upProviderContext?.chainId ?? 4201) : injChainId;
   const isConnected = useUP ? (upProviderContext?.isConnected ?? false) : injConnected;
-  const { vouch, removeVouch, getVouch, txPending, error: handshakeError, isSupported } = useHandshake(
+  const { vouch, removeVouch, getVouch, getIncomingPending, acceptVouch, denyVouch, txPending, error: handshakeError, isSupported } = useHandshake(
     provider ?? null,
     chainId,
     isConnected ? account : null
@@ -91,6 +93,8 @@ export function ProfileWidgetCard({
   const [canRevoke, setCanRevoke] = useState(false);
   const [vouchCategory, setVouchCategory] = useState(1);
   const [checkingRevoke, setCheckingRevoke] = useState(false);
+  const [pendingVouches, setPendingVouches] = useState<{ voucher: string; category: number }[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
 
   useEffect(() => {
     if (!account || !profileAddress) {
@@ -111,6 +115,22 @@ export function ProfileWidgetCard({
       setCanRevoke(true);
     }
   }, [handshakeError]);
+
+  const refreshPending = useCallback(() => {
+    if (!account || !profileAddress || account.toLowerCase() !== profileAddress.toLowerCase()) return;
+    setLoadingPending(true);
+    getIncomingPending(profileAddress)
+      .then(setPendingVouches)
+      .finally(() => setLoadingPending(false));
+  }, [account, profileAddress, getIncomingPending]);
+
+  useEffect(() => {
+    if (!account || !profileAddress || account.toLowerCase() !== profileAddress.toLowerCase()) {
+      setPendingVouches([]);
+      return;
+    }
+    refreshPending();
+  }, [account, profileAddress, refreshPending]);
 
   const handleVouch = async () => {
     if (!account || account.toLowerCase() === profileAddress.toLowerCase()) return;
@@ -160,35 +180,41 @@ export function ProfileWidgetCard({
 
   const inIframe = typeof window !== "undefined" && window.self !== window.top;
   const compact = inIframe;
+  const theme = useTheme();
+  const logoSrc = THEME_LOGOS[theme];
 
   return (
-    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[260px] gap-1 p-1.5" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
-      <header className={`text-center ${compact ? "mb-0 leading-tight" : ""}`}>
-        <h1 className={`font-semibold text-theme-text ${compact ? "text-xs" : "text-lg"}`}>Handshake</h1>
+    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[360px] shrink-0 self-center gap-2 p-2.5 sm:p-3" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
+      <header className={`flex flex-col items-center text-center ${compact ? "mb-0 leading-tight" : ""}`}>
+        <img
+          src={logoSrc}
+          alt="Handshake"
+          className={`object-contain ${compact ? "h-8" : "h-10"}`}
+        />
+        <h1 className={`font-semibold text-theme-text ${compact ? "text-sm" : "text-lg"}`}>Handshake</h1>
         <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Reputation Layer</p>
       </header>
 
-      <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-1.5" : "px-3 py-2"}`}>
-        <p className="text-xs text-theme-text-muted">Vouch for</p>
-        <p className={`font-medium text-theme-text truncate ${compact ? "text-xs" : "text-sm"}`} title={profileAddress}>
+      <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2.5 py-2" : "px-3 py-2"}`}>
+        <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Vouch for</p>
+        <p className="font-medium text-theme-text truncate text-sm" title={profileAddress}>
           {profileLabel}
         </p>
-        <p className="text-[10px] text-theme-text-dim font-mono">{truncateAddress(profileAddress)}</p>
+        <p className="text-[9px] font-mono text-theme-text-dim opacity-50">{truncateAddress(profileAddress)}</p>
       </div>
 
-      <div className={`flex flex-col items-center ${compact ? "gap-1" : "gap-3"}`}>
-        <div className={`flex ${compact ? "gap-3 text-xs" : "gap-4 text-sm"}`}>
-            <span>
-              <strong className="text-theme-text">{received}</strong>{" "}
-              <span className="text-theme-text-muted">Received</span>
-            </span>
-            <span>
-              <strong className="text-theme-text">{given}</strong>{" "}
-              <span className="text-theme-text-muted">Given</span>
-            </span>
-            {loading && <span className="text-theme-text-dim">·</span>}
-            {loading && <span className="text-xs text-theme-text-dim">Loading…</span>}
+      <div className={`flex flex-col items-center ${compact ? "gap-2" : "gap-3"}`}>
+        <div className={`flex w-full ${compact ? "gap-2" : "gap-4"}`}>
+          <div className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-2 text-center" : "px-4 py-3 text-center"}`}>
+            <p className={`font-semibold text-theme-text ${compact ? "text-lg" : "text-xl"}`}>{received}</p>
+            <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Received</p>
+          </div>
+          <div className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-2 text-center" : "px-4 py-3 text-center"}`}>
+            <p className={`font-semibold text-theme-text ${compact ? "text-lg" : "text-xl"}`}>{given}</p>
+            <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Given</p>
+          </div>
         </div>
+        {loading && <p className="text-[10px] text-theme-text-dim">Loading…</p>}
       </div>
 
       <>
@@ -217,9 +243,65 @@ export function ProfileWidgetCard({
           ) : (
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
-                <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
-                  Can&apos;t vouch for yourself.
-                </p>
+                <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+                  <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
+                    Can&apos;t vouch for yourself.
+                  </p>
+                  {pendingVouches.length > 0 && (
+                    <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "p-2" : "p-3"}`}>
+                      <p className={`font-medium text-theme-text ${compact ? "text-xs mb-1.5" : "text-sm mb-2"}`}>
+                        Pending vouches ({pendingVouches.length})
+                      </p>
+                      <div className={`space-y-2 ${compact ? "space-y-1.5" : ""}`}>
+                        {pendingVouches.map(({ voucher, category }) => (
+                          <div
+                            key={voucher}
+                            className={`flex flex-wrap items-center justify-between gap-2 rounded border border-theme-border bg-theme-surface px-2 py-1.5 ${compact ? "px-1.5 py-1" : ""}`}
+                          >
+                            <span className={`font-mono text-theme-text truncate ${compact ? "text-[10px]" : "text-xs"}`} title={voucher}>
+                              {voucher.slice(0, 8)}…{voucher.slice(-6)}
+                            </span>
+                            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-theme-accent bg-theme-accent-soft`}>
+                              {CATEGORIES.find((c) => c.value === category)?.label ?? "Vouch"}
+                            </span>
+                            <div className={`flex shrink-0 gap-1 ${compact ? "gap-0.5" : ""}`}>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await acceptVouch(voucher);
+                                  onRefetch();
+                                  refreshPending();
+                                }}
+                                disabled={txPending}
+                                className={`miniapp-btn-primary font-medium disabled:opacity-50 ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await denyVouch(voucher);
+                                  onRefetch();
+                                  refreshPending();
+                                }}
+                                disabled={txPending}
+                                className={`miniapp-btn-secondary border font-medium disabled:opacity-50 ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
+                              >
+                                Deny
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {loadingPending && pendingVouches.length === 0 && (
+                    <p className={`text-center text-theme-text-dim ${compact ? "text-[10px]" : "text-xs"}`}>Loading pending…</p>
+                  )}
+                  {!loadingPending && pendingVouches.length === 0 && (
+                    <p className={`text-center text-theme-text-dim ${compact ? "text-[10px]" : "text-xs"}`}>No pending vouches</p>
+                  )}
+                </div>
               ) : isSupported ? (
                 <>
                   {canRevoke ? (
@@ -307,22 +389,22 @@ export function ProfileWidgetCard({
       </div>
 
       {received > 0 && (
-        <p className={`text-center text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
+        <p className={`text-center ${compact ? "text-[9px] text-theme-text-dim opacity-70" : "text-xs text-theme-text-muted"}`}>
           {received} profile{received !== 1 ? "s" : ""} trust identity
         </p>
       )}
 
       {compact && (
-        <p className="text-center text-[10px] text-theme-text-dim">
+        <p className="text-center text-[9px] text-theme-text-dim opacity-50">
           Resize this tile in your profile Grid settings if needed.
         </p>
       )}
 
-      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1" : "gap-2 pt-3"}`}>
+      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1.5" : "gap-2 pt-3"}`}>
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
-          className={`rounded border border-theme-border bg-theme-surface text-theme-text ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"}`}
+          className={`rounded border border-theme-border bg-theme-surface text-theme-text opacity-70 ${compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-1 text-xs"}`}
           disabled={upProviderContext?.isInUPContext}
         >
           {Object.entries(chains).map(([id, c]) => (
@@ -331,14 +413,14 @@ export function ProfileWidgetCard({
             </option>
           ))}
         </select>
-        <div className={`flex text-theme-text-muted hover:text-theme-accent ${compact ? "gap-2 text-[10px]" : "gap-4 text-xs"}`}>
-          <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-muted hover:text-theme-accent">
+        <div className={`flex text-theme-text-dim hover:text-theme-accent ${compact ? "gap-2 text-[9px] opacity-60" : "gap-4 text-xs"}`}>
+          <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-dim hover:text-theme-accent">
             DOCS
           </a>
-          <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-muted hover:text-theme-accent">
+          <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-dim hover:text-theme-accent">
             SUPPORT
           </a>
-          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-muted hover:text-theme-accent">
+          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-dim hover:text-theme-accent">
             PRIVACY POLICY & TERMS
           </a>
         </div>
