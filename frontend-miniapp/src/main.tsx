@@ -4,9 +4,18 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 
-// Set default theme on load (matches Handshake full site)
-const urlParams = new URLSearchParams(window.location.search);
-const theme = urlParams.get("theme") ?? "serene";
+// Set theme on load: localStorage (persists when added to profile) > URL param > default
+const THEME_STORAGE_KEY = "ohana-miniapp-theme";
+const themes = ["serene", "dark", "light", "cyberpunk", "lyx"];
+let theme = "serene";
+try {
+  const stored = typeof window !== "undefined" && localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored && themes.includes(stored)) theme = stored;
+} catch {
+  // ignore
+}
+const urlTheme = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("theme");
+if (urlTheme && themes.includes(urlTheme)) theme = urlTheme;
 document.documentElement.setAttribute("data-theme", theme);
 if (typeof window !== "undefined" && window.self !== window.top) {
   document.documentElement.classList.add("miniapp-embedded");

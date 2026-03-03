@@ -65,7 +65,7 @@ function NoProfileSetup() {
         </div>
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
-        <p className="mb-2 text-xs font-medium text-theme-text">Add to your LSP28 Grid:</p>
+        <p className="mb-2 text-xs font-medium text-theme-text">Add to your Grid:</p>
         <Link
           to="/add-to-grid"
           className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
@@ -173,10 +173,10 @@ export function MiniappPage() {
   const inGrid = typeof window !== "undefined" && window.self !== window.top;
   return (
     <div className={`relative ${inGrid ? "min-h-0 w-full" : "min-h-screen min-h-[100dvh]"}`}>
-      <div className="absolute right-1 top-1 z-10 sm:right-2 sm:top-2">
+      <div className="absolute right-0.5 top-0.5 z-10 sm:right-2 sm:top-2">
         <ThemeSwitcher />
       </div>
-      <div className={`flex flex-col items-center p-2 sm:p-3 ${inGrid ? "justify-start min-h-0" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
+      <div className={`flex flex-col items-center ${inGrid ? "min-h-0 justify-start p-1" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
         <ProfileWidgetCard
           profileAddress={profileAddress}
           received={received}

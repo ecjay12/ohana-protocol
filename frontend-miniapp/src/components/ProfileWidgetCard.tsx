@@ -155,10 +155,10 @@ export function ProfileWidgetCard({
   const compact = inIframe;
 
   return (
-    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[280px] gap-2 p-3" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
-      <header className={`text-center ${compact ? "mb-0" : ""}`}>
-        <h1 className={`font-semibold text-theme-text ${compact ? "text-sm" : "text-lg"}`}>Handshake</h1>
-        <p className="text-xs text-theme-text-muted">Reputation Layer</p>
+    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[260px] gap-1.5 p-2" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
+      <header className={`text-center ${compact ? "mb-0 leading-tight" : ""}`}>
+        <h1 className={`font-semibold text-theme-text ${compact ? "text-xs" : "text-lg"}`}>Handshake</h1>
+        <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Reputation Layer</p>
       </header>
 
       <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-1.5" : "px-3 py-2"}`}>
@@ -290,7 +290,7 @@ export function ProfileWidgetCard({
 
       <div className={`flex flex-col items-center ${compact ? "gap-1" : "gap-2"}`}>
         <a
-          href={`${FULL_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
+          href={FULL_APP_URL}
           target="_blank"
           rel="noopener noreferrer"
           className={`flex items-center justify-center gap-1 text-theme-accent hover:underline ${compact ? "text-xs" : "text-sm"}`}
@@ -322,7 +322,7 @@ export function ProfileWidgetCard({
         </p>
       )}
 
-      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-2" : "gap-2 pt-3"}`}>
+      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1.5" : "gap-2 pt-3"}`}>
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
