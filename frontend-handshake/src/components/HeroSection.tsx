@@ -89,15 +89,13 @@ export function HeroSection({
             variants={item}
             className="text-3xl font-bold tracking-tight text-theme-text md:text-4xl lg:text-5xl"
           >
-            One vouch count.
-            <br />
-            <span className="text-theme-accent">Every identity.</span>
+            One Vouch. <span className="text-theme-accent">Infinite Trust.</span>
           </motion.h1>
           <motion.p
             variants={item}
             className="mt-4 max-w-lg text-base text-theme-text-muted md:text-lg"
           >
-            Ohana Handshake is the vouch layer for Web3. Get vouched, vouch for others, and build verifiable on-chain reputation.
+            Build, earn, and carry your real on-chain reputation across Web3.
           </motion.p>
 
           <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-4">

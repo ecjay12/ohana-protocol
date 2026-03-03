@@ -327,7 +327,7 @@ function App() {
     });
   }, [vouchersForMe, vouchStatuses]);
 
-  const handleVouch = async (address: string, category: number, _message?: string) => {
+  const handleVouch = async (address: string, category: number) => {
     await vouch(address, category);
     refresh();
     showToast("Vouch sent! They'll see it in their pending list.", { type: "success" });
@@ -455,7 +455,7 @@ function App() {
             onSwitchChain={switchChain}
             onDisconnect={disconnect}
           >
-            <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 md:px-6">
+            <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:space-y-8 sm:px-4 sm:py-8 md:px-6">
         <HeroSection
           isConnected={isConnected}
           account={account}
@@ -491,7 +491,7 @@ function App() {
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between gap-4 rounded-xl border border-theme-accent bg-theme-accent-soft px-4 py-3"
+                className="flex flex-col gap-3 rounded-xl border border-theme-accent bg-theme-accent-soft px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4"
               >
                 <p className="text-sm text-theme-text">
                   You have {incoming.length} pending vouch{incoming.length !== 1 ? "es" : ""}. Accept or deny in Pending vouches below.
@@ -499,7 +499,7 @@ function App() {
                 <button
                   type="button"
                   onClick={() => setPendingBannerDismissed(true)}
-                  className="shrink-0 rounded-lg px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-surface-strong hover:text-theme-text"
+                  className="shrink-0 self-start rounded-lg px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-surface-strong hover:text-theme-text sm:self-auto"
                 >
                   Dismiss
                 </button>
@@ -542,7 +542,7 @@ function App() {
                 )}
               </motion.div>
             )}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
               <VouchCard
                 feeLabel={feeLabel}
                 categories={CATEGORIES}

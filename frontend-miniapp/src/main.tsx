@@ -8,6 +8,9 @@ import App from "./App";
 const urlParams = new URLSearchParams(window.location.search);
 const theme = urlParams.get("theme") ?? "serene";
 document.documentElement.setAttribute("data-theme", theme);
+if (typeof window !== "undefined" && window.self !== window.top) {
+  document.documentElement.classList.add("miniapp-embedded");
+}
 
 // Suppress "No UP found" from @lukso/up-provider when not in a LUKSO parent (e.g. standalone/Vercel preview)
 if (typeof window !== "undefined") {

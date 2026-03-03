@@ -8,7 +8,8 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "frame-ancestors *" }
+        { "key": "Content-Security-Policy", "value": "frame-ancestors *" },
+        { "key": "Permissions-Policy", "value": "display-capture=*, fullscreen=*, picture-in-picture=*" }
       ]
     }
   ]

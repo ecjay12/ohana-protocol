@@ -170,12 +170,13 @@ export function MiniappPage() {
     );
   }
 
+  const inGrid = typeof window !== "undefined" && window.self !== window.top;
   return (
-    <div className="relative min-h-screen min-h-[100dvh]">
-      <div className="absolute right-2 top-2 z-10 sm:right-4 sm:top-4">
+    <div className={`relative ${inGrid ? "min-h-0 w-full" : "min-h-screen min-h-[100dvh]"}`}>
+      <div className="absolute right-1 top-1 z-10 sm:right-2 sm:top-2">
         <ThemeSwitcher />
       </div>
-      <div className="flex min-h-screen min-h-[100dvh] flex-col items-center justify-center p-3 sm:p-6">
+      <div className={`flex flex-col items-center p-2 sm:p-3 ${inGrid ? "justify-start min-h-0" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
         <ProfileWidgetCard
           profileAddress={profileAddress}
           received={received}

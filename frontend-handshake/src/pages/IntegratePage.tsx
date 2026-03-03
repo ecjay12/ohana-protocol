@@ -60,7 +60,7 @@ export function IntegratePage() {
       onSwitchChain={wallet.switchChain}
       onDisconnect={wallet.disconnect}
     >
-      <div className="mx-auto max-w-4xl space-y-10 px-4 py-8 md:px-6">
+      <div className="mx-auto max-w-4xl space-y-8 px-3 py-6 sm:space-y-10 sm:px-4 sm:py-8 md:px-6">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm text-theme-text-muted transition-colors hover:text-theme-text"

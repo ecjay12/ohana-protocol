@@ -7,11 +7,9 @@ import { Link } from "react-router-dom";
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
-import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL } from "@/config/contracts";
+import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL, FULL_APP_URL } from "@/config/contracts";
 import type { BrowserProvider } from "ethers";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
-
-const HANDSHAKE_APP_URL = "https://handshake.ohana.gg";
 const DOCS_URL = "https://docs.ohana.gg";
 const SUPPORT_URL = "https://discord.gg/ohana";
 const PRIVACY_URL = "https://ohana.gg/privacy";
@@ -153,23 +151,26 @@ export function ProfileWidgetCard({
     }
   };
 
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  const compact = inIframe;
+
   return (
-    <div className="miniapp-card glass-card flex w-full max-w-md flex-col gap-4 rounded-2xl p-4 sm:p-5">
-      <header className="text-center">
-        <h1 className="text-lg font-semibold text-theme-text">Handshake</h1>
+    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[280px] gap-2 p-3" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
+      <header className={`text-center ${compact ? "mb-0" : ""}`}>
+        <h1 className={`font-semibold text-theme-text ${compact ? "text-sm" : "text-lg"}`}>Handshake</h1>
         <p className="text-xs text-theme-text-muted">Reputation Layer</p>
       </header>
 
-      <div className="rounded-lg border border-theme-border bg-theme-surface-strong/50 px-3 py-2">
+      <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-1.5" : "px-3 py-2"}`}>
         <p className="text-xs text-theme-text-muted">Vouch for</p>
-        <p className="font-medium text-theme-text text-sm truncate" title={profileAddress}>
+        <p className={`font-medium text-theme-text truncate ${compact ? "text-xs" : "text-sm"}`} title={profileAddress}>
           {profileLabel}
         </p>
-        <p className="text-xs text-theme-text-dim font-mono">{truncateAddress(profileAddress)}</p>
+        <p className="text-[10px] text-theme-text-dim font-mono">{truncateAddress(profileAddress)}</p>
       </div>
 
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex gap-4 text-sm">
+      <div className={`flex flex-col items-center ${compact ? "gap-1" : "gap-3"}`}>
+        <div className={`flex ${compact ? "gap-3 text-xs" : "gap-4 text-sm"}`}>
             <span>
               <strong className="text-theme-text">{received}</strong>{" "}
               <span className="text-theme-text-muted">Received</span>
@@ -186,12 +187,12 @@ export function ProfileWidgetCard({
       <>
         {!isConnected ? (
             isInUPContext ? (
-              <p className="text-center text-sm text-theme-text-muted">
+              <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
                 Sign in on the page above to vouch for this profile.
               </p>
             ) : (
-              <div className="flex w-full flex-col items-center gap-2">
-                <p className="text-center text-xs text-theme-text-muted">
+              <div className={`flex w-full flex-col items-center ${compact ? "gap-1" : "gap-2"}`}>
+                <p className={`text-center text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
                   Sign in to vouch for this profile
                 </p>
                 <WalletConnect
@@ -209,12 +210,12 @@ export function ProfileWidgetCard({
           ) : (
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-center text-sm text-theme-text-muted">
+                <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+                  <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
                     This is your profile. Add Handshake to your LUKSO Grid so visitors can vouch for you.
                   </p>
-                  <div className="rounded-lg border border-theme-border bg-theme-surface-strong/50 px-3 py-2">
-                    <p className="mb-2 text-xs font-medium text-theme-text-muted">URL for your Grid iframe:</p>
+                  <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-1.5" : "px-3 py-2"}`}>
+                    <p className={`font-medium text-theme-text-muted ${compact ? "mb-1 text-[10px]" : "mb-2 text-xs"}`}>URL for your Grid iframe:</p>
                     <div className="flex items-center gap-2">
                       <code className="flex-1 truncate text-xs text-theme-text" title={gridUrl}>
                         {gridUrl}
@@ -228,7 +229,7 @@ export function ProfileWidgetCard({
                         {copied ? "Copied" : "Copy"}
                       </button>
                     </div>
-                    <p className="mt-2 text-xs text-theme-text-dim">
+                    <p className={`text-theme-text-dim ${compact ? "mt-1 text-[10px]" : "mt-2 text-xs"}`}>
                       Go to{" "}
                       <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
                         universaleverything.io
@@ -239,12 +240,12 @@ export function ProfileWidgetCard({
                 </div>
               ) : isSupported ? (
                 <>
-                  <div className="flex gap-2">
+                  <div className={`flex ${compact ? "gap-1.5" : "gap-2"}`}>
                     <button
                       type="button"
                       onClick={handleVouch}
                       disabled={txPending}
-                      className="miniapp-btn-primary flex-1 rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
+                      className={`miniapp-btn-primary flex-1 font-medium disabled:opacity-50 ${compact ? "rounded px-2 py-1.5 text-xs" : "rounded-lg px-4 py-2.5"}`}
                     >
                       {txPending ? "Confirming…" : `Vouch (${feeDisplay.amount} ${feeDisplay.symbol})`}
                     </button>
@@ -253,18 +254,18 @@ export function ProfileWidgetCard({
                         type="button"
                         onClick={handleRevoke}
                         disabled={txPending || checkingRevoke}
-                        className="miniapp-btn-secondary rounded-lg border px-4 py-2.5 font-medium disabled:opacity-50"
+                        className={`miniapp-btn-secondary border font-medium disabled:opacity-50 ${compact ? "rounded px-2 py-1.5 text-xs" : "rounded-lg border px-4 py-2.5"}`}
                       >
                         Revoke
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-theme-text-muted">Category:</label>
+                  <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
+                    <label className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Category:</label>
                     <select
                       value={vouchCategory}
                       onChange={(e) => setVouchCategory(Number(e.target.value))}
-                      className="rounded border border-theme-border bg-theme-surface px-2 py-1 text-sm text-theme-text"
+                      className={`rounded border border-theme-border bg-theme-surface text-theme-text ${compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-1 text-sm"}`}
                     >
                       {CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>
@@ -275,7 +276,7 @@ export function ProfileWidgetCard({
                   </div>
                 </>
               ) : (
-                <p className="text-center text-sm text-theme-text-muted">
+                <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
                   Switch to LUKSO or LUKSO Testnet to vouch.
                 </p>
               )}
@@ -283,31 +284,31 @@ export function ProfileWidgetCard({
           )}
 
         {(handshakeError || walletError) && (
-          <p className="text-center text-sm text-red-500">{handshakeError ?? walletError}</p>
+          <p className={`text-center text-red-500 ${compact ? "text-xs" : "text-sm"}`}>{handshakeError ?? walletError}</p>
         )}
       </>
 
-      <div className="flex flex-col items-center gap-2">
+      <div className={`flex flex-col items-center ${compact ? "gap-1" : "gap-2"}`}>
         <a
-          href={`${HANDSHAKE_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
+          href={`${FULL_APP_URL}/?address=${encodeURIComponent(profileAddress)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 text-sm text-theme-accent hover:underline"
+          className={`flex items-center justify-center gap-1 text-theme-accent hover:underline ${compact ? "text-xs" : "text-sm"}`}
         >
           View vouch activity
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
         </a>
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-1" : "gap-2"}`}>
           <Link
             to="/add-to-grid"
-            className="miniapp-btn-primary flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+            className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
           >
             Add to my profile
           </Link>
           <button
             type="button"
             onClick={handleCopyGridUrl}
-            className="miniapp-btn-secondary flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+            className={`miniapp-btn-secondary flex items-center gap-1 font-medium ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
           >
             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             {copied ? "Copied" : "Copy URL"}
@@ -316,16 +317,16 @@ export function ProfileWidgetCard({
       </div>
 
       {received > 0 && (
-        <p className="text-center text-xs text-theme-text-muted">
+        <p className={`text-center text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
           {received} profile{received !== 1 ? "s" : ""} trust identity
         </p>
       )}
 
-      <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-theme-border pt-3">
+      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-2" : "gap-2 pt-3"}`}>
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
-          className="rounded border border-theme-border bg-theme-surface px-2 py-1 text-xs text-theme-text"
+          className={`rounded border border-theme-border bg-theme-surface text-theme-text ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-xs"}`}
           disabled={upProviderContext?.isInUPContext}
         >
           {Object.entries(chains).map(([id, c]) => (
@@ -334,7 +335,7 @@ export function ProfileWidgetCard({
             </option>
           ))}
         </select>
-        <div className="flex gap-4 text-xs">
+        <div className={`flex text-theme-text-muted hover:text-theme-accent ${compact ? "gap-2 text-[10px]" : "gap-4 text-xs"}`}>
           <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-muted hover:text-theme-accent">
             DOCS
           </a>

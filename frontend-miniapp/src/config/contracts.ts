@@ -5,7 +5,10 @@
 import chainConfig from "@shared/chainConfig.json";
 
 /** Production miniapp URL for Grid iframe src (use when copying "Add to profile" link). */
-export const MINIAPP_PRODUCTION_URL = "https://frontend-miniapp-ecjay12s-projects.vercel.app";
+export const MINIAPP_PRODUCTION_URL = "https://frontend-miniapp-rho.vercel.app";
+
+/** Full Handshake app URL — "View vouch activity" link (deployed at ohana-protocol.vercel.app). */
+export const FULL_APP_URL = "https://ohana-protocol.vercel.app";
 
 const rawAddresses = chainConfig.handshakeAddresses as Record<string, string>;
 export const HANDSHAKE_ADDRESSES: Record<number, string> = Object.fromEntries(

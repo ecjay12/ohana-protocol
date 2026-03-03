@@ -31,7 +31,7 @@ function buildGridJson(upAddress: string): string {
         grid: [
           {
             width: 2,
-            height: 3,
+            height: 2,
             type: "IFRAME",
             properties: {
               src: `${MINIAPP_PRODUCTION_URL}/?address=${upAddress}`,

@@ -354,6 +354,12 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* When embedded in LUKSO Grid: compact, no forced full viewport */
+html.miniapp-embedded body {
+  min-height: 0;
+  height: auto;
+}
+
 body > * {
   position: relative;
   z-index: 1;
