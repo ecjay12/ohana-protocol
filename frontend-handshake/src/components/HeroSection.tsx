@@ -3,10 +3,12 @@
  */
 
 import { motion } from "framer-motion";
-import { Handshake, ArrowRight, Shield, Users } from "lucide-react";
+import { ArrowRight, Shield, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GlowButton } from "./GlowButton";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
+import { useTheme } from "@/contexts/ThemeContext";
+import { THEME_LOGOS } from "@/config/themeLogos";
 
 interface HeroSectionProps {
   isConnected?: boolean;
@@ -48,6 +50,9 @@ export function HeroSection({
   availableWallets = [],
   hasInjected = false,
 }: HeroSectionProps) {
+  const { theme } = useTheme();
+  const logoSrc = THEME_LOGOS[theme];
+
   return (
     <section className="relative overflow-hidden rounded-2xl border border-theme-border bg-theme-surface px-6 py-12 md:px-12 md:py-16 lg:py-20">
       {/* Background accents */}
@@ -138,7 +143,13 @@ export function HeroSection({
                     disabled={!hasInjected}
                     className="inline-flex items-center gap-2"
                   >
-                    <Handshake className="h-4 w-4" />
+                    {logoSrc && (
+                      <img
+                        src={logoSrc}
+                        alt="Handshake logo"
+                        className="h-4 w-4 rounded"
+                      />
+                    )}
                     {hasInjected ? "Connect wallet" : "No wallet found"}
                   </GlowButton>
                 )}
@@ -178,7 +189,15 @@ export function HeroSection({
               className="absolute inset-0 rounded-full bg-theme-accent/20 blur-2xl"
             />
             <div className="relative flex h-32 w-32 items-center justify-center rounded-2xl border border-theme-border bg-theme-surface-strong md:h-40 md:w-40">
-              <Handshake className="h-16 w-16 text-theme-accent md:h-20 md:w-20" strokeWidth={1.5} />
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt="Handshake logo"
+                  className="h-16 w-16 md:h-20 md:w-20"
+                />
+              ) : (
+                <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-theme-accent" />
+              )}
             </div>
           </div>
         </motion.div>
