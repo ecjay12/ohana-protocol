@@ -70,7 +70,8 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
   }, [provider, address]);
 
   useEffect(() => {
-    const c = contract ?? readOnlyContract;
+    // Prefer readOnlyContract for fee: UP Provider returns raw RPC format that ethers can't parse
+    const c = readOnlyContract ?? contract;
     if (!c) {
       // #region agent log
       _dbg("useHandshake.ts:feeEffect:noContract", "no contract for fee", {
@@ -143,12 +144,13 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
           setTxPending(false);
           return;
         }
-        // Read fee from contract at call time so we never send 0 (matches frontend behavior)
+        // Read fee from readOnlyContract (JsonRpcProvider): UP Provider returns raw RPC format ethers can't parse
+        const feeContract = readOnlyContract ?? c;
         let currentFee: bigint;
         try {
-          currentFee = await c.fee();
+          currentFee = await feeContract.fee();
           // #region agent log
-          _dbg("useHandshake.ts:vouch:feeOk", "c.fee() succeeded", {
+          _dbg("useHandshake.ts:vouch:feeOk", "feeContract.fee() succeeded", {
             hypothesisId: "H1,H5",
             currentFee: currentFee.toString(),
             currentFeeHex: "0x" + currentFee.toString(16),
@@ -157,7 +159,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         } catch (feeErr) {
           currentFee = fee;
           // #region agent log
-          _dbg("useHandshake.ts:vouch:feeFallback", "c.fee() failed, using closure", {
+          _dbg("useHandshake.ts:vouch:feeFallback", "feeContract.fee() failed, using closure", {
             hypothesisId: "H1,H4",
             feeErr: feeErr instanceof Error ? feeErr.message : String(feeErr),
             fallbackFee: fee.toString(),
@@ -181,7 +183,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         setTxPending(false);
       }
     },
-    [getSignerContract, fee, account, chainId, address]
+    [getSignerContract, readOnlyContract, fee, account, chainId, address]
   );
 
   const removeVouch = useCallback(
