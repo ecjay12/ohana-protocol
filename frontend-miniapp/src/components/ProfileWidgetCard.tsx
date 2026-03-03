@@ -105,6 +105,13 @@ export function ProfileWidgetCard({
       .finally(() => setCheckingRevoke(false));
   }, [account, profileAddress, getVouch]);
 
+  // If contract reverts with "already vouched", sync canRevoke so UI shows correct state (e.g. when getVouch failed in embedded context)
+  useEffect(() => {
+    if (handshakeError?.toLowerCase().includes("already vouched")) {
+      setCanRevoke(true);
+    }
+  }, [handshakeError]);
+
   const handleVouch = async () => {
     if (!account || account.toLowerCase() === profileAddress.toLowerCase()) return;
     try {
@@ -215,16 +222,11 @@ export function ProfileWidgetCard({
                 </p>
               ) : isSupported ? (
                 <>
-                  <div className={`flex ${compact ? "gap-1.5" : "gap-2"}`}>
-                    <button
-                      type="button"
-                      onClick={handleVouch}
-                      disabled={txPending}
-                      className={`miniapp-btn-primary flex-1 font-medium disabled:opacity-50 ${compact ? "rounded px-2 py-1.5 text-xs" : "rounded-lg px-4 py-2.5"}`}
-                    >
-                      {txPending ? "Confirming…" : `Vouch (${feeDisplay.amount} ${feeDisplay.symbol})`}
-                    </button>
-                    {canRevoke && (
+                  {canRevoke ? (
+                    <div className={`flex flex-col ${compact ? "gap-1" : "gap-2"}`}>
+                      <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
+                        You&apos;ve already vouched for this profile.
+                      </p>
                       <button
                         type="button"
                         onClick={handleRevoke}
@@ -233,22 +235,35 @@ export function ProfileWidgetCard({
                       >
                         Revoke
                       </button>
-                    )}
-                  </div>
-                  <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
-                    <label className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Category:</label>
-                    <select
-                      value={vouchCategory}
-                      onChange={(e) => setVouchCategory(Number(e.target.value))}
-                      className={`rounded border border-theme-border bg-theme-surface text-theme-text ${compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-1 text-sm"}`}
-                    >
-                      {CATEGORIES.map((c) => (
-                        <option key={c.value} value={c.value}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    </div>
+                  ) : (
+                    <div className={`flex ${compact ? "gap-1.5" : "gap-2"}`}>
+                      <button
+                        type="button"
+                        onClick={handleVouch}
+                        disabled={txPending}
+                        className={`miniapp-btn-primary flex-1 font-medium disabled:opacity-50 ${compact ? "rounded px-2 py-1.5 text-xs" : "rounded-lg px-4 py-2.5"}`}
+                      >
+                        {txPending ? "Confirming…" : `Vouch (${feeDisplay.amount} ${feeDisplay.symbol})`}
+                      </button>
+                    </div>
+                  )}
+                  {!canRevoke && (
+                    <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
+                      <label className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Category:</label>
+                      <select
+                        value={vouchCategory}
+                        onChange={(e) => setVouchCategory(Number(e.target.value))}
+                        className={`rounded border border-theme-border bg-theme-surface text-theme-text ${compact ? "px-1.5 py-0.5 text-xs" : "px-2 py-1 text-sm"}`}
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
