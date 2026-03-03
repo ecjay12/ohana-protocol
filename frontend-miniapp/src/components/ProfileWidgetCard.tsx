@@ -155,7 +155,7 @@ export function ProfileWidgetCard({
   const compact = inIframe;
 
   return (
-    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[260px] gap-1.5 p-2" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
+    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[260px] gap-1 p-1.5" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
       <header className={`text-center ${compact ? "mb-0 leading-tight" : ""}`}>
         <h1 className={`font-semibold text-theme-text ${compact ? "text-xs" : "text-lg"}`}>Handshake</h1>
         <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Reputation Layer</p>
@@ -210,34 +210,9 @@ export function ProfileWidgetCard({
           ) : (
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
-                <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
-                  <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
-                    This is your profile. Add Handshake to your LUKSO Grid so visitors can vouch for you.
-                  </p>
-                  <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-1.5" : "px-3 py-2"}`}>
-                    <p className={`font-medium text-theme-text-muted ${compact ? "mb-1 text-[10px]" : "mb-2 text-xs"}`}>URL for your Grid iframe:</p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 truncate text-xs text-theme-text" title={gridUrl}>
-                        {gridUrl}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={handleCopyGridUrl}
-                        className="miniapp-btn-secondary flex shrink-0 items-center gap-1 rounded px-2 py-1.5 text-xs font-medium"
-                      >
-                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {copied ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                    <p className={`text-theme-text-dim ${compact ? "mt-1 text-[10px]" : "mt-2 text-xs"}`}>
-                      Go to{" "}
-                      <a href="https://universaleverything.io" target="_blank" rel="noopener noreferrer" className="text-theme-accent hover:underline">
-                        universaleverything.io
-                      </a>
-                      , open your profile → Edit Grid → Add IFRAME widget → paste this URL → Save. Approve the transaction in your wallet to complete.
-                    </p>
-                  </div>
-                </div>
+                <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
+                  Can&apos;t vouch for yourself.
+                </p>
               ) : isSupported ? (
                 <>
                   <div className={`flex ${compact ? "gap-1.5" : "gap-2"}`}>
@@ -322,7 +297,13 @@ export function ProfileWidgetCard({
         </p>
       )}
 
-      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1.5" : "gap-2 pt-3"}`}>
+      {compact && (
+        <p className="text-center text-[10px] text-theme-text-dim">
+          Resize this tile in your profile Grid settings if needed.
+        </p>
+      )}
+
+      <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1" : "gap-2 pt-3"}`}>
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}

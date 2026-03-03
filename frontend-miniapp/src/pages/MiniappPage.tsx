@@ -176,7 +176,7 @@ export function MiniappPage() {
       <div className="absolute right-0.5 top-0.5 z-10 sm:right-2 sm:top-2">
         <ThemeSwitcher />
       </div>
-      <div className={`flex flex-col items-center ${inGrid ? "min-h-0 justify-start p-1" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
+      <div className={`flex flex-col items-center ${inGrid ? "min-h-0 justify-start p-0" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"}`}>
         <ProfileWidgetCard
           profileAddress={profileAddress}
           received={received}

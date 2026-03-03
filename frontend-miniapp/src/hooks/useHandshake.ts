@@ -85,7 +85,9 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
           setTxPending(false);
           return;
         }
-        const tx = await c.vouch(normalizedTarget, category, { value: fee });
+        // Read fee from contract at call time so we never send 0 (matches frontend behavior)
+        const currentFee = await c.fee().catch(() => fee);
+        const tx = await c.vouch(normalizedTarget, category, { value: currentFee });
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
