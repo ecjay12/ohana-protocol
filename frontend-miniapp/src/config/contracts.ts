@@ -4,8 +4,11 @@
  */
 import chainConfig from "@shared/chainConfig.json";
 
-/** Production miniapp URL for Grid iframe src (use when copying "Add to profile" link). */
-export const MINIAPP_PRODUCTION_URL = "https://frontend-miniapp-rho.vercel.app";
+/** Miniapp URL for Grid iframe src. Uses current origin when in browser so the deployed project URL is always correct. */
+export const MINIAPP_PRODUCTION_URL =
+  typeof window !== "undefined" && window.location?.origin
+    ? window.location.origin
+    : "https://frontend-miniapp-rho.vercel.app";
 
 /** Full Handshake app URL — "View vouch activity" link. */
 export const FULL_APP_URL = "https://ohana-protocol.vercel.app";

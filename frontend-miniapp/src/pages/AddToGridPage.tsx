@@ -102,7 +102,7 @@ export function AddToGridPage() {
       <div className="glass-card max-w-md rounded-2xl p-8">
         <h1 className="mb-2 text-xl font-semibold text-theme-text">Add Handshake to your Grid</h1>
         <p className="mb-6 text-sm text-theme-text-muted">
-          This sets the LSP28 Grid on your Universal Profile so visitors can vouch for you.
+          This adds Handshake to your Grid on your Universal Profile so visitors can vouch for you.
         </p>
 
         {!isConnected ? (
