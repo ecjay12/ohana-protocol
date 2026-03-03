@@ -4,6 +4,8 @@ import { Sidebar } from "./Sidebar";
 import { Footer } from "@/components/Footer";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
+import { useTheme } from "@/contexts/ThemeContext";
+import { THEME_LOGOS } from "@/config/themeLogos";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -41,6 +43,8 @@ export function AppLayout({
   onDisconnect,
 }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme } = useTheme();
+  const logoSrc = THEME_LOGOS[theme];
 
   return (
     <div className="flex min-h-screen bg-theme-background">
@@ -63,7 +67,7 @@ export function AppLayout({
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col min-w-0">
-        {/* Mobile header: menu button + title */}
+        {/* Mobile header: menu button + logo + title */}
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-theme-border bg-theme-background/95 px-4 backdrop-blur sm:px-6 md:hidden">
           <button
             type="button"
@@ -73,6 +77,13 @@ export function AppLayout({
           >
             <Menu className="h-6 w-6" />
           </button>
+          {logoSrc && (
+            <img
+              src={logoSrc}
+              alt="Ohana Handshake logo"
+              className="h-6 w-6 rounded-md shadow-sm shadow-theme-shadow"
+            />
+          )}
           <span className="text-lg font-semibold text-theme-text">Handshake</span>
         </header>
         <main className="flex-1 overflow-auto bg-theme-background">

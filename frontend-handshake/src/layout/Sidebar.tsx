@@ -7,6 +7,8 @@ import { GlowButton } from "@/components/GlowButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { LookUpProfileCard } from "@/components/LookUpProfileCard";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
+import { THEME_LOGOS } from "@/config/themeLogos";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
 
@@ -49,6 +51,8 @@ export function Sidebar({
   onClose,
 }: SidebarProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const logoSrc = THEME_LOGOS[theme];
 
   useEffect(() => {
     if (mobileOpen && typeof document !== "undefined") {
@@ -149,7 +153,16 @@ export function Sidebar({
   const sidebarContent = (
     <>
       <div className="flex h-14 items-center justify-between border-b border-theme-border px-4">
-        <span className="text-lg font-semibold text-theme-text">Handshake</span>
+        <div className="flex items-center gap-2">
+          {logoSrc && (
+            <img
+              src={logoSrc}
+              alt="Ohana Handshake logo"
+              className="h-6 w-6 rounded-md shadow-sm shadow-theme-shadow"
+            />
+          )}
+          <span className="text-lg font-semibold text-theme-text">Handshake</span>
+        </div>
         {onClose && (
           <button
             type="button"
