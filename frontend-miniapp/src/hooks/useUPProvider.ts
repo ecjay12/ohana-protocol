@@ -50,7 +50,8 @@ export function useUPProvider(): UPProviderState {
       setContextAccount(ctx0);
       setAccount(acc0);
       const raw = upProvider.chainId ?? 4201;
-      const num = typeof raw === "string" ? (raw.startsWith("0x") ? parseInt(raw, 16) : parseInt(raw, 10)) : Number(raw);
+      const rawStr = String(raw);
+      const num = rawStr.startsWith("0x") ? parseInt(rawStr, 16) : Number(raw);
       setChainId(Number.isNaN(num) ? 4201 : num);
       setIsInUPContext(ctx != null && ctx.length > 0);
       if (acc0) {
@@ -93,7 +94,8 @@ export function useUPProvider(): UPProviderState {
       if (mounted && upProvider) {
         try {
           const raw = upProvider.chainId ?? 4201;
-          const num = typeof raw === "string" ? (raw.startsWith("0x") ? parseInt(raw, 16) : parseInt(raw, 10)) : Number(raw);
+          const rawStr = String(raw);
+          const num = rawStr.startsWith("0x") ? parseInt(rawStr, 16) : Number(raw);
           setChainId(Number.isNaN(num) ? 4201 : num);
         } catch { /* ignore */ }
       }
