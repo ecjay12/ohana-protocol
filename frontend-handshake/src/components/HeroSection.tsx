@@ -94,14 +94,8 @@ export function HeroSection({
             variants={item}
             className="text-3xl font-bold tracking-tight text-theme-text md:text-4xl lg:text-5xl"
           >
-            One Vouch. <span className="text-theme-accent">Infinite Trust.</span>
+            Handshake. <span className="text-theme-accent">Build, earn, and carry your real on-chain reputation across Web3.</span>
           </motion.h1>
-          <motion.p
-            variants={item}
-            className="mt-4 max-w-lg text-base text-theme-text-muted md:text-lg"
-          >
-            Build, earn, and carry your real on-chain reputation across Web3.
-          </motion.p>
 
           <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-4">
             {isConnected && account ? (
@@ -188,15 +182,15 @@ export function HeroSection({
               }}
               className="absolute inset-0 rounded-full bg-theme-accent/20 blur-2xl"
             />
-            <div className="relative flex h-32 w-32 items-center justify-center rounded-2xl border border-theme-border bg-theme-surface-strong md:h-40 md:w-40">
+            <div className="relative flex h-40 w-40 items-center justify-center rounded-2xl border border-theme-border bg-theme-surface-strong md:h-52 md:w-52">
               {logoSrc ? (
                 <img
                   src={logoSrc}
                   alt="Handshake logo"
-                  className="h-16 w-16 md:h-20 md:w-20"
+                  className="h-24 w-24 md:h-32 md:w-32"
                 />
               ) : (
-                <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-theme-accent" />
+                <div className="h-24 w-24 md:h-32 md:w-32 rounded-full bg-theme-accent" />
               )}
             </div>
           </div>

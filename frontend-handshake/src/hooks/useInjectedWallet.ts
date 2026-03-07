@@ -174,6 +174,57 @@ export function useInjectedWallet() {
     setState((s) => ({ ...s, hasInjected: getAvailableWallets().length > 0 }));
   }, []);
 
+  // Auto-reconnect on mount if wallet is already connected (eth_accounts, no prompt)
+  useEffect(() => {
+    const wallets = getAvailableWallets();
+    if (wallets.length === 0) return;
+
+    let cancelled = false;
+
+    const tryReconnect = async () => {
+      for (const wallet of wallets) {
+        if (cancelled) return;
+        try {
+          const accounts = (await wallet.provider.request({ method: "eth_accounts" })) as string[];
+          if (accounts.length > 0 && !cancelled) {
+            const chainIdHex = (await wallet.provider.request({ method: "eth_chainId" })) as string;
+            const chainId = parseInt(chainIdHex, 16);
+            const ethersProvider = new BrowserProvider(wallet.provider as unknown as Eip1193Provider);
+            setState({
+              accounts,
+              chainId,
+              isConnected: true,
+              provider: ethersProvider,
+              error: null,
+              hasInjected: true,
+            });
+            const withOn = wallet.provider as InjectedEthereum;
+            withOn.on?.("chainChanged", (id: unknown) => {
+              setState((s) => ({ ...s, chainId: typeof id === "string" ? parseInt(id, 16) : Number(id) }));
+            });
+            withOn.on?.("accountsChanged", (accs: unknown) => {
+              const list = Array.isArray(accs) ? (accs as string[]) : [];
+              setState((s) => ({
+                ...s,
+                accounts: list,
+                isConnected: list.length > 0,
+                provider: list.length > 0 ? s.provider : null,
+              }));
+            });
+            return;
+          }
+        } catch {
+          // Try next wallet
+        }
+      }
+    };
+
+    tryReconnect();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return {
     ...state,
     availableWallets,

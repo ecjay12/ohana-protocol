@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, LogOut, User, BookOpen, Info, X } from "lucide-react";
+import { LogOut, User, BookOpen, Info, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
@@ -179,10 +179,6 @@ export function Sidebar({
         <LookUpProfileCard compact />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        <Link to="/" className={navLinkClass} onClick={handleNavClick}>
-          <LayoutDashboard className="h-4 w-4" />
-          Dashboard
-        </Link>
         <Link to="/integrate" className={navLinkClass} onClick={handleNavClick}>
           <BookOpen className="h-4 w-4" />
           Integrate

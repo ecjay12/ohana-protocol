@@ -5,7 +5,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, EyeOff, Eye } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 
@@ -20,6 +20,7 @@ export interface ProfileVouchRow {
   category: number;
   status: number;
   timestamp: bigint;
+  hidden?: boolean;
 }
 
 const STATUS_LABELS: Record<number, string> = {
@@ -38,6 +39,10 @@ interface ProfileVouchHistoryCardProps {
   isConnectedProfile?: boolean;
   /** Called when user revokes a given vouch. Only shown when isConnectedProfile. */
   onRemoveVouch?: (target: string) => void | Promise<void>;
+  /** Called when user hides a received vouch. Only shown when isConnectedProfile. */
+  onHideVouch?: (voucher: string) => void | Promise<void>;
+  /** Called when user unhides a received vouch. Only shown when isConnectedProfile. */
+  onUnhideVouch?: (voucher: string) => void | Promise<void>;
   txPending?: boolean;
   disabled?: boolean;
 }
@@ -49,19 +54,31 @@ export function ProfileVouchHistoryCard({
   loading = false,
   isConnectedProfile = false,
   onRemoveVouch,
+  onHideVouch,
+  onUnhideVouch,
   txPending = false,
   disabled = false,
 }: ProfileVouchHistoryCardProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"given" | "received">("given");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const list = activeTab === "given" ? vouchesGiven : vouchesReceived;
   const filteredList = useMemo(() => {
+    let result = list;
+    // Filter hidden (for received only)
+    if (activeTab === "received") {
+      if (filterStatus === "hidden") {
+        result = result.filter((row) => row.hidden === true);
+      } else {
+        result = result.filter((row) => !row.hidden);
+      }
+    }
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((row) => row.address.toLowerCase().includes(q));
-  }, [list, searchQuery]);
+    if (!q) return result;
+    return result.filter((row) => row.address.toLowerCase().includes(q));
+  }, [list, activeTab, filterStatus, searchQuery]);
 
   const categoryLabel = (cat: number) =>
     categories.find((c) => c.value === cat)?.label ?? String(cat);
@@ -105,13 +122,23 @@ export function ProfileVouchHistoryCard({
         </button>
       </div>
 
-      <div className="mb-3">
+      <div className="mb-3 flex flex-wrap gap-2">
+        {activeTab === "received" && isConnectedProfile && (
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="select-readable rounded-lg border border-theme-border px-3 py-1.5 text-xs focus:border-theme-accent focus:outline-none"
+          >
+            <option value="all">All Status</option>
+            <option value="hidden">Hidden</option>
+          </select>
+        )}
         <input
           type="text"
           placeholder="Search by address…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent-soft"
+          className="flex-1 min-w-[140px] rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent-soft"
           aria-label="Search vouch history by address"
         />
       </div>
@@ -134,7 +161,9 @@ export function ProfileVouchHistoryCard({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.02 }}
-                className="flex flex-wrap items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-3"
+                className={`flex flex-wrap items-center gap-2 rounded-xl border p-3 ${
+                  row.hidden ? "border-amber-500/30 bg-amber-500/5" : "border-theme-border bg-theme-surface"
+                }`}
               >
                 <button
                   type="button"
@@ -162,6 +191,34 @@ export function ProfileVouchHistoryCard({
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Revoke
                   </GlowButton>
+                )}
+                {row.type === "received" && row.status === 2 && isConnectedProfile && (
+                  <div className="flex gap-2 shrink-0">
+                    {row.hidden ? (
+                      onUnhideVouch && (
+                        <GlowButton
+                          variant="secondary"
+                          disabled={disabled || txPending}
+                          onClick={() => onUnhideVouch(row.address)}
+                          className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Unhide
+                        </GlowButton>
+                      )
+                    ) : (
+                      onHideVouch && (
+                        <GlowButton
+                          variant="secondary"
+                          disabled={disabled || txPending}
+                          onClick={() => onHideVouch(row.address)}
+                        >
+                          <EyeOff className="h-3.5 w-3.5 mr-1" />
+                          Hide
+                        </GlowButton>
+                      )
+                    )}
+                  </div>
                 )}
               </motion.li>
             ))}

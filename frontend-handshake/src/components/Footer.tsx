@@ -8,12 +8,6 @@ export function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
           <Link
-            to="/"
-            className="text-theme-text-muted transition-colors hover:text-theme-accent"
-          >
-            Dashboard
-          </Link>
-          <Link
             to="/integrate"
             className="text-theme-text-muted transition-colors hover:text-theme-accent"
           >

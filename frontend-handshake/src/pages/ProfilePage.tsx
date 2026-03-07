@@ -3,7 +3,7 @@
  * Accessible via /profile/:address route.
  */
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
@@ -48,6 +48,8 @@ export function ProfilePage() {
   const {
     vouch,
     removeVouch,
+    hideVouch,
+    unhideVouch,
     txPending,
     fee,
     isSupported,
@@ -68,18 +70,27 @@ export function ProfilePage() {
     error,
   } = useProfileVouches(address || null, chainId);
 
+  const isOwnProfile =
+    normalizedAddress?.toLowerCase() === account?.toLowerCase();
+
   const profileVouchesReceived: ProfileVouchRow[] = useMemo(() => {
-    return vouchersForTarget.map((voucher) => {
+    const rows = vouchersForTarget.map((voucher) => {
       const v = vouchStatuses[voucher];
       return {
-        type: "received",
+        type: "received" as const,
         address: voucher,
         category: v?.category ?? 0,
         status: v?.status ?? 0,
         timestamp: v?.timestamp ?? 0n,
+        hidden: v?.hidden ?? false,
       };
     });
-  }, [vouchersForTarget, vouchStatuses]);
+    // Public view: exclude hidden entirely
+    if (!isOwnProfile) {
+      return rows.filter((r) => !r.hidden);
+    }
+    return rows;
+  }, [vouchersForTarget, vouchStatuses, isOwnProfile]);
 
   const profileVouchesGiven: ProfileVouchRow[] = useMemo(() => {
     return targetsVouchedBy.map((target) => {
@@ -93,6 +104,38 @@ export function ProfilePage() {
       };
     });
   }, [targetsVouchedBy, givenVouchStatuses]);
+
+  const visibleVouchCount = useMemo(
+    () =>
+      vouchersForTarget.filter((v) => !vouchStatuses[v]?.hidden).length,
+    [vouchersForTarget, vouchStatuses]
+  );
+
+  const handleHideVouch = useCallback(
+    async (voucherAddress: string) => {
+      if (!account || !provider) return;
+      try {
+        await hideVouch(voucherAddress);
+        window.location.reload();
+      } catch (e) {
+        console.error("Failed to hide vouch:", e);
+      }
+    },
+    [account, provider, hideVouch]
+  );
+
+  const handleUnhideVouch = useCallback(
+    async (voucherAddress: string) => {
+      if (!account || !provider) return;
+      try {
+        await unhideVouch(voucherAddress);
+        window.location.reload();
+      } catch (e) {
+        console.error("Failed to unhide vouch:", e);
+      }
+    },
+    [account, provider, unhideVouch]
+  );
 
   if (!normalizedAddress) {
     return (
@@ -114,8 +157,6 @@ export function ProfilePage() {
     );
   }
 
-  const isOwnProfile =
-    normalizedAddress.toLowerCase() === account?.toLowerCase();
   const feeDisplay = fee ? `${(Number(fee) / 1e18).toFixed(4)} ETH` : "—";
 
   return (
@@ -186,7 +227,7 @@ export function ProfilePage() {
           <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4">
             <p className="text-sm text-theme-text-muted">Total Vouches</p>
             <p className="text-2xl font-bold text-theme-text">
-              {vouchersForTarget.length}
+              {visibleVouchCount}
             </p>
           </div>
         </div>
@@ -206,6 +247,8 @@ export function ProfilePage() {
                   }
                 : undefined
             }
+            onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
+            onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
             txPending={txPending}
             disabled={!account || !isOwnProfile}
           />
