@@ -94,7 +94,15 @@ export function HeroSection({
             variants={item}
             className="text-3xl font-bold tracking-tight text-theme-text md:text-4xl lg:text-5xl"
           >
-            Handshake. <span className="text-theme-accent">Build, earn, and carry your real on-chain reputation across Web3.</span>
+            Handshake.{" "}
+            <motion.span
+              className="text-theme-accent"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.35, duration: 0.5 }}
+            >
+              Build, earn, and carry your real on-chain reputation across Web3.
+            </motion.span>
           </motion.h1>
 
           <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-4">

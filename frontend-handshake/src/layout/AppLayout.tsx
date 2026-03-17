@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Footer } from "@/components/Footer";
@@ -67,24 +68,29 @@ export function AppLayout({
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col min-w-0">
-        {/* Mobile header: menu button + logo + title */}
+        {/* Mobile header: menu button + logo (link to home) + title */}
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-theme-border bg-theme-background/95 px-4 backdrop-blur sm:px-6 md:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-theme-text-muted hover:bg-theme-surface hover:text-theme-text"
+            className="rounded-lg p-2 text-theme-text-muted transition-colors hover:bg-theme-surface hover:text-theme-text active:scale-95"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
           </button>
-          {logoSrc && (
-            <img
-              src={logoSrc}
-              alt="Ohana Handshake logo"
-              className="h-6 w-6 rounded-md shadow-sm shadow-theme-shadow"
-            />
-          )}
-          <span className="text-lg font-semibold text-theme-text">Handshake</span>
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-lg transition-opacity active:scale-[0.98] hover:opacity-90"
+          >
+            {logoSrc && (
+              <img
+                src={logoSrc}
+                alt="Ohana Handshake logo"
+                className="h-6 w-6 rounded-md shadow-sm shadow-theme-shadow"
+              />
+            )}
+            <span className="text-lg font-semibold text-theme-text">Handshake</span>
+          </Link>
         </header>
         <main className="flex-1 overflow-auto bg-theme-background">
           {children}

@@ -151,7 +151,7 @@ export function ProfilePage() {
           <p className="mb-4 text-sm text-theme-text-muted">
             The address format is invalid.
           </p>
-          <GlowButton onClick={() => navigate("/")}>Go to Dashboard</GlowButton>
+          <GlowButton onClick={() => navigate("/app")}>Go to App</GlowButton>
         </motion.div>
       </div>
     );
@@ -161,13 +161,13 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-theme-background">
-      <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:space-y-8 sm:px-4 sm:py-8 md:px-6">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
         <Link
-          to="/"
+          to="/app"
           className="inline-flex items-center gap-2 text-sm text-theme-text-muted transition-colors hover:text-theme-text"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          Back to App
         </Link>
 
         <ProfileHeader

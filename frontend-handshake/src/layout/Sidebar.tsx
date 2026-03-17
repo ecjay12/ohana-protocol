@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, User, BookOpen, Info, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
@@ -51,8 +51,21 @@ export function Sidebar({
   onClose,
 }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
+
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
+  const navItemClass = (path: string) =>
+    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+      isActive(path)
+        ? "bg-theme-accent-soft text-theme-accent"
+        : "text-theme-text-muted hover:bg-theme-surface hover:text-theme-text"
+    }`;
 
   useEffect(() => {
     if (mobileOpen && typeof document !== "undefined") {
@@ -61,7 +74,6 @@ export function Sidebar({
     }
   }, [mobileOpen]);
 
-  const navLinkClass = "flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-muted transition-colors hover:bg-theme-surface hover:text-theme-text";
   const handleNavClick = () => onClose?.();
   const profileBlock = (
     <div className="space-y-3 border-b border-theme-border p-3">
@@ -153,7 +165,11 @@ export function Sidebar({
   const sidebarContent = (
     <>
       <div className="flex h-14 items-center justify-between border-b border-theme-border px-4">
-        <div className="flex items-center gap-2">
+        <Link
+          to="/"
+          onClick={handleNavClick}
+          className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-90"
+        >
           {logoSrc && (
             <img
               src={logoSrc}
@@ -162,7 +178,7 @@ export function Sidebar({
             />
           )}
           <span className="text-lg font-semibold text-theme-text">Handshake</span>
-        </div>
+        </Link>
         {onClose && (
           <button
             type="button"
@@ -179,14 +195,17 @@ export function Sidebar({
         <LookUpProfileCard compact />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        <Link to="/integrate" className={navLinkClass} onClick={handleNavClick}>
-          <BookOpen className="h-4 w-4" />
-          Integrate
-        </Link>
-        <Link to="/about" className={navLinkClass} onClick={handleNavClick}>
-          <Info className="h-4 w-4" />
-          About
-        </Link>
+        {[
+          { to: "/", icon: Home, label: "Home" },
+          { to: "/app", icon: LayoutGrid, label: "App" },
+          { to: "/integrate", icon: BookOpen, label: "Integrate" },
+          { to: "/about", icon: Info, label: "About" },
+        ].map(({ to, icon: Icon, label }) => (
+          <Link key={to} to={to} className={navItemClass(to)} onClick={handleNavClick}>
+            <Icon className="h-4 w-4 shrink-0" />
+            {label}
+          </Link>
+        ))}
         <div className="mt-2 border-t border-theme-border pt-2">
           <ThemeSwitcher />
         </div>
@@ -210,7 +229,7 @@ export function Sidebar({
           />
         )}
       </AnimatePresence>
-      {/* Sidebar: drawer on mobile (slide in), static on md+ */}
+      {/* Sidebar: drawer on mobile (slide in with transition), static on md+ */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col border-r border-theme-border bg-theme-surface backdrop-blur-xl transition-transform duration-200 ease-out md:static md:inset-auto md:z-auto md:max-w-none md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"

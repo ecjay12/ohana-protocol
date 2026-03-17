@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Routes, Route, Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useInjectedWallet } from "./hooks/useInjectedWallet";
 import { useHandshake, CATEGORIES, type VouchData } from "./hooks/useHandshake";
 import { useProfileData } from "./hooks/useProfileData";
@@ -18,6 +18,7 @@ import { HistoryCard, type HistoryVouch } from "./components/HistoryCard";
 import { AcceptedVouchesCard } from "./components/AcceptedVouchesCard";
 import { GlowButton } from "./components/GlowButton";
 import { ProfilePage } from "./pages/ProfilePage";
+import { HomePage } from "./pages/HomePage";
 import { IntegratePage } from "./pages/IntegratePage";
 import { BadgePage } from "./pages/BadgePage";
 import { EmbedPage } from "./pages/EmbedPage";
@@ -26,6 +27,7 @@ import { AboutPage } from "./pages/AboutPage";
 import { TermsPage } from "./pages/TermsPage";
 import { VouchRedirect } from "./components/VouchRedirect";
 import { useActivityToast } from "./contexts/ActivityToastContext";
+import { VouchGraphPage } from "./pages/VouchGraphPage";
 
 function App() {
   const {
@@ -426,36 +428,24 @@ function App() {
       ? `${(Number(fee) / 1e18).toFixed(4)} ETH`
       : "—";
 
-  return (
-    <Routes>
-      <Route path="/profile/:address" element={<ProfilePage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/vouch" element={<VouchRedirect />} />
-      <Route path="/integrate" element={<IntegratePage />} />
-      <Route path="/badge" element={<BadgePage />} />
-      <Route path="/embed" element={<EmbedPage />} />
-      <Route path="/miniapp" element={<MiniappPage />} />
-      <Route
-        path="/"
-        element={
-          <AppLayout
-            chainId={chainId}
-            chains={chains as Record<number, { name: string; rpc: string }>}
-            shortAddress={shortAddr}
-            account={account}
-            isConnected={isConnected}
-            hasInjected={hasInjected}
-            availableWallets={availableWallets}
-            walletError={error}
-            userProfileData={userProfileData}
-            userIsUP={userIsUP}
-            onConnect={connect}
-            onConnectWith={connectWith}
-            onSwitchChain={switchChain}
-            onDisconnect={disconnect}
-          >
-            <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:space-y-8 sm:px-4 sm:py-8 md:px-6">
+  const dashboardContent = (
+    <AppLayout
+      chainId={chainId}
+      chains={chains as Record<number, { name: string; rpc: string }>}
+      shortAddress={shortAddr}
+      account={account}
+      isConnected={isConnected}
+      hasInjected={hasInjected}
+      availableWallets={availableWallets}
+      walletError={error}
+      userProfileData={userProfileData}
+      userIsUP={userIsUP}
+      onConnect={connect}
+      onConnectWith={connectWith}
+      onSwitchChain={switchChain}
+      onDisconnect={disconnect}
+    >
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
         <HeroSection
           isConnected={isConnected}
           account={account}
@@ -512,7 +502,7 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card rounded-2xl border border-theme-accent bg-theme-accent-soft p-6"
               >
-                <p className="mb-4 text-sm text-theme-text">
+                <p className="mb-4 text-base leading-relaxed text-theme-text">
                   Connect your wallet to vouch for others, accept or deny vouches, and manage your Handshake profile.
                 </p>
                 <p className="mb-4 text-xs text-theme-text-dim">
@@ -542,7 +532,7 @@ function App() {
                 )}
               </motion.div>
             )}
-            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
               <VouchCard
                 feeLabel={feeLabel}
                 categories={CATEGORIES}
@@ -600,11 +590,36 @@ function App() {
             </div>
           </>
         )}
-            </div>
-          </AppLayout>
-        }
-      />
-    </Routes>
+      </div>
+    </AppLayout>
+  );
+
+  const location = useLocation();
+  const pageTransition = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -6 },
+    transition: { duration: 0.25 },
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div key={location.pathname} {...pageTransition} className="min-h-full">
+        <Routes location={location}>
+          <Route path="/vouch-graph" element={<VouchGraphPage />} />
+          <Route path="/profile/:address" element={<ProfilePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/vouch" element={<VouchRedirect />} />
+          <Route path="/integrate" element={<IntegratePage />} />
+          <Route path="/badge" element={<BadgePage />} />
+          <Route path="/embed" element={<EmbedPage />} />
+          <Route path="/miniapp" element={<MiniappPage />} />
+          <Route path="/app" element={dashboardContent} />
+          <Route path="/" element={<HomePage />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

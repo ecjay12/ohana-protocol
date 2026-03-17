@@ -292,14 +292,14 @@ select option {
 }
 
 html {
-  font-size: 16px;
+  font-size: 17px;
 }
 
 body {
   font-family: "Outfit", "Inter", system-ui, -apple-system, sans-serif;
   font-size: 1rem;
-  line-height: 1.6;
-  letter-spacing: 0.01em;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--theme-bg);
