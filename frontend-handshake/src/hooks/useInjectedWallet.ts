@@ -25,6 +25,8 @@ type WalletState = {
   hasInjected: boolean;
 };
 
+const WALLET_PREF_KEY = "ohana-handshake-wallet-preference";
+
 type InjectedEthereum = Eip1193Provider & {
   on?: (event: string, cb: (...args: unknown[]) => void) => void;
   providers?: InjectedEthereum[];
@@ -60,21 +62,27 @@ function getAvailableWallets(): WalletOption[] {
             : "Wallet";
       options.push({ provider: p as Eip1193Provider, label });
     }
-    if (options.length > 0) return options;
   }
 
-  // Single provider or no .providers: add ethereum and lukso if they are different
-  if (eth && typeof eth.request === "function") {
+  // When no providers array (single wallet), add window.ethereum
+  if (options.length === 0 && eth && typeof eth.request === "function") {
     seen.add(eth);
     const label = (eth as InjectedEthereum).isMetaMask ? "MetaMask" : "Browser wallet";
     options.push({ provider: eth as Eip1193Provider, label });
   }
+
+  // Always add window.lukso (Universal Profile) — it injects separately and may not be in eth.providers
   if (lukso && typeof lukso.request === "function" && !seen.has(lukso)) {
     seen.add(lukso);
     options.push({ provider: lukso, label: "Universal Profile" });
   }
 
-  return options;
+  // Prefer Universal Profile first for LUKSO-focused Handshake app (so picker shows UP before MetaMask)
+  return options.sort((a, b) => {
+    if (a.label === "Universal Profile" && b.label !== "Universal Profile") return -1;
+    if (b.label === "Universal Profile" && a.label !== "Universal Profile") return 1;
+    return 0;
+  });
 }
 
 export function useInjectedWallet() {
@@ -92,6 +100,11 @@ export function useInjectedWallet() {
   const connectWith = useCallback(async (wallet: WalletOption) => {
     const eth = wallet.provider;
     setState((s) => ({ ...s, error: null }));
+    try {
+      localStorage.setItem(WALLET_PREF_KEY, wallet.label);
+    } catch {
+      /* ignore */
+    }
     try {
       const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
       const chainIdHex = (await eth.request({ method: "eth_chainId" })) as string;
@@ -181,8 +194,22 @@ export function useInjectedWallet() {
 
     let cancelled = false;
 
+    // Try preferred wallet first (user's last choice)
+    let ordered = [...wallets];
+    try {
+      const pref = localStorage.getItem(WALLET_PREF_KEY);
+      if (pref) {
+        const idx = wallets.findIndex((w) => w.label === pref);
+        if (idx > 0) {
+          ordered = [wallets[idx], ...wallets.slice(0, idx), ...wallets.slice(idx + 1)];
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     const tryReconnect = async () => {
-      for (const wallet of wallets) {
+      for (const wallet of ordered) {
         if (cancelled) return;
         try {
           const accounts = (await wallet.provider.request({ method: "eth_accounts" })) as string[];
