@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X } from "lucide-react";
+import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
@@ -198,6 +198,7 @@ export function Sidebar({
         {[
           { to: "/", icon: Home, label: "Home" },
           { to: "/app", icon: LayoutGrid, label: "App" },
+          { to: "/vouch-graph", icon: Network, label: "Vouch Graph" },
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
         ].map(({ to, icon: Icon, label }) => (

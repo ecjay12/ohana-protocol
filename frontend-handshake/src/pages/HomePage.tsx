@@ -4,7 +4,7 @@
 
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, Users, CheckCircle, Bot, Zap, ExternalLink, Globe } from "lucide-react";
+import { ArrowRight, Shield, Users, CheckCircle, Bot, Zap, ExternalLink, Globe, Network } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useProfileData } from "@/hooks/useProfileData";
@@ -346,6 +346,48 @@ export function HomePage() {
               <p className="mt-2 text-theme-text-muted leading-relaxed">Accepted vouches appear on your Universal Profile as verifiable on-chain reputation.</p>
             </motion.div>
           </motion.div>
+        </motion.section>
+
+        {/* Vouch Graph — social network visualization */}
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <Link
+            to="/vouch-graph"
+            className="group block overflow-hidden rounded-2xl border border-theme-border bg-theme-surface transition-all duration-300 hover:border-theme-accent/40 hover:shadow-lg hover:shadow-theme-accent/5"
+          >
+            <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8 md:p-10">
+              <div
+                className="pointer-events-none absolute right-0 top-0 h-32 w-48 opacity-[0.06] sm:opacity-[0.08]"
+                style={{
+                  backgroundImage: `radial-gradient(circle at 70% 30%, var(--theme-accent) 0%, transparent 60%)`,
+                }}
+              />
+              <div className="relative flex-1">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-theme-accent/30 bg-theme-accent-soft/50 px-3 py-1 text-xs font-medium text-theme-accent">
+                  <Network className="h-3.5 w-3.5" />
+                  Interactive
+                </div>
+                <h2 className="text-xl font-bold tracking-tight text-theme-text sm:text-2xl">
+                  Explore your vouch network
+                </h2>
+                <p className="mt-2 max-w-xl text-base leading-relaxed text-theme-text-muted">
+                  See your trust connections in 3D. Visualize who vouched for you and who you&apos;ve vouched for — a neural-network style graph of your on-chain reputation.
+                </p>
+                <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-theme-accent transition-colors group-hover:gap-3">
+                  View vouch graph
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </div>
+              <div className="relative flex shrink-0 items-center justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-theme-accent/20 bg-theme-accent-soft/30 transition-colors group-hover:border-theme-accent/40 group-hover:bg-theme-accent-soft/50 sm:h-28 sm:w-28">
+                  <Network className="h-12 w-12 text-theme-accent/80 sm:h-14 sm:w-14" />
+                </div>
+              </div>
+            </div>
+          </Link>
         </motion.section>
 
         {/* Final CTA */}

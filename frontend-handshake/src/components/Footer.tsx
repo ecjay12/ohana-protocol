@@ -21,6 +21,12 @@ export function Footer() {
             App
           </Link>
           <Link
+            to="/vouch-graph"
+            className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
+          >
+            Vouch Graph
+          </Link>
+          <Link
             to="/integrate"
             className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
           >
