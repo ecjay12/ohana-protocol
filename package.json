@@ -8,6 +8,7 @@
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js",
     "deploy:multichain": "hardhat run scripts/deployMultiChain.js",
+    "wire:ohana": "hardhat run scripts/wireOhanaPoints.js",
     "deploy:create2": "hardhat run scripts/deployCreate2.js",
     "deploy:mainnet": "hardhat run scripts/deployCreate2.js --network lukso && hardhat run scripts/deployCreate2.js --network base",
     "frontend:handshake": "cd frontend-handshake && npm install && npm run dev",

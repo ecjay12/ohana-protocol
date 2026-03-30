@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { JsonRpcProvider } from "ethers";
-import type { BrowserProvider } from "ethers";
+import type { BrowserProvider, JsonRpcProvider } from "ethers";
+import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { getProfileData, type ProfileData } from "@/lib/lsp4Profile";
 import { isUniversalProfile } from "@/lib/upDetection";
 import { CHAINS } from "@/hooks/useInjectedWallet";
@@ -43,7 +43,7 @@ export function useProfileData(
     let effectiveProvider: BrowserProvider | JsonRpcProvider | null = provider;
     if (!effectiveProvider && chainId) {
       const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
-      if (rpc) effectiveProvider = new JsonRpcProvider(rpc);
+      if (rpc) effectiveProvider = createJsonRpcProvider(rpc);
     }
 
     if (!effectiveProvider) {

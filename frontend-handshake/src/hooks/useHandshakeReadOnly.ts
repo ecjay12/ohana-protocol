@@ -2,7 +2,8 @@
  * Read-only Handshake data via JsonRpcProvider (for embed/miniapp when host passes address).
  */
 import { useState, useEffect, useCallback } from "react";
-import { Contract, JsonRpcProvider, getAddress } from "ethers";
+import { Contract, getAddress } from "ethers";
+import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import { getHandshakeAddress } from "@/config/contracts";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
@@ -38,7 +39,7 @@ export function useHandshakeReadOnly(chainId: number, address: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const provider = new JsonRpcProvider(rpc);
+      const provider = createJsonRpcProvider(rpc);
       const contract = new Contract(contractAddress, ABI, provider);
       const count = await contract.acceptedCount(normalized);
       setAcceptedCount(Number(count));

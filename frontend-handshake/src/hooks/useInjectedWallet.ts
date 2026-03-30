@@ -21,6 +21,7 @@ type WalletState = {
   chainId: number;
   isConnected: boolean;
   provider: BrowserProvider | null;
+  rawProvider: Eip1193Provider | null;
   error: string | null;
   hasInjected: boolean;
 };
@@ -91,6 +92,7 @@ export function useInjectedWallet() {
     chainId: 4201,
     isConnected: false,
     provider: null,
+    rawProvider: null,
     error: null,
     hasInjected: typeof window !== "undefined" && !!window.ethereum,
   });
@@ -115,12 +117,15 @@ export function useInjectedWallet() {
         chainId,
         isConnected: accounts.length > 0,
         provider: ethersProvider,
+        rawProvider: eth as unknown as Eip1193Provider,
         error: null,
         hasInjected: true,
       });
       const withOn = eth as InjectedEthereum;
       withOn.on?.("chainChanged", (id: unknown) => {
-        setState((s) => ({ ...s, chainId: typeof id === "string" ? parseInt(id, 16) : Number(id) }));
+        const newChainId = typeof id === "string" ? parseInt(id, 16) : Number(id);
+        const newEthersProvider = new BrowserProvider(eth as unknown as Eip1193Provider);
+        setState((s) => ({ ...s, chainId: newChainId, provider: newEthersProvider }));
       });
       withOn.on?.("accountsChanged", (accs: unknown) => {
         const list = Array.isArray(accs) ? (accs as string[]) : [];
@@ -129,6 +134,7 @@ export function useInjectedWallet() {
           accounts: list,
           isConnected: list.length > 0,
           provider: list.length > 0 ? s.provider : null,
+          rawProvider: list.length > 0 ? s.rawProvider : null,
         }));
       });
     } catch (e) {
@@ -163,25 +169,49 @@ export function useInjectedWallet() {
       chainId: 4201,
       isConnected: false,
       provider: null,
+      rawProvider: null,
       error: null,
       hasInjected: getAvailableWallets().length > 0,
     });
   }, []);
 
   const switchChain = useCallback(async (chainId: number) => {
-    if (!state.provider || !CHAINS[chainId as keyof typeof CHAINS]) return;
-    const eth = state.provider.provider as unknown as Eip1193Provider;
+    if (!state.rawProvider || !CHAINS[chainId as keyof typeof CHAINS]) return;
+    const eth = state.rawProvider;
     if (!eth?.request) return;
+    const hexChainId = `0x${chainId.toString(16)}`;
     try {
       await eth.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${chainId.toString(16)}` }],
+        params: [{ chainId: hexChainId }],
       });
-      setState((s) => ({ ...s, chainId }));
-    } catch (e) {
+      const newProvider = new BrowserProvider(eth);
+      setState((s) => ({ ...s, chainId, provider: newProvider }));
+    } catch (e: unknown) {
+      const code = (e as { code?: number })?.code;
+      // 4902 = chain not added to wallet yet — try adding it
+      if (code === 4902) {
+        const chain = CHAINS[chainId as keyof typeof CHAINS];
+        try {
+          await eth.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: hexChainId,
+              chainName: chain.name,
+              rpcUrls: [chain.rpc],
+            }],
+          });
+          const newProvider = new BrowserProvider(eth);
+          setState((s) => ({ ...s, chainId, provider: newProvider }));
+          return;
+        } catch (addErr) {
+          setState((s) => ({ ...s, error: addErr instanceof Error ? addErr.message : "Failed to add chain" }));
+          return;
+        }
+      }
       setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Switch chain failed" }));
     }
-  }, [state.provider]);
+  }, [state.rawProvider, state.chainId, state.isConnected]);
 
   useEffect(() => {
     setState((s) => ({ ...s, hasInjected: getAvailableWallets().length > 0 }));
@@ -216,18 +246,22 @@ export function useInjectedWallet() {
           if (accounts.length > 0 && !cancelled) {
             const chainIdHex = (await wallet.provider.request({ method: "eth_chainId" })) as string;
             const chainId = parseInt(chainIdHex, 16);
-            const ethersProvider = new BrowserProvider(wallet.provider as unknown as Eip1193Provider);
+            const rawEip = wallet.provider as unknown as Eip1193Provider;
+            const ethersProvider = new BrowserProvider(rawEip);
             setState({
               accounts,
               chainId,
               isConnected: true,
               provider: ethersProvider,
+              rawProvider: rawEip,
               error: null,
               hasInjected: true,
             });
             const withOn = wallet.provider as InjectedEthereum;
             withOn.on?.("chainChanged", (id: unknown) => {
-              setState((s) => ({ ...s, chainId: typeof id === "string" ? parseInt(id, 16) : Number(id) }));
+              const newChainId = typeof id === "string" ? parseInt(id, 16) : Number(id);
+              const newEthersProvider = new BrowserProvider(rawEip);
+              setState((s) => ({ ...s, chainId: newChainId, provider: newEthersProvider }));
             });
             withOn.on?.("accountsChanged", (accs: unknown) => {
               const list = Array.isArray(accs) ? (accs as string[]) : [];
@@ -236,6 +270,7 @@ export function useInjectedWallet() {
                 accounts: list,
                 isConnected: list.length > 0,
                 provider: list.length > 0 ? s.provider : null,
+                rawProvider: list.length > 0 ? s.rawProvider : null,
               }));
             });
             return;

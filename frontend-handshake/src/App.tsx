@@ -28,6 +28,7 @@ import { TermsPage } from "./pages/TermsPage";
 import { VouchRedirect } from "./components/VouchRedirect";
 import { useActivityToast } from "./contexts/ActivityToastContext";
 import { VouchGraphPage } from "./pages/VouchGraphPage";
+import { UpIdentityPage } from "./pages/UpIdentityPage";
 
 function App() {
   const {
@@ -607,6 +608,7 @@ function App() {
       <motion.div key={location.pathname} {...pageTransition} className="min-h-full">
         <Routes location={location}>
           <Route path="/vouch-graph" element={<VouchGraphPage />} />
+          <Route path="/up-identity" element={<UpIdentityPage />} />
           <Route path="/profile/:address" element={<ProfilePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/terms" element={<TermsPage />} />

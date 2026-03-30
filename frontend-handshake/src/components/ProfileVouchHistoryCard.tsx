@@ -21,6 +21,11 @@ export interface ProfileVouchRow {
   status: number;
   timestamp: bigint;
   hidden?: boolean;
+  /** Multi-chain UP aggregate: chain this vouch lives on */
+  chainId?: number;
+  chainLabel?: string;
+  /** Composite key for hide/revoke when chain must match wallet */
+  vouchKey?: string;
 }
 
 const STATUS_LABELS: Record<number, string> = {
@@ -156,7 +161,7 @@ export function ProfileVouchHistoryCard({
           <AnimatePresence>
             {filteredList.map((row, i) => (
               <motion.li
-                key={`${row.type}-${row.address}-${i}`}
+                key={`${row.chainId ?? 0}-${row.type}-${row.address}-${row.vouchKey ?? i}-${i}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -175,6 +180,11 @@ export function ProfileVouchHistoryCard({
                 <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                   {categoryLabel(row.category)}
                 </span>
+                {row.chainLabel && (
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-theme-text-muted">
+                    {row.chainLabel}
+                  </span>
+                )}
                 <span className="text-xs text-theme-text-muted">
                   {STATUS_LABELS[row.status] ?? row.status}
                 </span>
@@ -185,7 +195,7 @@ export function ProfileVouchHistoryCard({
                   <GlowButton
                     variant="secondary"
                     disabled={disabled || txPending}
-                    onClick={() => onRemoveVouch(row.address)}
+                    onClick={() => onRemoveVouch(row.vouchKey ?? row.address)}
                     className="border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 shrink-0"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -199,7 +209,7 @@ export function ProfileVouchHistoryCard({
                         <GlowButton
                           variant="secondary"
                           disabled={disabled || txPending}
-                          onClick={() => onUnhideVouch(row.address)}
+                          onClick={() => onUnhideVouch(row.vouchKey ?? row.address)}
                           className="border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" />
@@ -211,7 +221,7 @@ export function ProfileVouchHistoryCard({
                         <GlowButton
                           variant="secondary"
                           disabled={disabled || txPending}
-                          onClick={() => onHideVouch(row.address)}
+                          onClick={() => onHideVouch(row.vouchKey ?? row.address)}
                         >
                           <EyeOff className="h-3.5 w-3.5 mr-1" />
                           Hide

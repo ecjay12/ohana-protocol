@@ -18,3 +18,9 @@ dist/
 .DS_Store
 
 .vercel
+
+# Prisma local DB
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.db-journal

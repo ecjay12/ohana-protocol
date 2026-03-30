@@ -69,7 +69,26 @@ float snoise(vec3 v) {
 function computeNodePositions(data: VouchGraphData): Map<string, THREE.Vector3> {
   const positions = new Map<string, THREE.Vector3>();
   const { nodes, edges, centerAddress } = data;
-  if (!centerAddress || nodes.length === 0) return positions;
+  if (nodes.length === 0) return positions;
+
+  /** Global / network-wide graph: no focal node — place everyone on a sphere. */
+  if (!centerAddress) {
+    const R = 8;
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    nodes.forEach((addr, i) => {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / Math.max(nodes.length, 1));
+      const theta = 2 * Math.PI * (i / goldenRatio);
+      positions.set(
+        addr,
+        new THREE.Vector3(
+          R * Math.sin(phi) * Math.cos(theta),
+          R * Math.sin(phi) * Math.sin(theta),
+          R * Math.cos(phi)
+        )
+      );
+    });
+    return positions;
+  }
 
   const center = new THREE.Vector3(0, 0, 0);
   positions.set(centerAddress, center);
@@ -203,7 +222,8 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
     nodeList.forEach((addr) => {
       const pos = positions.get(addr)!;
       const span = document.createElement("span");
-      const label = nodeLabels[addr] ?? shortAddr(addr);
+      const label =
+        nodeLabels[addr.toLowerCase()] ?? nodeLabels[addr] ?? shortAddr(addr);
       span.textContent = label;
       span.style.cssText =
         "position:absolute;left:0;top:0;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:500;color:rgba(255,255,255,0.9);text-shadow:0 0 4px rgba(0,0,0,0.8);";
@@ -227,15 +247,24 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
       const nodeSizes: number[] = [];
       const nodeColors: number[] = [];
       const centerAddr = data.centerAddress ?? "";
+      const globalMode = !data.centerAddress;
 
       nodeList.forEach((addr) => {
         const pos = positions.get(addr)!;
         nodePos.push(pos.x, pos.y, pos.z);
-        const isCenter = addr === centerAddr;
-        const isReceived = data.edges.some((e) => e.target === centerAddr && e.voucher === addr);
-        const c = isCenter ? COLOR_CENTER : isReceived ? COLOR_RECEIVED : COLOR_GIVEN;
+        const isCenter = !globalMode && addr === centerAddr;
+        const isReceived =
+          !globalMode &&
+          data.edges.some((e) => e.target === centerAddr && e.voucher === addr);
+        const c = globalMode
+          ? COLOR_EDGE
+          : isCenter
+            ? COLOR_CENTER
+            : isReceived
+              ? COLOR_RECEIVED
+              : COLOR_GIVEN;
         nodeColors.push(c.r, c.g, c.b);
-        nodeSizes.push(isCenter ? 1.8 : 0.9);
+        nodeSizes.push(isCenter ? 1.8 : globalMode ? 1.1 : 0.9);
       });
 
       const nodeGeo = new THREE.BufferGeometry();

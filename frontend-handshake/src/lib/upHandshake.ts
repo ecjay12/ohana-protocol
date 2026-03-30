@@ -4,13 +4,17 @@
  * Supports adding OhanaHandshake to the controller's AllowedERC725YDataKeys when missing.
  */
 
-import { Contract, type Provider, type Signer } from "ethers";
+import { Contract, type Provider, type Signer, type TransactionReceipt } from "ethers";
 import { getHandshakeAddress } from "@/config/contracts";
 import {
   OHANA_HANDSHAKE_KEY,
+  LSP28_THE_GRID_KEY,
+  OHANA_POINTS_V1_KEY,
   encodeHandshakeReference,
   decodeHandshakeReference,
+  encodeOhanaPointsV1,
   type HandshakeReferenceValue,
+  type OhanaPointsV1Value,
 } from "@/config/lsp2Handshake";
 
 // ERC725Y: getData(bytes32); setData(bytes32[], bytes[]) batch form used by LSP6 execute (matches upHiddenVouches)
@@ -107,10 +111,12 @@ export async function getHandshakeReference(
   return decodeHandshakeReference(hexValue);
 }
 
+const KEYS_TO_ALLOW = [OHANA_HANDSHAKE_KEY, LSP28_THE_GRID_KEY, OHANA_POINTS_V1_KEY] as const;
+
 /**
- * Add OhanaHandshake to the controller's AllowedERC725YDataKeys on the UP (if not already present).
- * Caller must have EDITPERMISSIONS (or ADMIN) on the UP. No-op if key is already allowed.
- * Returns true if the key was added (or already present), false if we could not add it.
+ * Add OhanaHandshake and LSP28 TheGrid to the controller's AllowedERC725YDataKeys on the UP (if not already present).
+ * Caller must have EDITPERMISSIONS (or ADMIN) on the UP. No-op if both keys are already allowed.
+ * Returns true if keys were added (or already present), false if we could not add them.
  */
 export async function ensureOhanaKeyAllowed(
   signer: Signer,
@@ -123,13 +129,18 @@ export async function ensureOhanaKeyAllowed(
   const currentValue = await up.getData(lsp6Key);
 
   const keys = decodeCompactBytesArrayOfBytes32(currentValue);
-  const ohanaKeyNorm = OHANA_HANDSHAKE_KEY.toLowerCase().slice(0, 66);
-  const alreadyPresent = keys.some(
-    (k) => k.toLowerCase().slice(0, 66) === ohanaKeyNorm
-  );
-  if (alreadyPresent) return { added: true };
+  const keysToAdd: string[] = [];
+  for (const toAllow of KEYS_TO_ALLOW) {
+    const norm = toAllow.toLowerCase().slice(0, 66);
+    const alreadyPresent = keys.some((k) => k.toLowerCase().slice(0, 66) === norm);
+    if (!alreadyPresent) keysToAdd.push(toAllow);
+  }
+  if (keysToAdd.length === 0) return { added: true };
 
-  const newKeys = [...keys.map((k) => (k.length === 66 ? k : "0x" + k.slice(2).padStart(64, "0"))), OHANA_HANDSHAKE_KEY];
+  const newKeys = [
+    ...keys.map((k) => (k.length === 66 ? k : "0x" + k.slice(2).padStart(64, "0"))),
+    ...keysToAdd,
+  ];
   const newValue = encodeCompactBytesArrayOfBytes32(newKeys);
   const setDataCalldata = up.interface.encodeFunctionData("setData", [
     [lsp6Key],
@@ -165,6 +176,48 @@ export async function setHandshakeReference(
   ]);
   const keyManager = new Contract(keyManagerAddress, LSP6_ABI, signer);
   await keyManager.execute(setDataCalldata);
+}
+
+/**
+ * Write Handshake reference and LSP28 Grid to a Universal Profile in one transaction.
+ * Signer must have SETDATA with both OhanaHandshake and LSP28TheGrid in AllowedERC725YDataKeys
+ * (or SUPER_SETDATA). Use ensureOhanaKeyAllowed() first if keys are not yet allowed.
+ */
+export async function setHandshakeReferenceAndGrid(
+  signer: Signer,
+  upAddress: string,
+  payload: HandshakeReferenceValue,
+  gridEncodedValue: string
+): Promise<void> {
+  const up = new Contract(upAddress, ERC725Y_ABI, signer);
+  const keyManagerAddress = await up.owner();
+  const handshakeEncoded = encodeHandshakeReference(payload);
+  const setDataCalldata = up.interface.encodeFunctionData("setData", [
+    [OHANA_HANDSHAKE_KEY, LSP28_THE_GRID_KEY],
+    [handshakeEncoded, gridEncodedValue],
+  ]);
+  const keyManager = new Contract(keyManagerAddress, LSP6_ABI, signer);
+  await keyManager.execute(setDataCalldata);
+}
+
+/**
+ * Write Ohana Points V1 snapshot to the UP (UTF-8 JSON under LSP2 key OhanaPointsV1).
+ */
+export async function setOhanaPointsV1(
+  signer: Signer,
+  upAddress: string,
+  payload: OhanaPointsV1Value
+): Promise<TransactionReceipt | null> {
+  const up = new Contract(upAddress, ERC725Y_ABI, signer);
+  const keyManagerAddress = await up.owner();
+  const encoded = encodeOhanaPointsV1(payload);
+  const setDataCalldata = up.interface.encodeFunctionData("setData", [
+    [OHANA_POINTS_V1_KEY],
+    [encoded],
+  ]);
+  const keyManager = new Contract(keyManagerAddress, LSP6_ABI, signer);
+  const tx = await keyManager.execute(setDataCalldata);
+  return await tx.wait();
 }
 
 /**

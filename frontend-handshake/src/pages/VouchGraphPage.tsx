@@ -1,24 +1,35 @@
 /**
- * Vouch Graph page — 3D visualization of vouch network.
- * Route: /vouch-graph (no nav link; access via URL).
+ * Global vouch graph — network-wide 3D view (indexed API or stub).
+ * Ego graph for a single profile lives on /profile/:address.
  */
 
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useProfileData } from "@/hooks/useProfileData";
-import { useProfileVouches } from "@/hooks/useProfileVouches";
-import { useVouchGraphData } from "@/hooks/useVouchGraphData";
-import { useProfileNamesForAddresses } from "@/hooks/useProfileNamesForAddresses";
+import { useGlobalVouchGraph } from "@/hooks/useGlobalVouchGraph";
+import {
+  getGraphProfileNameLookupChainIds,
+  useProfileNamesForAddresses,
+} from "@/hooks/useProfileNamesForAddresses";
 import { VouchGraph3D } from "@/components/VouchGraph3D";
 
 export function VouchGraphPage() {
   const wallet = useInjectedWallet();
   const account = wallet.accounts[0] ?? null;
-  const { vouchersForTarget, targetsVouchedBy, loading } = useProfileVouches(account, wallet.chainId);
-  const graphData = useVouchGraphData(account, vouchersForTarget, targetsVouchedBy);
-  const nodeLabels = useProfileNamesForAddresses(graphData.nodes, wallet.chainId);
+  const chainId = wallet.chainId;
+  const { data: globalData, loading } = useGlobalVouchGraph(chainId);
+  const graphPayload = globalData
+    ? {
+        nodes: globalData.nodes,
+        edges: globalData.edges,
+        centerAddress: null as string | null,
+      }
+    : { nodes: [] as string[], edges: [] as { voucher: string; target: string; strength: number }[], centerAddress: null as string | null };
+  const nodeLabels = useProfileNamesForAddresses(graphPayload.nodes, chainId, {
+    chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
+  });
   const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
     wallet.provider,
     account,
@@ -54,21 +65,30 @@ export function VouchGraphPage() {
         </div>
 
         <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
-          <h1 className="mb-2 text-xl font-semibold text-theme-text">Vouch Network</h1>
-          <p className="mb-6 text-sm text-theme-text-muted">
-            Your vouch connections in 3D. Blue = you, green = who vouched for you, purple = who you vouched for.
+          <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake network graph</h1>
+          <p className="mb-4 text-sm text-theme-text-muted">
+            A <strong className="font-medium text-theme-text">global</strong> view of vouch edges on
+            the selected chain (sample or indexed data). Open any{" "}
+            <Link to={account ? `/profile/${account}` : "/app"} className="text-theme-accent hover:underline">
+              profile
+            </Link>{" "}
+            to see an <strong className="font-medium text-theme-text">ego</strong> graph centered on
+            that identity.
           </p>
 
-          {!wallet.isConnected ? (
-            <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-theme-border bg-theme-background/50">
-              <p className="text-theme-text-muted text-sm">Connect your wallet to view your vouch network.</p>
+          {globalData?.message && (
+            <div className="mb-4 flex gap-2 rounded-xl border border-theme-border bg-theme-background/60 px-3 py-2 text-sm text-theme-text-muted">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" aria-hidden />
+              <span>{globalData.message}</span>
             </div>
-          ) : loading ? (
+          )}
+
+          {loading ? (
             <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-theme-border bg-theme-background/50">
-              <p className="text-theme-text-muted text-sm">Loading vouches…</p>
+              <p className="text-theme-text-muted text-sm">Loading network graph…</p>
             </div>
           ) : (
-            <VouchGraph3D data={graphData} nodeLabels={nodeLabels} />
+            <VouchGraph3D data={graphPayload} nodeLabels={nodeLabels} />
           )}
         </div>
       </div>

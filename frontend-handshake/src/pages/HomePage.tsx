@@ -348,7 +348,7 @@ export function HomePage() {
           </motion.div>
         </motion.section>
 
-        {/* Vouch Graph — social network visualization */}
+        {/* Network graph — global view; ego graph on /profile/:address */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -371,13 +371,16 @@ export function HomePage() {
                   Interactive
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-theme-text sm:text-2xl">
-                  Explore your vouch network
+                  Explore the Handshake network
                 </h2>
                 <p className="mt-2 max-w-xl text-base leading-relaxed text-theme-text-muted">
-                  See your trust connections in 3D. Visualize who vouched for you and who you&apos;ve vouched for — a neural-network style graph of your on-chain reputation.
+                  Open a <strong className="font-medium text-theme-text">global</strong> 3D graph of
+                  vouch activity on the chain. Visit any profile to see an{" "}
+                  <strong className="font-medium text-theme-text">ego</strong> graph centered on
+                  that identity.
                 </p>
                 <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-theme-accent transition-colors group-hover:gap-3">
-                  View vouch graph
+                  Open network graph
                   <ArrowRight className="h-4 w-4" />
                 </span>
               </div>

@@ -6,6 +6,7 @@ import { ERC721Royalty } from "@openzeppelin/contracts/token/ERC721/extensions/E
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import { IOhanaPoints } from "../interfaces/IOhanaPoints.sol";
 
 /**
  * @title POAPEventNFT
@@ -16,6 +17,11 @@ contract POAPEventNFT is ERC721Royalty, Ownable {
     using MessageHashUtils for bytes32;
 
     uint256 private _nextTokenId;
+
+    /// @notice Optional Ohana Points hub; POAPForge registers this contract as trusted caller on deploy.
+    address public immutable ohanaPointsHub;
+
+    bytes32 private constant _POAP_CLAIM = keccak256("OHANA_POAP_CLAIM");
 
     /// @dev Optional signer for claimWithSignature (e.g. backend). If set, owner OR mintSigner can authorize claims.
     address public mintSigner;
@@ -31,8 +37,10 @@ contract POAPEventNFT is ERC721Royalty, Ownable {
         string memory name_,
         string memory symbol_,
         address royaltyReceiver_,
-        uint96 royaltyPercentBps_
+        uint96 royaltyPercentBps_,
+        address ohanaPointsHub_
     ) ERC721(name_, symbol_) Ownable(msg.sender) {
+        ohanaPointsHub = ohanaPointsHub_;
         _setDefaultRoyalty(royaltyReceiver_, royaltyPercentBps_);
     }
 
@@ -60,6 +68,10 @@ contract POAPEventNFT is ERC721Royalty, Ownable {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         emit ClaimedWithSignature(to);
+        address hub = ohanaPointsHub;
+        if (hub != address(0)) {
+            IOhanaPoints(hub).award(to, 5, _POAP_CLAIM);
+        }
         return tokenId;
     }
 

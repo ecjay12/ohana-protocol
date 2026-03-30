@@ -2,7 +2,8 @@
  * Handshake contract hook — vouch, accept, deny, cancel, and read vouches.
  */
 import { useCallback, useState, useEffect, useMemo } from "react";
-import { Contract, BrowserProvider, JsonRpcProvider, getAddress } from "ethers";
+import { Contract, BrowserProvider, getAddress } from "ethers";
+import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
 import HandshakeArtifact from "@contracts";
 import { getHandshakeAddress } from "@/config/contracts";
@@ -64,7 +65,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
     if (!address) return null;
     const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
     if (!rpc) return null;
-    return new Contract(address, HandshakeArtifact.abi, new JsonRpcProvider(rpc));
+    return new Contract(address, HandshakeArtifact.abi, createJsonRpcProvider(rpc));
   }, [address, chainId]);
 
   useEffect(() => {
@@ -344,7 +345,9 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
   const getUPForEOA = useCallback(
     async (eoa: string): Promise<string | null> => {
       const c = readOnlyContract ?? contract;
-      if (!c || typeof c.getUPForEOA !== "function") return null;
+      if (!c || typeof c.getUPForEOA !== "function") {
+        return null;
+      }
       try {
         const up = await c.getUPForEOA(getAddress(eoa.trim()));
         return up && up !== "0x0000000000000000000000000000000000000000" ? up : null;
@@ -365,11 +368,17 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         const tx = await c.registerEOAtoUP(getAddress(upAddress.trim()));
         await tx.wait();
         return true;
-      } catch {
-        return false;
+      } catch (e: unknown) {
+        const raw = getRevertReason(e);
+        if (raw.toLowerCase().includes("up must be a contract")) {
+          throw new Error(
+            "On this network your Universal Profile address is not a smart contract. Switch to LUKSO or LUKSO Testnet and link there — your UP exists as a contract on LUKSO. Use the same wallet; you can still vouch on Base separately."
+          );
+        }
+        throw e instanceof Error ? e : new Error(String(e));
       }
     },
-    [getSignerContract]
+    [getSignerContract, chainId]
   );
 
   return {

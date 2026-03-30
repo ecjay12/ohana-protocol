@@ -87,6 +87,81 @@ describe("Ohana Protocol", function () {
     });
   });
 
+  describe("OhanaPoints hub", function () {
+    let points, handshakeP, repP, impact, forgeP;
+
+    before(async function () {
+      const OhanaPoints = await ethers.getContractFactory("OhanaPoints");
+      points = await OhanaPoints.deploy(owner.address);
+      await points.waitForDeployment();
+      const hub = await points.getAddress();
+
+      const ImpactLedger = await ethers.getContractFactory("ImpactLedger");
+      impact = await ImpactLedger.deploy(owner.address);
+      await impact.waitForDeployment();
+
+      const Handshake = await ethers.getContractFactory("Handshake");
+      handshakeP = await Handshake.deploy(feeCollector.address);
+      await handshakeP.waitForDeployment();
+
+      const ReputationStation = await ethers.getContractFactory("ReputationStation");
+      repP = await ReputationStation.deploy();
+      await repP.waitForDeployment();
+
+      const POAPForge = await ethers.getContractFactory("POAPForge");
+      forgeP = await POAPForge.deploy();
+      await forgeP.waitForDeployment();
+
+      await points.grantRewarder(await handshakeP.getAddress());
+      await points.grantRewarder(await forgeP.getAddress());
+      await points.grantRewarder(await repP.getAddress());
+      await points.grantRewarder(await impact.getAddress());
+      await points.setTrustedFactory(await forgeP.getAddress());
+
+      await handshakeP.setOhanaPointsHub(hub);
+      await forgeP.setOhanaPointsHub(hub);
+      await repP.setOhanaPointsHub(hub);
+      await impact.setOhanaPointsHub(hub);
+    });
+
+    it("Handshake acceptVouch awards 15 / 10 via hub", async function () {
+      await handshakeP.connect(user1).vouch(user2.address, 1, { value: 0 });
+      await handshakeP.connect(user2).acceptVouch(user1.address);
+      expect(await points.balanceOf(user2.address)).to.equal(15n);
+      expect(await points.balanceOf(user1.address)).to.equal(10n);
+    });
+
+    it("ReputationStation awards 8 on first non-zero rep hash", async function () {
+      const signers = await ethers.getSigners();
+      const fresh = signers[8];
+      const h = ethers.keccak256(ethers.toUtf8Bytes("rep:1"));
+      await repP.setRepHash(fresh.address, h);
+      expect(await points.balanceOf(fresh.address)).to.equal(8n);
+      await repP.setRepHash(fresh.address, ethers.keccak256(ethers.toUtf8Bytes("rep:2")));
+      expect(await points.balanceOf(fresh.address)).to.equal(8n);
+    });
+
+    it("ImpactLedger recordVerifiedAction awards 20", async function () {
+      const signers = await ethers.getSigners();
+      const fresh = signers[9];
+      await impact.connect(owner).recordVerifiedAction(fresh.address);
+      expect(await points.balanceOf(fresh.address)).to.equal(20n);
+    });
+
+    it("POAPForge createEvent awards 25 to creator", async function () {
+      await forgeP.connect(user1).createEvent(
+        "evt-ohana-test",
+        "N",
+        "N",
+        "T",
+        "T",
+        owner.address,
+        500
+      );
+      expect(await points.balanceOf(user1.address)).to.equal(10n + 25n);
+    });
+  });
+
   describe("LSP17VouchExtension", function () {
     it("should return full score for non-revoked vouch", async function () {
       const score = await ext.getEffectiveVouchScore(ethers.ZeroHash);

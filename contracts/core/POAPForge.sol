@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { POAPEventNFT } from "./POAPEventNFT.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IOhanaPoints } from "../interfaces/IOhanaPoints.sol";
 
 /**
  * @title POAPEventToken
@@ -25,6 +26,11 @@ contract POAPEventToken is ERC20, Ownable {
  * @notice Factory deploying ERC721 (NFT) + ERC20 (fungible) per event. Dual standards.
  */
 contract POAPForge is Ownable {
+    /// @notice Optional Ohana Points hub (set trustedFactory on hub to this forge address).
+    address public ohanaPointsHub;
+
+    bytes32 private constant _POAP_CREATE = keccak256("OHANA_POAP_EVENT_CREATED");
+
     struct Event {
         address nftContract;
         address tokenContract;
@@ -59,7 +65,13 @@ contract POAPForge is Ownable {
         require(eventIdToIndex[idHash] == 0, "Event exists");
 
         address rcvr = royaltyReceiver_ == address(0) ? msg.sender : royaltyReceiver_;
-        POAPEventNFT nft = new POAPEventNFT(nftName_, nftSymbol_, rcvr, royaltyPercentBps_);
+        POAPEventNFT nft = new POAPEventNFT(
+            nftName_,
+            nftSymbol_,
+            rcvr,
+            royaltyPercentBps_,
+            ohanaPointsHub
+        );
         nft.transferOwnership(msg.sender);
 
         POAPEventToken token = new POAPEventToken(tokenName_, tokenSymbol_);
@@ -70,6 +82,13 @@ contract POAPForge is Ownable {
         events.push(Event(nftAddr, tokenAddr, msg.sender, eventId_, uint64(block.timestamp)));
         uint256 index = events.length;
         eventIdToIndex[idHash] = index;
+
+        address hub = ohanaPointsHub;
+        if (hub != address(0)) {
+            IOhanaPoints pts = IOhanaPoints(hub);
+            pts.registerTrustedCaller(nftAddr);
+            pts.award(msg.sender, 25, _POAP_CREATE);
+        }
 
         emit EventCreated(index, eventId_, nftAddr, tokenAddr, msg.sender);
         return (nftAddr, tokenAddr);
@@ -82,5 +101,9 @@ contract POAPForge is Ownable {
 
     function getEventCount() external view returns (uint256) {
         return events.length;
+    }
+
+    function setOhanaPointsHub(address hub) external onlyOwner {
+        ohanaPointsHub = hub;
     }
 }

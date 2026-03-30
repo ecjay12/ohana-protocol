@@ -4,6 +4,13 @@
  */
 import chainConfig from "../../shared/chainConfig.json";
 
+const rawOhanaPoints =
+  (chainConfig as typeof chainConfig & { ohanaPointsAddresses?: Record<string, string> })
+    .ohanaPointsAddresses ?? {};
+export const OHANA_POINTS_ADDRESSES: Record<number, string> = Object.fromEntries(
+  Object.entries(rawOhanaPoints).map(([k, v]) => [parseInt(k, 10), v])
+) as Record<number, string>;
+
 const rawAddresses = chainConfig.handshakeAddresses as Record<string, string>;
 export const HANDSHAKE_ADDRESSES: Record<number, string> = Object.fromEntries(
   Object.entries(rawAddresses).map(([k, v]) => [parseInt(k, 10), v])
@@ -26,6 +33,11 @@ export const VOUCH_FEE_DISPLAY: Record<number, { amount: string; symbol: string 
 
 export function getHandshakeAddress(chainId: number): string | null {
   const addr = HANDSHAKE_ADDRESSES[chainId];
+  return addr && addr.length > 0 ? addr : null;
+}
+
+export function getOhanaPointsAddress(chainId: number): string | null {
+  const addr = OHANA_POINTS_ADDRESSES[chainId];
   return addr && addr.length > 0 ? addr : null;
 }
 

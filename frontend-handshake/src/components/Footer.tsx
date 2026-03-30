@@ -24,7 +24,7 @@ export function Footer() {
             to="/vouch-graph"
             className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
           >
-            Vouch Graph
+            Network graph
           </Link>
           <Link
             to="/integrate"

@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Contract, JsonRpcProvider, getAddress } from "ethers";
+import { Contract, getAddress } from "ethers";
+import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import { getHandshakeAddress } from "@/config/contracts";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
@@ -68,7 +69,7 @@ export function EmbedPage() {
     }
     setError(null);
     setLoading(true);
-    const provider = new JsonRpcProvider(rpc);
+    const provider = createJsonRpcProvider(rpc);
     const contract = new Contract(handshakeAddress, HANDSHAKE_ABI, provider);
     Promise.all([
       contract.acceptedCount(normalized) as Promise<bigint>,

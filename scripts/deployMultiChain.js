@@ -1,19 +1,33 @@
 /**
- * Deploy Ohana Protocol to LUKSO testnet and Base Sepolia.
- * Includes Axelar/Wormhole wrapper placeholders for Solana/Polkadot.
+ * Deploy core protocol + OhanaPoints hub on the **currently selected** Hardhat network.
+ * Run once per network, e.g. `npx hardhat run scripts/deployMultiChain.js --network luksoTestnet`
  */
 const hre = require("hardhat");
 
-const NETWORKS = {
-  luksoTestnet: { chainId: 4201, name: "LUKSO Testnet" },
-  baseSepolia: { chainId: 84532, name: "Base Sepolia" },
-};
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function deployOnNetwork(networkName) {
-  const provider = hre.ethers.provider;
+async function deployOnNetwork() {
   const [deployer] = await hre.ethers.getSigners();
-  const network = await provider.getNetwork();
-  console.log(`\n=== Deploying on ${networkName} (chainId ${network.chainId}) ===`);
+  if (!deployer) {
+    throw new Error("No deployer. Set PRIVATE_KEY and use --network <name>.");
+  }
+  const net = await hre.ethers.provider.getNetwork();
+  console.log(`\n=== Deploying (chainId ${net.chainId}) deployer ${deployer.address} ===\n`);
+
+  const OhanaPoints = await hre.ethers.getContractFactory("OhanaPoints");
+  const points = await OhanaPoints.deploy(deployer.address);
+  await points.waitForDeployment();
+  const hubAddr = await points.getAddress();
+  console.log("OhanaPoints:", hubAddr);
+
+  const verifier =
+    process.env.IMPACT_VERIFIER && hre.ethers.isAddress(process.env.IMPACT_VERIFIER)
+      ? process.env.IMPACT_VERIFIER
+      : deployer.address;
+  const ImpactLedger = await hre.ethers.getContractFactory("ImpactLedger");
+  const impact = await ImpactLedger.deploy(verifier);
+  await impact.waitForDeployment();
+  console.log("ImpactLedger:", await impact.getAddress(), "verifier:", verifier);
 
   const POAPForge = await hre.ethers.getContractFactory("POAPForge");
   const forge = await POAPForge.deploy();
@@ -30,48 +44,62 @@ async function deployOnNetwork(networkName) {
   const ReputationStation = await hre.ethers.getContractFactory("ReputationStation");
   const rep = await ReputationStation.deploy();
   await rep.waitForDeployment();
-  console.log("ReputationStation:", await rep.getAddress());
+  const repAddr = await rep.getAddress();
+  console.log("ReputationStation:", repAddr);
 
   const LSP17VouchExtension = await hre.ethers.getContractFactory("LSP17VouchExtension");
   const ext = await LSP17VouchExtension.deploy();
   await ext.waitForDeployment();
   console.log("LSP17VouchExtension:", await ext.getAddress());
 
-  return { forgeAddr, handshakeAddr, chainId: Number(network.chainId) };
+  await delay(2000);
+
+  const fee = await hre.ethers.provider.getFeeData();
+  const g =
+    fee.maxFeePerGas != null
+      ? {
+          maxFeePerGas: (fee.maxFeePerGas * 130n) / 100n,
+          maxPriorityFeePerGas: fee.maxPriorityFeePerGas
+            ? (fee.maxPriorityFeePerGas * 130n) / 100n
+            : undefined,
+        }
+      : {};
+
+  async function wire(txLabel, txPromise) {
+    const tx = await txPromise;
+    await tx.wait();
+    console.log("  ok:", txLabel);
+    await delay(5000);
+  }
+
+  await wire("grantRewarder Handshake", points.grantRewarder(handshakeAddr, g));
+  await wire("grantRewarder POAPForge", points.grantRewarder(forgeAddr, g));
+  await wire("grantRewarder ReputationStation", points.grantRewarder(repAddr, g));
+  await wire("grantRewarder ImpactLedger", points.grantRewarder(await impact.getAddress(), g));
+  await wire("setTrustedFactory", points.setTrustedFactory(forgeAddr, g));
+  await wire("Handshake.setOhanaPointsHub", handshake.setOhanaPointsHub(hubAddr, g));
+  await wire("POAPForge.setOhanaPointsHub", forge.setOhanaPointsHub(hubAddr, g));
+  await wire("ReputationStation.setOhanaPointsHub", rep.setOhanaPointsHub(hubAddr, g));
+  await wire("ImpactLedger.setOhanaPointsHub", impact.setOhanaPointsHub(hubAddr, g));
+
+  console.log("\nOhanaPoints wired.");
+  console.log(
+    "\nchainConfig ohanaPointsAddresses entry:",
+    JSON.stringify({ [String(net.chainId)]: hubAddr.toLowerCase() }, null, 2)
+  );
+
+  return {
+    hubAddr,
+    forgeAddr,
+    handshakeAddr,
+    repAddr,
+    impactAddr: await impact.getAddress(),
+    chainId: Number(net.chainId),
+  };
 }
 
 async function main() {
-  const results = {};
-
-  for (const [netName, netInfo] of Object.entries(NETWORKS)) {
-    try {
-      const deployed = await deployOnNetwork(netInfo.name);
-      results[netName] = deployed;
-    } catch (e) {
-      console.error(`Failed on ${netName}:`, e.message);
-      results[netName] = { error: e.message };
-    }
-  }
-
-  console.log("\n=== Deployment Summary ===");
-  console.log(JSON.stringify(results, null, 2));
-
-  console.log("\n=== Axelar/Wormhole Wrapper Placeholders ===");
-  console.log(`
-  // TODO: Axelar GMP - Cross-chain mint request
-  // 1. Deploy OhanaCrossChainBridge.sol that:
-  //    - Emits CrossChainMintRequest(sourceChainId, tokenId, destChainId)
-  //    - Registers with Axelar Gateway for EVM chains
-  // 2. For Solana: Use Axelar GMP Solana SDK
-  //    - gateway.mintOnSolana(nftMetadata, recipient)
-  //    - See: https://docs.axelar.dev/dev/general-message-passing/solana/gmp-contracts
-
-  // TODO: Wormhole - NFT bridge
-  // 1. Deploy Wormhole-compatible wrapper for POAP NFTs
-  // 2. For Polkadot (Acala EVM+): Wormhole has launched
-  //    - https://acalanetwork.medium.com/wormhole-bridge-launches-on-acala-evm
-  // 3. For Solana: Wormhole NFT bridge already supports Solana <-> EVM
-  `);
+  await deployOnNetwork();
 }
 
 main().catch((e) => {

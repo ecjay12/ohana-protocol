@@ -5,6 +5,7 @@ import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 import type { VouchData } from "@/types/handshake";
 import type { BrowserProvider } from "ethers";
+import { displayAddressFromReceivedKey } from "@/lib/vouchAggregationKeys";
 
 interface CategoryOption {
   value: number;
@@ -104,6 +105,7 @@ export function AcceptedVouchesCard({
           <ul className="space-y-2">
             {visible.map((vAddr, i) => {
               const v = vouchStatuses[vAddr];
+              const displayAddr = displayAddressFromReceivedKey(vAddr);
               const catLabel = v ? categories.find((c) => c.value === v.category)?.label ?? v.category : "";
               return (
                 <motion.li
@@ -115,10 +117,10 @@ export function AcceptedVouchesCard({
                 >
                   <button
                     type="button"
-                    onClick={() => navigate(`/profile/${vAddr}`)}
+                    onClick={() => navigate(`/profile/${displayAddr}`)}
                     className="font-mono text-sm text-theme-text hover:text-theme-accent transition-colors text-left"
                   >
-                    {vAddr.slice(0, 10)}…{vAddr.slice(-8)}
+                    {displayAddr.slice(0, 10)}…{displayAddr.slice(-8)}
                   </button>
                   <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                     {catLabel}
@@ -148,6 +150,7 @@ export function AcceptedVouchesCard({
               <ul className="mt-2 space-y-2">
                 {hidden.map((vAddr, i) => {
                   const v = vouchStatuses[vAddr];
+                  const displayAddr = displayAddressFromReceivedKey(vAddr);
                   const catLabel = v ? categories.find((c) => c.value === v.category)?.label ?? v.category : "";
                   return (
                     <motion.li
@@ -159,10 +162,10 @@ export function AcceptedVouchesCard({
                     >
                       <button
                         type="button"
-                        onClick={() => navigate(`/profile/${vAddr}`)}
+                        onClick={() => navigate(`/profile/${displayAddr}`)}
                         className="font-mono text-sm text-theme-text hover:text-theme-accent transition-colors text-left"
                       >
-                        {vAddr.slice(0, 10)}…{vAddr.slice(-8)}
+                        {displayAddr.slice(0, 10)}…{displayAddr.slice(-8)}
                       </button>
                       <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                         {catLabel}

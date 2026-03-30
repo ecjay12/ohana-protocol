@@ -1,0 +1,42 @@
+// Ohana Points indexer — SQLite for local dev; use PostgreSQL in production (DATABASE_URL).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  /// Relative to prisma/ — use `prisma db push` after changing schema. For Postgres in prod, switch provider/url.
+  url      = "file:./dev.db"
+}
+
+/// One row per PointsAwarded log (idempotent on chainId + txHash + logIndex).
+model PointsAward {
+  id             String @id @default(cuid())
+  chainId        Int
+  user           String
+  points         Int
+  actionType     String
+  blockNumber    String
+  blockTimestamp String?
+  txHash         String
+  logIndex       Int
+
+  @@unique([chainId, txHash, logIndex])
+  @@index([user])
+  @@index([chainId])
+}
+
+/// Cursor per chain for log sync (inclusive next-from block).
+model SyncCursor {
+  chainId   Int    @id
+  lastBlock String
+}
+
+/// Last on-chain claim snapshot written to UP (off-chain mirror for pending math).
+model PointsClaim {
+  upAddress         String @id
+  lastClaimedBlock  String @default("0")
+  lastClaimTxHash   String?
+  lastSnapshotTotal String @default("0")
+  updatedAt         DateTime @updatedAt
+}

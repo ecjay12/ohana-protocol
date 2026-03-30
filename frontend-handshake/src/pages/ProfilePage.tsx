@@ -13,6 +13,13 @@ import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
 import { useProfileData } from "@/hooks/useProfileData";
 import { useProfileVouches } from "@/hooks/useProfileVouches";
+import { CHAINS } from "@/hooks/useInjectedWallet";
+import {
+  parseReceivedVouchKey,
+  parseGivenVouchKey,
+  displayAddressFromReceivedKey,
+  displayAddressFromGivenKey,
+} from "@/lib/vouchAggregationKeys";
 import { useGitHubAttestation } from "@/hooks/useGitHubAttestation";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { AcceptedVouchesCard } from "@/components/AcceptedVouchesCard";
@@ -22,6 +29,10 @@ import {
 } from "@/components/ProfileVouchHistoryCard";
 import { VouchCard } from "@/components/VouchCard";
 import { GlowButton } from "@/components/GlowButton";
+import { ProfileVouchGraphSection } from "@/components/ProfileVouchGraphSection";
+import { ProfileHandshakeGridCard } from "@/components/ProfileHandshakeGridCard";
+import { ProfileIdentityComingSoonCard } from "@/components/ProfileIdentityComingSoonCard";
+import { ProfileClaimPointsCard } from "@/components/ProfileClaimPointsCard";
 
 export function ProfilePage() {
   const { address } = useParams<{ address: string }>();
@@ -65,24 +76,38 @@ export function ProfilePage() {
     vouchStatuses,
     targetsVouchedBy,
     givenVouchStatuses,
+    aggregatedAcceptedCount,
     loading,
     loadingGiven,
     error,
-  } = useProfileVouches(address || null, chainId);
+    isMultiChainUPAggregate,
+  } = useProfileVouches(address || null, chainId, isUP);
+
+  const displayAcceptedCount =
+    isUP && aggregatedAcceptedCount != null ? aggregatedAcceptedCount : contractAcceptedCount;
 
   const isOwnProfile =
     normalizedAddress?.toLowerCase() === account?.toLowerCase();
 
   const profileVouchesReceived: ProfileVouchRow[] = useMemo(() => {
-    const rows = vouchersForTarget.map((voucher) => {
-      const v = vouchStatuses[voucher];
+    const rows = vouchersForTarget.map((key) => {
+      const v = vouchStatuses[key];
+      const parsed = parseReceivedVouchKey(key);
+      const displayAddr = displayAddressFromReceivedKey(key);
+      const chainIdRow = parsed?.chainId;
       return {
         type: "received" as const,
-        address: voucher,
+        address: displayAddr,
         category: v?.category ?? 0,
         status: v?.status ?? 0,
         timestamp: v?.timestamp ?? 0n,
         hidden: v?.hidden ?? false,
+        chainId: chainIdRow,
+        chainLabel:
+          chainIdRow != null
+            ? CHAINS[chainIdRow as keyof typeof CHAINS]?.name
+            : undefined,
+        vouchKey: isMultiChainUPAggregate ? key : undefined,
       };
     });
     // Public view: exclude hidden entirely
@@ -90,51 +115,101 @@ export function ProfilePage() {
       return rows.filter((r) => !r.hidden);
     }
     return rows;
-  }, [vouchersForTarget, vouchStatuses, isOwnProfile]);
+  }, [vouchersForTarget, vouchStatuses, isOwnProfile, isMultiChainUPAggregate]);
 
   const profileVouchesGiven: ProfileVouchRow[] = useMemo(() => {
-    return targetsVouchedBy.map((target) => {
-      const v = givenVouchStatuses[target];
+    return targetsVouchedBy.map((key) => {
+      const v = givenVouchStatuses[key];
+      const parsed = parseGivenVouchKey(key);
+      const displayAddr = displayAddressFromGivenKey(key);
+      const chainIdRow = parsed?.chainId;
       return {
-        type: "given",
-        address: target,
+        type: "given" as const,
+        address: displayAddr,
         category: v?.category ?? 0,
         status: v?.status ?? 0,
         timestamp: v?.timestamp ?? 0n,
+        chainId: chainIdRow,
+        chainLabel:
+          chainIdRow != null
+            ? CHAINS[chainIdRow as keyof typeof CHAINS]?.name
+            : undefined,
+        vouchKey: isMultiChainUPAggregate ? key : undefined,
       };
     });
-  }, [targetsVouchedBy, givenVouchStatuses]);
+  }, [targetsVouchedBy, givenVouchStatuses, isMultiChainUPAggregate]);
 
-  const visibleVouchCount = useMemo(
+  const totalVouchesReceived = useMemo(
     () =>
-      vouchersForTarget.filter((v) => !vouchStatuses[v]?.hidden).length,
-    [vouchersForTarget, vouchStatuses]
+      isOwnProfile
+        ? vouchersForTarget.length
+        : vouchersForTarget.filter((k) => !vouchStatuses[k]?.hidden).length,
+    [isOwnProfile, vouchersForTarget, vouchStatuses]
+  );
+
+  const totalVouchesGiven = useMemo(
+    () => targetsVouchedBy.length,
+    [targetsVouchedBy]
   );
 
   const handleHideVouch = useCallback(
-    async (voucherAddress: string) => {
+    async (keyOrVoucher: string) => {
       if (!account || !provider) return;
+      const parsed = parseReceivedVouchKey(keyOrVoucher);
+      const voucherAddr = parsed?.voucher ?? keyOrVoucher;
+      if (parsed && parsed.chainId !== chainId) {
+        const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
+        window.alert(`Switch your wallet to ${name} to hide this vouch.`);
+        return;
+      }
       try {
-        await hideVouch(voucherAddress);
+        await hideVouch(voucherAddr);
         window.location.reload();
       } catch (e) {
         console.error("Failed to hide vouch:", e);
       }
     },
-    [account, provider, hideVouch]
+    [account, provider, hideVouch, chainId]
   );
 
   const handleUnhideVouch = useCallback(
-    async (voucherAddress: string) => {
+    async (keyOrVoucher: string) => {
       if (!account || !provider) return;
+      const parsed = parseReceivedVouchKey(keyOrVoucher);
+      const voucherAddr = parsed?.voucher ?? keyOrVoucher;
+      if (parsed && parsed.chainId !== chainId) {
+        const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
+        window.alert(`Switch your wallet to ${name} to unhide this vouch.`);
+        return;
+      }
       try {
-        await unhideVouch(voucherAddress);
+        await unhideVouch(voucherAddr);
         window.location.reload();
       } catch (e) {
         console.error("Failed to unhide vouch:", e);
       }
     },
-    [account, provider, unhideVouch]
+    [account, provider, unhideVouch, chainId]
+  );
+
+  const handleRemoveGivenVouch = useCallback(
+    async (keyOrTarget: string) => {
+      if (!account || !provider) return;
+      const parsed = parseGivenVouchKey(keyOrTarget);
+      const targetAddr = parsed?.target ?? keyOrTarget;
+      if (parsed && parsed.chainId !== chainId) {
+        const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
+        window.alert(`Switch your wallet to ${name} to revoke this vouch.`);
+        return;
+      }
+      try {
+        await removeVouch(targetAddr);
+        window.location.reload();
+      } catch (e) {
+        console.error("Failed to remove vouch:", e);
+      }
+    },
+    [account, provider, removeVouch, chainId]
   );
 
   if (!normalizedAddress) {
@@ -177,8 +252,35 @@ export function ProfilePage() {
           loading={profileLoading}
           isOwnProfile={isOwnProfile}
           hasGitHubVerified={hasGitHubVerified}
-          acceptedCount={contractAcceptedCount}
+          acceptedCount={displayAcceptedCount}
         />
+
+        <ProfileVouchGraphSection
+          profileAddress={normalizedAddress}
+          chainId={chainId}
+          isUP={isUP}
+        />
+
+        {isOwnProfile && (
+          <>
+            <ProfileHandshakeGridCard
+              provider={provider}
+              chainId={chainId}
+              upAddress={normalizedAddress}
+              isOwnProfile={isOwnProfile}
+              isUP={isUP}
+              acceptedCount={Number(displayAcceptedCount ?? 0)}
+            />
+            <ProfileIdentityComingSoonCard />
+            <ProfileClaimPointsCard
+              provider={provider}
+              chainId={chainId}
+              upAddress={normalizedAddress}
+              isOwnProfile={isOwnProfile}
+              isUP={isUP}
+            />
+          </>
+        )}
 
         {error && (
           <motion.div
@@ -217,17 +319,23 @@ export function ProfilePage() {
           />
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4">
             <p className="text-sm text-theme-text-muted">Accepted Vouches</p>
             <p className="text-2xl font-bold text-theme-text">
-              {contractAcceptedCount}
+              {displayAcceptedCount}
             </p>
           </div>
           <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4">
-            <p className="text-sm text-theme-text-muted">Total Vouches</p>
+            <p className="text-sm text-theme-text-muted">Total vouches received</p>
             <p className="text-2xl font-bold text-theme-text">
-              {visibleVouchCount}
+              {totalVouchesReceived}
+            </p>
+          </div>
+          <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4">
+            <p className="text-sm text-theme-text-muted">Total vouches given</p>
+            <p className="text-2xl font-bold text-theme-text">
+              {totalVouchesGiven}
             </p>
           </div>
         </div>
@@ -240,12 +348,7 @@ export function ProfilePage() {
             loading={loading || loadingGiven}
             isConnectedProfile={isOwnProfile}
             onRemoveVouch={
-              isOwnProfile && account
-                ? async (target: string) => {
-                    await removeVouch(target);
-                    window.location.reload();
-                  }
-                : undefined
+              isOwnProfile && account ? handleRemoveGivenVouch : undefined
             }
             onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
             onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}

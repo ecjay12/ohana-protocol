@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network } from "lucide-react";
+import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network, Palette, ChevronDown } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { LookUpProfileCard } from "@/components/LookUpProfileCard";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { THEMES } from "@/contexts/ThemeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
@@ -52,8 +52,9 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
+  const [themeExpanded, setThemeExpanded] = useState(false);
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -194,11 +195,11 @@ export function Sidebar({
       <div className="border-b border-theme-border p-3">
         <LookUpProfileCard compact />
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3 min-h-0">
         {[
           { to: "/", icon: Home, label: "Home" },
           { to: "/app", icon: LayoutGrid, label: "App" },
-          { to: "/vouch-graph", icon: Network, label: "Vouch Graph" },
+          { to: "/vouch-graph", icon: Network, label: "Network graph" },
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
         ].map(({ to, icon: Icon, label }) => (
@@ -208,7 +209,48 @@ export function Sidebar({
           </Link>
         ))}
         <div className="mt-2 border-t border-theme-border pt-2">
-          <ThemeSwitcher />
+          <button
+            type="button"
+            onClick={() => setThemeExpanded((e) => !e)}
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-theme-text-muted transition-colors hover:bg-theme-surface hover:text-theme-text"
+            aria-expanded={themeExpanded}
+          >
+            <span className="flex items-center gap-2">
+              <Palette className="h-4 w-4 shrink-0" />
+              Theme
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 transition-transform ${themeExpanded ? "rotate-180" : ""}`}
+            />
+          </button>
+          <AnimatePresence initial={false}>
+            {themeExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-wrap gap-1.5 pt-2 pb-1">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTheme(t.id)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                        theme === t.id
+                          ? "border border-theme-accent bg-theme-accent-soft text-theme-accent"
+                          : "bg-theme-surface text-theme-text-muted hover:bg-theme-surface-strong hover:text-theme-text"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </nav>
     </>
@@ -224,7 +266,7 @@ export function Sidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px] md:hidden"
             onClick={onClose}
             aria-hidden
           />

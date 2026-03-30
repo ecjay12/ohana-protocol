@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IOhanaPoints } from "../interfaces/IOhanaPoints.sol";
 
 /**
  * @title Handshake
@@ -30,6 +31,14 @@ contract Handshake is Ownable {
     uint256 public fee;
     address payable public feeCollector;
     uint256 public accumulatedFees;
+
+    /// @notice Optional Ohana Points hub (grant REWARDER to this Handshake contract after deploy).
+    address public ohanaPointsHub;
+
+    /// @dev Must match OhanaPoints.ACTION_HANDSHAKE_VOUCH_RECEIVER / GIVER
+    bytes32 private constant _HANDSHAKE_RECEIVER =
+        keccak256("OHANA_HANDSHAKE_VOUCH_RECEIVER");
+    bytes32 private constant _HANDSHAKE_GIVER = keccak256("OHANA_HANDSHAKE_VOUCH_GIVER");
 
     event VouchRequested(address indexed target, address indexed voucher, uint8 category);
     event VouchAccepted(address indexed target, address indexed voucher);
@@ -77,6 +86,19 @@ contract Handshake is Ownable {
         v.status = Status.Accepted;
         v.updatedAt = uint64(block.timestamp);
         emit VouchAccepted(msg.sender, voucher);
+        _awardHandshakePoints(msg.sender, voucher);
+    }
+
+    function _awardHandshakePoints(address target, address voucher) internal {
+        address hub = ohanaPointsHub;
+        if (hub == address(0)) return;
+        IOhanaPoints p = IOhanaPoints(hub);
+        p.award(target, 15, _HANDSHAKE_RECEIVER);
+        p.award(voucher, 10, _HANDSHAKE_GIVER);
+    }
+
+    function setOhanaPointsHub(address hub) external onlyOwner {
+        ohanaPointsHub = hub;
     }
 
     function denyVouch(address voucher) external {
