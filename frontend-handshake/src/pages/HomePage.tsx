@@ -4,7 +4,18 @@
 
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, Users, CheckCircle, Bot, Zap, ExternalLink, Globe, Network } from "lucide-react";
+import {
+  ArrowRight,
+  Shield,
+  Users,
+  CheckCircle,
+  Bot,
+  Zap,
+  ExternalLink,
+  Globe,
+  Network,
+  UserCircle,
+} from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useProfileData } from "@/hooks/useProfileData";
@@ -29,11 +40,8 @@ export function HomePage() {
   const wallet = useInjectedWallet();
   const { theme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    wallet.provider,
-    wallet.accounts[0] ?? null,
-    wallet.chainId
-  );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
 
   return (
     <AppLayout
@@ -46,6 +54,7 @@ export function HomePage() {
       availableWallets={wallet.availableWallets}
       walletError={wallet.error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={wallet.connect}
       onConnectWith={wallet.connectWith}
@@ -174,6 +183,99 @@ export function HomePage() {
             verifiable social proof tied to your wallet. Your reputation is portable and not controlled by any single
             platform.
           </motion.p>
+        </motion.section>
+
+        {/* What is a Universal Profile */}
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          aria-labelledby="up-heading"
+          className="space-y-5 rounded-2xl border border-theme-border bg-theme-surface px-6 py-10 md:px-10 md:py-12"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+            className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-theme-accent/25 bg-theme-accent-soft/40">
+              <UserCircle className="h-7 w-7 text-theme-accent" aria-hidden />
+            </div>
+            <h2
+              id="up-heading"
+              className="text-center text-2xl font-bold tracking-tight text-theme-text sm:text-left md:text-3xl"
+            >
+              What is a Universal Profile?
+            </h2>
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+            className="mx-auto max-w-2xl text-center text-lg leading-relaxed text-theme-text-muted md:text-[1.0625rem]"
+          >
+            A{" "}
+            <strong className="font-semibold text-theme-text">Universal Profile (UP)</strong> is a smart-contract
+            account on LUKSO—not just a keypair. It holds your identity metadata (name, images, links), can receive
+            assets, and is designed to be your portable Web3 profile.
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.38 }}
+            className="mx-auto max-w-2xl text-center text-lg leading-relaxed text-theme-text-muted md:text-[1.0625rem]"
+          >
+            Handshake vouches are on-chain proof of trust. You can connect them to your UP so reputation shows where
+            your profile lives—without giving any single app custody of your identity.
+          </motion.p>
+          <motion.ul
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.06, delayChildren: 0.42 } },
+            }}
+            className="mx-auto max-w-2xl space-y-2.5 text-left text-base text-theme-text-muted md:text-[1.0625rem]"
+          >
+            {[
+              "One contract address represents you; metadata follows open LUKSO standards (e.g. LSP3/LSP4).",
+              "Use the Universal Profile extension or a compatible wallet to interact.",
+              "Optional: link EOAs and show Handshake activity alongside your UP.",
+            ].map((text, i) => (
+              <motion.li
+                key={i}
+                variants={{ hidden: { opacity: 0, x: -6 }, visible: { opacity: 1, x: 0 } }}
+                className="flex items-start gap-2.5"
+              >
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" aria-hidden />
+                <span>{text}</span>
+              </motion.li>
+            ))}
+          </motion.ul>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row sm:gap-6"
+          >
+            <Link
+              to="/up-identity"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-theme-accent transition-colors hover:underline"
+            >
+              UP identity in Handshake
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="https://docs.lukso.tech/learn/universal-profile/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-theme-text-muted transition-colors hover:text-theme-accent"
+            >
+              Learn on LUKSO docs
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </motion.div>
         </motion.section>
 
         {/* Use Cases */}

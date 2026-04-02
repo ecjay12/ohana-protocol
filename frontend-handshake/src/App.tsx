@@ -29,6 +29,7 @@ import { VouchRedirect } from "./components/VouchRedirect";
 import { useActivityToast } from "./contexts/ActivityToastContext";
 import { VouchGraphPage } from "./pages/VouchGraphPage";
 import { UpIdentityPage } from "./pages/UpIdentityPage";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
 
 function App() {
   const {
@@ -71,11 +72,8 @@ function App() {
   } = useHandshake(provider, chainId, account);
 
   // Profile data for logged-in user
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    provider,
-    account,
-    chainId
-  );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(provider, account, chainId);
 
   const [incoming, setIncoming] = useState<{ voucher: string; category: number }[]>([]);
   const [pendingTargetAddress, setPendingTargetAddress] = useState<string | null>(null);
@@ -97,6 +95,9 @@ function App() {
   const prevAcceptedCountRef = useRef<number | null>(null);
   const vouchAddressFromUrl = searchParams.get("vouchAddress") ?? "";
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const providerRef = useRef(provider);
+  providerRef.current = provider;
 
   // Engagement: show popup when pending vouches load (once per session)
   useEffect(() => {
@@ -148,14 +149,15 @@ function App() {
     }
   }, [account, loading, vouchersForMe.length, showToast]);
 
-  // Load LSP2 hidden vouches from UP
+  // Load LSP2 hidden vouches from UP (ref: avoid re-running on new BrowserProvider identity)
   useEffect(() => {
-    if (!provider || !account || !userIsUP) {
+    const p = providerRef.current;
+    if (!p || !account || !userIsUP) {
       setHiddenVouchersLSP2(new Set());
       return;
     }
     let cancelled = false;
-    getHiddenVouchesFromUP(provider, account)
+    getHiddenVouchesFromUP(p, account)
       .then((list: string[]) => {
         if (!cancelled) {
           setHiddenVouchersLSP2(new Set(list.map((a: string) => a.toLowerCase())));
@@ -167,7 +169,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [provider, account, userIsUP, refreshKey]);
+  }, [isConnected, account, userIsUP, refreshKey]);
 
   // Load localStorage hidden vouches (legacy, will be replaced by on-chain + LSP2)
   useEffect(() => {
@@ -224,7 +226,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [isSupported, account, getIncomingPending, getIncomingPendingForTarget, getVouchersFor, getUPForEOA, refreshKey]);
+  }, [isSupported, account, chainId, refreshKey]);
 
   // Fetch vouches given (targets user vouched for)
   useEffect(() => {
@@ -272,7 +274,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [isSupported, account, getTargetsVouchedBy, getVouch, refreshKey]);
+  }, [isSupported, account, chainId, refreshKey]);
 
   // Fetch vouch statuses for received vouches
   useEffect(() => {
@@ -297,7 +299,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [isSupported, account, getVouch, vouchersForMe, refreshKey]);
+  }, [isSupported, account, chainId, vouchersForMe, refreshKey]);
 
   // Build history vouches (given + received)
   const historyVouchesGiven: HistoryVouch[] = useMemo(() => {
@@ -440,6 +442,7 @@ function App() {
       availableWallets={availableWallets}
       walletError={error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={connect}
       onConnectWith={connectWith}
@@ -607,6 +610,7 @@ function App() {
     <AnimatePresence mode="wait">
       <motion.div key={location.pathname} {...pageTransition} className="min-h-full">
         <Routes location={location}>
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/vouch-graph" element={<VouchGraphPage />} />
           <Route path="/up-identity" element={<UpIdentityPage />} />
           <Route path="/profile/:address" element={<ProfilePage />} />

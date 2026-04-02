@@ -2,7 +2,14 @@
  * Theme context — four themes: serene, dark, light, cyberpunk.
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 
 export type Theme = "serene" | "dark" | "light" | "cyberpunk" | "lyx";
 export const THEMES: { id: Theme; label: string }[] = [
@@ -27,17 +34,25 @@ const DEFAULT_THEME: Theme = "lyx";
 
 function getStoredTheme(): Theme {
   if (typeof window === "undefined") return DEFAULT_THEME;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && THEMES.some((t) => t.id === stored)) return stored as Theme;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && THEMES.some((t) => t.id === stored)) return stored as Theme;
+  } catch {
+    /* SecurityError / storage disabled (iframe, private mode, etc.) */
+  }
   return DEFAULT_THEME;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem(STORAGE_KEY, theme);
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      /* private mode / quota */
+    }
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {

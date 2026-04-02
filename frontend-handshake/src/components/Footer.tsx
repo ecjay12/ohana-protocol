@@ -21,6 +21,12 @@ export function Footer() {
             App
           </Link>
           <Link
+            to="/leaderboard"
+            className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
+          >
+            Leaderboard
+          </Link>
+          <Link
             to="/vouch-graph"
             className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
           >

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network, Palette, ChevronDown } from "lucide-react";
+import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network, Palette, ChevronDown, Users } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
@@ -22,6 +22,7 @@ interface SidebarProps {
   availableWallets: WalletOption[];
   walletError: string | null;
   userProfileData?: ProfileData | null;
+  userProfileLoading?: boolean;
   userIsUP?: boolean;
   onConnect: () => void;
   onConnectWith: (wallet: WalletOption) => void;
@@ -42,6 +43,7 @@ export function Sidebar({
   availableWallets,
   walletError,
   userProfileData,
+  userProfileLoading = false,
   userIsUP: _userIsUP,
   onConnect,
   onConnectWith,
@@ -54,7 +56,7 @@ export function Sidebar({
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
-  const [themeExpanded, setThemeExpanded] = useState(false);
+  const [themeExpanded, setThemeExpanded] = useState(true);
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -102,13 +104,13 @@ export function Sidebar({
       </div>
       {isConnected ? (
         <>
-          {/* Profile header when we have profile data */}
-          {userProfileData && account && (
+          {account && (
             <div className="mb-3">
               <ProfileHeader
-                profileData={userProfileData}
+                profileData={userProfileData ?? null}
                 address={account}
                 isOwnProfile={true}
+                loading={userProfileLoading}
               />
             </div>
           )}
@@ -128,7 +130,11 @@ export function Sidebar({
               <LogOut className="h-4 w-4" />
             </GlowButton>
           </div>
-          <p className="text-xs text-theme-dim">Disconnect to switch to another wallet.</p>
+          <p className="text-xs text-theme-dim">
+            Disconnect clears this site in your wallet so the next Connect asks again (MetaMask) or
+            uses your chosen extension. Switch the active account in MetaMask first if you want a
+            different address.
+          </p>
         </>
       ) : (
         <>
@@ -199,6 +205,7 @@ export function Sidebar({
         {[
           { to: "/", icon: Home, label: "Home" },
           { to: "/app", icon: LayoutGrid, label: "App" },
+          { to: "/leaderboard", icon: Users, label: "Leaderboard" },
           { to: "/vouch-graph", icon: Network, label: "Network graph" },
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
@@ -223,34 +230,27 @@ export function Sidebar({
               className={`h-4 w-4 shrink-0 transition-transform ${themeExpanded ? "rotate-180" : ""}`}
             />
           </button>
-          <AnimatePresence initial={false}>
-            {themeExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="flex flex-wrap gap-1.5 pt-2 pb-1">
-                  {THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTheme(t.id)}
-                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                        theme === t.id
-                          ? "border border-theme-accent bg-theme-accent-soft text-theme-accent"
-                          : "bg-theme-surface text-theme-text-muted hover:bg-theme-surface-strong hover:text-theme-text"
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {themeExpanded && (
+            <div className="flex flex-wrap gap-2 pt-2 pb-1">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setTheme(t.id);
+                    onClose?.();
+                  }}
+                  className={`touch-manipulation min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors active:opacity-90 ${
+                    theme === t.id
+                      ? "border border-theme-accent bg-theme-accent-soft text-theme-accent"
+                      : "border border-transparent bg-theme-surface text-theme-text-muted hover:bg-theme-surface-strong hover:text-theme-text"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </nav>
     </>

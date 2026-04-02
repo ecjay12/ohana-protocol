@@ -1,7 +1,7 @@
 /**
  * Handshake contract hook — vouch, accept, deny, cancel, and read vouches.
  */
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Contract, BrowserProvider, getAddress } from "ethers";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
@@ -52,44 +52,44 @@ const STATUS_LABELS: Record<VouchStatus, string> = {
 };
 
 export function useHandshake(provider: BrowserProvider | null, chainId: number, account: string | null) {
-  const [contract, setContract] = useState<Contract | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txPending, setTxPending] = useState(false);
   const [fee, setFee] = useState<bigint>(0n);
 
-  const address = getHandshakeAddress(chainId);
-  const isSupported = !!address;
+  const handshakeAddr = getHandshakeAddress(chainId);
+  const isSupported = !!handshakeAddr;
+  const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc ?? null;
 
-  // Read-only contract (always available when chain is supported) for read operations
-  const readOnlyContract = useMemo(() => {
-    if (!address) return null;
-    const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
-    if (!rpc) return null;
-    return new Contract(address, HandshakeArtifact.abi, createJsonRpcProvider(rpc));
-  }, [address, chainId]);
+  /** Read-only Handshake contract — ref avoids unstable `Contract` in useCallback deps (RPC spam / 429s). */
+  const readContractRef = useRef<Contract | null>(null);
 
   useEffect(() => {
-    if (!provider || !address) {
-      setContract(null);
-      return;
-    }
-    setContract(new Contract(address, HandshakeArtifact.abi, provider));
-  }, [provider, address]);
-
-  useEffect(() => {
-    const c = contract ?? readOnlyContract;
-    if (!c) {
+    readContractRef.current = null;
+    if (!handshakeAddr || !rpc) {
       setFee(0n);
       return;
     }
-    c.fee().then(setFee).catch(() => setFee(0n));
-  }, [contract, readOnlyContract]);
+    const c = new Contract(handshakeAddr, HandshakeArtifact.abi, createJsonRpcProvider(rpc));
+    readContractRef.current = c;
+    let cancelled = false;
+    c.fee()
+      .then((f) => {
+        if (!cancelled) setFee(f);
+      })
+      .catch(() => {
+        if (!cancelled) setFee(0n);
+      });
+    return () => {
+      cancelled = true;
+      readContractRef.current = null;
+    };
+  }, [handshakeAddr, chainId, rpc]);
 
   const getSignerContract = useCallback(async () => {
-    if (!provider || !address || !account) return null;
+    if (!provider || !handshakeAddr || !account) return null;
     const signer = await provider.getSigner();
-    return new Contract(address, HandshakeArtifact.abi, signer);
-  }, [provider, address, account]);
+    return new Contract(handshakeAddr, HandshakeArtifact.abi, signer);
+  }, [provider, handshakeAddr, account]);
 
   const vouch = useCallback(
     async (target: string, category: number) => {
@@ -186,7 +186,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
 
   const getVouch = useCallback(
     async (target: string, voucher: string): Promise<VouchData | null> => {
-      const c = contract ?? readOnlyContract;
+      const c = readContractRef.current;
       if (!c) return null;
       try {
         const normalizedTarget = getAddress(target.trim());
@@ -203,12 +203,12 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return null;
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   const getVouchersFor = useCallback(
     async (target: string): Promise<string[]> => {
-      const c = readOnlyContract ?? contract;
+      const c = readContractRef.current;
       if (!c) return [];
       try {
         const list = await c.getVouchersFor(target);
@@ -217,12 +217,12 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return [];
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   const getIncomingPendingForTarget = useCallback(
     async (target: string): Promise<{ voucher: string; category: number }[]> => {
-      const c = readOnlyContract ?? contract;
+      const c = readContractRef.current;
       if (!c) return [];
       try {
         const list = await c.getVouchersFor(target);
@@ -240,7 +240,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return [];
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   const getIncomingPending = useCallback(async (): Promise<{ voucher: string; category: number }[]> => {
@@ -250,7 +250,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
 
   const getAcceptedCount = useCallback(
     async (target: string): Promise<number> => {
-      const c = contract ?? readOnlyContract;
+      const c = readContractRef.current;
       if (!c) return 0;
       try {
         const normalizedTarget = getAddress(target.trim());
@@ -260,12 +260,12 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return 0;
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   const getTargetsVouchedBy = useCallback(
     async (voucher: string): Promise<string[]> => {
-      const c = readOnlyContract ?? contract;
+      const c = readContractRef.current;
       if (!c) return [];
       try {
         const normalizedVoucher = getAddress(voucher.trim());
@@ -275,7 +275,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return [];
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   const hideVouch = useCallback(
@@ -344,7 +344,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
   /** Resolve linked UP for an EOA (OhanaHandshakeRegistry). Returns zero address if none. */
   const getUPForEOA = useCallback(
     async (eoa: string): Promise<string | null> => {
-      const c = readOnlyContract ?? contract;
+      const c = readContractRef.current;
       if (!c || typeof c.getUPForEOA !== "function") {
         return null;
       }
@@ -355,7 +355,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         return null;
       }
     },
-    [contract, readOnlyContract]
+    [handshakeAddr, chainId]
   );
 
   /** Register EOA->UP binding (OhanaHandshakeRegistry only). No-op if contract lacks this function. */
@@ -364,8 +364,14 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
       const c = await getSignerContract();
       if (!c) return false;
       try {
-        if (typeof c.registerEOAtoUP !== "function") return false;
-        const tx = await c.registerEOAtoUP(getAddress(upAddress.trim()));
+        if (typeof c.registerEOAtoUP !== "function") {
+          throw new Error(
+            "This Handshake deployment has no registerEOAtoUP. Redeploy OhanaHandshakeRegistry and update chainConfig."
+          );
+        }
+        const up = getAddress(upAddress.trim());
+        await c.registerEOAtoUP.staticCall(up);
+        const tx = await c.registerEOAtoUP(up);
         await tx.wait();
         return true;
       } catch (e: unknown) {
@@ -382,7 +388,6 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
   );
 
   return {
-    contract,
     error,
     txPending,
     fee,

@@ -36,11 +36,8 @@ function getContractReadme(): string {
 
 export function IntegratePage() {
   const wallet = useInjectedWallet();
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    wallet.provider,
-    wallet.accounts[0] ?? null,
-    wallet.chainId
-  );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "https://yourapp.com";
 
   return (
@@ -54,6 +51,7 @@ export function IntegratePage() {
       availableWallets={wallet.availableWallets}
       walletError={wallet.error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={wallet.connect}
       onConnectWith={wallet.connectWith}

@@ -162,6 +162,71 @@ describe("Ohana Protocol", function () {
     });
   });
 
+  describe("Handshake retroHandshakePoints", function () {
+    let pointsR;
+    let handshakeR;
+    let alice;
+    let bob;
+
+    before(async function () {
+      const signers = await ethers.getSigners();
+      alice = signers[10];
+      bob = signers[11];
+      const OhanaPoints = await ethers.getContractFactory("OhanaPoints");
+      pointsR = await OhanaPoints.deploy(signers[0].address);
+      await pointsR.waitForDeployment();
+      const hub = await pointsR.getAddress();
+
+      const Handshake = await ethers.getContractFactory("Handshake");
+      handshakeR = await Handshake.deploy(signers[1].address);
+      await handshakeR.waitForDeployment();
+
+      await pointsR.grantRewarder(await handshakeR.getAddress());
+    });
+
+    it("accept with hub unset then retro awards 15 / 10", async function () {
+      const hub = await pointsR.getAddress();
+      await handshakeR.connect(alice).vouch(bob.address, 1, { value: 0 });
+      await handshakeR.connect(bob).acceptVouch(alice.address);
+      expect(await pointsR.balanceOf(bob.address)).to.equal(0n);
+      expect(await pointsR.balanceOf(alice.address)).to.equal(0n);
+
+      await handshakeR.setOhanaPointsHub(hub);
+      await handshakeR.retroHandshakePoints(bob.address, alice.address);
+      expect(await pointsR.balanceOf(bob.address)).to.equal(15n);
+      expect(await pointsR.balanceOf(alice.address)).to.equal(10n);
+    });
+
+    it("second retro for same pair reverts", async function () {
+      await expect(
+        handshakeR.retroHandshakePoints(bob.address, alice.address)
+      ).to.be.revertedWith("Handshake pair already settled");
+    });
+
+    it("retro after normal accept with hub set reverts", async function () {
+      const signers = await ethers.getSigners();
+      const OhanaPoints = await ethers.getContractFactory("OhanaPoints");
+      const p = await OhanaPoints.deploy(signers[0].address);
+      await p.waitForDeployment();
+      const hub = await p.getAddress();
+      const Handshake = await ethers.getContractFactory("Handshake");
+      const h = await Handshake.deploy(signers[1].address);
+      await h.waitForDeployment();
+      await p.grantRewarder(await h.getAddress());
+      await h.setOhanaPointsHub(hub);
+
+      const u = signers[12];
+      const v = signers[13];
+      await h.connect(u).vouch(v.address, 0, { value: 0 });
+      await h.connect(v).acceptVouch(u.address);
+      expect(await p.balanceOf(v.address)).to.equal(15n);
+
+      await expect(h.retroHandshakePoints(v.address, u.address)).to.be.revertedWith(
+        "Handshake pair already settled"
+      );
+    });
+  });
+
   describe("LSP17VouchExtension", function () {
     it("should return full score for non-revoked vouch", async function () {
       const score = await ext.getEffectiveVouchScore(ethers.ZeroHash);

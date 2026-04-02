@@ -2,7 +2,7 @@
  * Connect via browser-injected wallet(s). Supports multiple wallets (MetaMask, Universal Profile, etc.)
  * Chain list from shared/chainConfig.json (single source of truth with api/vouches.js).
  */
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { BrowserProvider, type Eip1193Provider } from "ethers";
 import chainConfig from "../../shared/chainConfig.json";
 
@@ -27,9 +27,28 @@ type WalletState = {
 };
 
 const WALLET_PREF_KEY = "ohana-handshake-wallet-preference";
+/** After disconnect(), skip silent eth_accounts reconnect until user picks a wallet again (connectWith). */
+const SKIP_AUTO_RECONNECT_KEY = "ohana-handshake-skip-autoreconnect";
+
+/**
+ * MetaMask / some wallets: drop site permission so the next eth_requestAccounts can show
+ * account selection instead of returning a stale authorized address.
+ */
+async function revokeSiteEthAccountsPermission(provider: Eip1193Provider | null) {
+  if (!provider?.request) return;
+  try {
+    await provider.request({
+      method: "wallet_revokePermissions",
+      params: [{ eth_accounts: {} }],
+    });
+  } catch {
+    /* Unsupported (e.g. older extension) or already revoked — safe to ignore */
+  }
+}
 
 type InjectedEthereum = Eip1193Provider & {
   on?: (event: string, cb: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, cb: (...args: unknown[]) => void) => void;
   providers?: InjectedEthereum[];
   isMetaMask?: boolean;
 };
@@ -97,6 +116,12 @@ export function useInjectedWallet() {
     hasInjected: typeof window !== "undefined" && !!window.ethereum,
   });
 
+  /** Latest raw EIP-1193 provider for disconnect revoke (refs update before disconnect clears state). */
+  const rawProviderRef = useRef<Eip1193Provider | null>(null);
+  useEffect(() => {
+    rawProviderRef.current = state.rawProvider;
+  }, [state.rawProvider]);
+
   const availableWallets = getAvailableWallets();
 
   const connectWith = useCallback(async (wallet: WalletOption) => {
@@ -109,6 +134,13 @@ export function useInjectedWallet() {
     }
     try {
       const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+      if (accounts.length > 0) {
+        try {
+          localStorage.removeItem(SKIP_AUTO_RECONNECT_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
       const chainIdHex = (await eth.request({ method: "eth_chainId" })) as string;
       const chainId = parseInt(chainIdHex, 16);
       const ethersProvider = new BrowserProvider(eth as unknown as Eip1193Provider);
@@ -120,22 +152,6 @@ export function useInjectedWallet() {
         rawProvider: eth as unknown as Eip1193Provider,
         error: null,
         hasInjected: true,
-      });
-      const withOn = eth as InjectedEthereum;
-      withOn.on?.("chainChanged", (id: unknown) => {
-        const newChainId = typeof id === "string" ? parseInt(id, 16) : Number(id);
-        const newEthersProvider = new BrowserProvider(eth as unknown as Eip1193Provider);
-        setState((s) => ({ ...s, chainId: newChainId, provider: newEthersProvider }));
-      });
-      withOn.on?.("accountsChanged", (accs: unknown) => {
-        const list = Array.isArray(accs) ? (accs as string[]) : [];
-        setState((s) => ({
-          ...s,
-          accounts: list,
-          isConnected: list.length > 0,
-          provider: list.length > 0 ? s.provider : null,
-          rawProvider: list.length > 0 ? s.rawProvider : null,
-        }));
       });
     } catch (e) {
       setState((s) => ({
@@ -164,6 +180,14 @@ export function useInjectedWallet() {
   }, [connectWith]);
 
   const disconnect = useCallback(() => {
+    try {
+      localStorage.setItem(SKIP_AUTO_RECONNECT_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    const p = rawProviderRef.current;
+    rawProviderRef.current = null;
+    void revokeSiteEthAccountsPermission(p);
     setState({
       accounts: [],
       chainId: 4201,
@@ -239,6 +263,13 @@ export function useInjectedWallet() {
     }
 
     const tryReconnect = async () => {
+      try {
+        if (localStorage.getItem(SKIP_AUTO_RECONNECT_KEY) === "1") {
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       for (const wallet of ordered) {
         if (cancelled) return;
         try {
@@ -257,22 +288,6 @@ export function useInjectedWallet() {
               error: null,
               hasInjected: true,
             });
-            const withOn = wallet.provider as InjectedEthereum;
-            withOn.on?.("chainChanged", (id: unknown) => {
-              const newChainId = typeof id === "string" ? parseInt(id, 16) : Number(id);
-              const newEthersProvider = new BrowserProvider(rawEip);
-              setState((s) => ({ ...s, chainId: newChainId, provider: newEthersProvider }));
-            });
-            withOn.on?.("accountsChanged", (accs: unknown) => {
-              const list = Array.isArray(accs) ? (accs as string[]) : [];
-              setState((s) => ({
-                ...s,
-                accounts: list,
-                isConnected: list.length > 0,
-                provider: list.length > 0 ? s.provider : null,
-                rawProvider: list.length > 0 ? s.rawProvider : null,
-              }));
-            });
             return;
           }
         } catch {
@@ -286,6 +301,40 @@ export function useInjectedWallet() {
       cancelled = true;
     };
   }, []);
+
+  /** One chain/accounts listener per raw provider — reconnect used to stack handlers and flood RPC. */
+  useEffect(() => {
+    const eth = state.rawProvider as InjectedEthereum | null;
+    if (!eth?.on) return;
+
+    const onChainChanged = (id: unknown) => {
+      const newChainId = typeof id === "string" ? parseInt(id, 16) : Number(id);
+      setState((s) => {
+        if (!s.rawProvider) return s;
+        const newEthersProvider = new BrowserProvider(s.rawProvider);
+        return { ...s, chainId: newChainId, provider: newEthersProvider };
+      });
+    };
+
+    const onAccountsChanged = (accs: unknown) => {
+      const list = Array.isArray(accs) ? (accs as string[]) : [];
+      setState((s) => ({
+        ...s,
+        accounts: list,
+        isConnected: list.length > 0,
+        provider: list.length > 0 ? s.provider : null,
+        rawProvider: list.length > 0 ? s.rawProvider : null,
+      }));
+    };
+
+    eth.on("chainChanged", onChainChanged);
+    eth.on("accountsChanged", onAccountsChanged);
+
+    return () => {
+      eth.removeListener?.("chainChanged", onChainChanged);
+      eth.removeListener?.("accountsChanged", onAccountsChanged);
+    };
+  }, [state.rawProvider]);
 
   return {
     ...state,

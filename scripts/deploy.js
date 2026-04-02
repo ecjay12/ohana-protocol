@@ -87,10 +87,8 @@ async function main() {
 
   const net = await hre.ethers.provider.getNetwork();
   const chainIdStr = String(net.chainId);
-  console.log(
-    "\nAdd to frontend-handshake/shared/chainConfig.json under ohanaPointsAddresses:",
-    JSON.stringify({ [chainIdStr]: hubAddr.toLowerCase() }, null, 2)
-  );
+  console.log("\nOhanaPoints hub address (for reference):", hubAddr);
+  console.log("  chainId:", chainIdStr);
 }
 
 main().catch((e) => {

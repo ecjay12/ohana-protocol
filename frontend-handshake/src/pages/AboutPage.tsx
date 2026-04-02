@@ -11,11 +11,8 @@ import { useProfileData } from "@/hooks/useProfileData";
 
 export function AboutPage() {
   const wallet = useInjectedWallet();
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    wallet.provider,
-    wallet.accounts[0] ?? null,
-    wallet.chainId
-  );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
 
   return (
     <AppLayout
@@ -28,6 +25,7 @@ export function AboutPage() {
       availableWallets={wallet.availableWallets}
       walletError={wallet.error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={wallet.connect}
       onConnectWith={wallet.connectWith}

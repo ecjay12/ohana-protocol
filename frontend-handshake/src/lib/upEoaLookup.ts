@@ -1,6 +1,11 @@
 /**
  * Resolve EOAs linked to a Universal Profile via EOARegistered events.
  * Used to aggregate vouches from MetaMask/EOA wallets onto UP profiles.
+ *
+ * Links are stored on LUKSO deployments of Handshake (registry). We merge
+ * **LUKSO mainnet (42)** and **LUKSO Testnet (4201)** so registrations on either
+ * network are discovered — then vouches are read per chain in useProfileVouches
+ * (including Base) for the same 0x addresses.
  */
 
 import { Contract, getAddress } from "ethers";
@@ -12,25 +17,13 @@ import HandshakeArtifact from "@contracts";
 
 const ABI = HandshakeArtifact?.abi ?? [];
 
-/** LUKSO chain IDs where UPs exist and registerEOAtoUP is called */
-const LUKSO_CHAIN_IDS = [42, 4201] as const;
+/** Chains where EOA→UP bindings are indexed (UP as contract + registry). */
+const EOA_REGISTRY_LUKSO_CHAINS = [42, 4201] as const;
 
-/**
- * Get EOAs currently linked to a Universal Profile by querying EOARegistered events.
- * Uses LUKSO chain for the lookup (UPs exist on LUKSO).
- * Filters by getUPForEOA to exclude EOAs that have since unregistered.
- */
-export async function getEOAsForUP(
-  upAddress: string,
-  chainId: number
+async function fetchEOAsLinkedOnLuksoChain(
+  normalizedUP: string,
+  lookupChainId: number
 ): Promise<string[]> {
-  const normalizedUP = getAddress(upAddress.trim());
-
-  // Use LUKSO chain for EOA lookup; UPs exist on LUKSO
-  const lookupChainId = LUKSO_CHAIN_IDS.includes(chainId as (typeof LUKSO_CHAIN_IDS)[number])
-    ? chainId
-    : 4201; // default to LUKSO testnet
-
   const contractAddress = getHandshakeAddress(lookupChainId);
   const rpc = CHAINS[lookupChainId as keyof typeof CHAINS]?.rpc;
   if (!contractAddress || !rpc) return [];
@@ -50,10 +43,8 @@ export async function getEOAsForUP(
       })
       .filter((a): a is string => a != null);
 
-    // Dedupe (same EOA could re-register)
     const uniqueEoas = [...new Set(eoas)];
 
-    // Filter out EOAs that have since unregistered
     const stillLinked: string[] = [];
     for (const eoa of uniqueEoas) {
       try {
@@ -66,7 +57,6 @@ export async function getEOAsForUP(
           stillLinked.push(eoa);
         }
       } catch {
-        // If getUPForEOA fails (e.g. old contract), include the EOA
         stillLinked.push(eoa);
       }
     }
@@ -75,4 +65,23 @@ export async function getEOAsForUP(
   } catch {
     return [];
   }
+}
+
+/**
+ * EOAs currently linked to this UP (merged from LUKSO + LUKSO testnet registry).
+ * @param _chainId unused — kept for call-site compatibility; discovery is always LUKSO family.
+ */
+export async function getEOAsForUP(upAddress: string, _chainId: number): Promise<string[]> {
+  const normalizedUP = getAddress(upAddress.trim());
+  const byLower = new Map<string, string>();
+
+  for (const lookupChainId of EOA_REGISTRY_LUKSO_CHAINS) {
+    const part = await fetchEOAsLinkedOnLuksoChain(normalizedUP, lookupChainId);
+    for (const eoa of part) {
+      const k = eoa.toLowerCase();
+      if (!byLower.has(k)) byLower.set(k, eoa);
+    }
+  }
+
+  return Array.from(byLower.values());
 }

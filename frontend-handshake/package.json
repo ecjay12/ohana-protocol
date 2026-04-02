@@ -5,15 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --open",
-    "build": "prisma generate && tsc -b && vite build",
-    "preview": "vite preview",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "points:sync": "node scripts/sync-ohana-points.mjs"
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@erc725/erc725.js": "^0.28.2",
-    "@prisma/client": "^5.22.0",
     "ethers": "^6.9.0",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.564.0",
@@ -23,7 +20,6 @@
     "three": "^0.183.1"
   },
   "devDependencies": {
-    "prisma": "^5.22.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",

@@ -63,7 +63,7 @@ export function HandshakeUI({ provider, chainId, account }: HandshakeUIProps) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [isSupported, account, getIncomingPending, getVouchersFor, refreshKey]);
+  }, [isSupported, account, chainId, refreshKey]);
 
   useEffect(() => {
     if (!isSupported || !account || vouchersForMe.length === 0) {
@@ -83,7 +83,7 @@ export function HandshakeUI({ provider, chainId, account }: HandshakeUIProps) {
     };
     load();
     return () => { cancelled = true; };
-  }, [isSupported, account, getVouch, vouchersForMe, refreshKey]);
+  }, [isSupported, account, chainId, vouchersForMe, refreshKey]);
 
   const handleCheckMyVouch = useCallback(async () => {
     const target = checkTarget.trim();

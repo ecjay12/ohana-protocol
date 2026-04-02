@@ -1,8 +1,9 @@
 import { type ReactNode, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Footer } from "@/components/Footer";
+import { VouchLeaderboardCard } from "@/components/VouchLeaderboardCard";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -19,6 +20,8 @@ interface AppLayoutProps {
   availableWallets: WalletOption[];
   walletError: string | null;
   userProfileData?: ProfileData | null;
+  /** True while on-chain LSP profile fetch is in progress (sidebar profile header). */
+  userProfileLoading?: boolean;
   userIsUP?: boolean;
   onConnect: () => void;
   onConnectWith: (wallet: WalletOption) => void;
@@ -37,6 +40,7 @@ export function AppLayout({
   availableWallets,
   walletError,
   userProfileData,
+  userProfileLoading = false,
   userIsUP,
   onConnect,
   onConnectWith,
@@ -44,6 +48,8 @@ export function AppLayout({
   onDisconnect,
 }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const hideLeaderboardRail = location.pathname === "/leaderboard";
   const { theme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
 
@@ -59,6 +65,7 @@ export function AppLayout({
         availableWallets={availableWallets}
         walletError={walletError}
         userProfileData={userProfileData}
+        userProfileLoading={userProfileLoading}
         userIsUP={userIsUP}
         onConnect={onConnect}
         onConnectWith={onConnectWith}
@@ -92,9 +99,18 @@ export function AppLayout({
             <span className="text-lg font-semibold text-theme-text">Handshake</span>
           </Link>
         </header>
-        <main className="flex-1 overflow-auto bg-theme-background">
-          {children}
-        </main>
+        <div className="flex min-h-0 flex-1 min-w-0">
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-theme-background">
+            {children}
+          </main>
+          {!hideLeaderboardRail && (
+            <aside className="hidden min-h-0 w-[300px] shrink-0 flex-col border-l border-theme-border bg-theme-background/95 xl:flex">
+              <div className="sticky top-0 max-h-[calc(100vh-0.5rem)] overflow-y-auto p-4 pt-6">
+                <VouchLeaderboardCard />
+              </div>
+            </aside>
+          )}
+        </div>
         <Footer />
       </div>
     </div>

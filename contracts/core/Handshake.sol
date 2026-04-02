@@ -40,6 +40,9 @@ contract Handshake is Ownable {
         keccak256("OHANA_HANDSHAKE_VOUCH_RECEIVER");
     bytes32 private constant _HANDSHAKE_GIVER = keccak256("OHANA_HANDSHAKE_VOUCH_GIVER");
 
+    /// @notice One flag per (target, voucher) pair: set after handshake points are minted on-chain.
+    mapping(bytes32 => bool) private _handshakePairPointsSettled;
+
     event VouchRequested(address indexed target, address indexed voucher, uint8 category);
     event VouchAccepted(address indexed target, address indexed voucher);
     event VouchDenied(address indexed target, address indexed voucher);
@@ -89,12 +92,31 @@ contract Handshake is Ownable {
         _awardHandshakePoints(msg.sender, voucher);
     }
 
+    /**
+     * @notice Award handshake points for an already-accepted pair (e.g. accept happened before hub was set).
+     * @dev Reverts if points were already settled for this pair or hub is unset.
+     */
+    function retroHandshakePoints(address target, address voucher) external onlyOwner {
+        require(vouches[target][voucher].status == Status.Accepted, "Not accepted");
+        require(ohanaPointsHub != address(0), "Hub not set");
+        bytes32 k = _handshakePairKey(target, voucher);
+        require(!_handshakePairPointsSettled[k], "Handshake pair already settled");
+        _awardHandshakePoints(target, voucher);
+    }
+
+    function _handshakePairKey(address target, address voucher) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(target, voucher));
+    }
+
     function _awardHandshakePoints(address target, address voucher) internal {
+        bytes32 k = _handshakePairKey(target, voucher);
+        if (_handshakePairPointsSettled[k]) return;
         address hub = ohanaPointsHub;
         if (hub == address(0)) return;
         IOhanaPoints p = IOhanaPoints(hub);
         p.award(target, 15, _HANDSHAKE_RECEIVER);
         p.award(voucher, 10, _HANDSHAKE_GIVER);
+        _handshakePairPointsSettled[k] = true;
     }
 
     function setOhanaPointsHub(address hub) external onlyOwner {

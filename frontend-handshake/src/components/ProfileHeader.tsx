@@ -1,8 +1,8 @@
 /**
- * Profile header component displaying LSP3/LSP4 profile data per LUKSO spec.
- * Shows banner, avatar, name, description, tags, links (with platform icons), and LSP26/LSP27.
+ * Profile header: on-chain LSP3/LSP4 plus LUKSO LSP indexer (followers/following, merged metadata).
  */
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ExternalLink,
@@ -15,6 +15,8 @@ import {
   Music2,
 } from "lucide-react";
 import type { ProfileData } from "@/lib/lsp4Profile";
+import type { IndexerLeaderboardProfile } from "@/lib/lspIndexerProfiles";
+import { useIndexerProfile } from "@/hooks/useIndexerProfile";
 
 interface ProfileHeaderProps {
   profileData: ProfileData | null;
@@ -39,6 +41,31 @@ function getLinkIcon(title: string, url: string) {
   return ExternalLink;
 }
 
+function mergeTags(
+  profileData: ProfileData | null,
+  indexer: IndexerLeaderboardProfile | null
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of [...(profileData?.tags ?? []), ...(indexer?.tags ?? [])]) {
+    const s = t.trim();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+function mergeLinks(
+  profileData: ProfileData | null,
+  indexer: IndexerLeaderboardProfile | null
+): { title: string; url: string }[] {
+  const chain = profileData?.links ?? [];
+  const idx = indexer?.links ?? [];
+  const seen = new Set(chain.map((l) => l.url));
+  return [...chain, ...idx.filter((l) => !seen.has(l.url))];
+}
+
 export function ProfileHeader({
   profileData,
   address,
@@ -49,6 +76,28 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const formatAddress = (addr: string) => `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
+  const { data: indexer, loading: indexerLoading } = useIndexerProfile(address);
+
+  const displayName = useMemo(() => {
+    const n = profileData?.name?.trim() || indexer?.name?.trim();
+    return n || formatAddress(address);
+  }, [profileData, indexer, address]);
+
+  const displayAvatar = profileData?.avatar ?? indexer?.avatarUrl ?? null;
+  const displayBackground = profileData?.background ?? indexer?.backgroundUrl ?? null;
+
+  const displayDescription = useMemo(() => {
+    const c = profileData?.description?.trim();
+    if (c) return c;
+    return indexer?.description?.trim() ?? "";
+  }, [profileData, indexer]);
+
+  const mergedTags = useMemo(() => mergeTags(profileData, indexer), [profileData, indexer]);
+  const mergedLinks = useMemo(() => mergeLinks(profileData, indexer), [profileData, indexer]);
+
+  const showNoMetadataHint =
+    !loading && !indexerLoading && !profileData && !indexer;
+
   if (loading) {
     return (
       <div className="glass-card overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">
@@ -58,6 +107,7 @@ export function ProfileHeader({
           <div className="flex-1 space-y-2">
             <div className="h-5 w-40 animate-pulse rounded bg-theme-surface-strong" />
             <div className="h-3 w-56 animate-pulse rounded bg-theme-surface-strong" />
+            <div className="h-3 w-32 animate-pulse rounded bg-theme-surface-strong" />
           </div>
         </div>
       </div>
@@ -70,11 +120,10 @@ export function ProfileHeader({
       animate={{ opacity: 1, y: 0 }}
       className="glass-card overflow-hidden rounded-2xl border border-theme-border bg-theme-surface"
     >
-      {/* Banner (LSP3 backgroundImage) */}
-      {profileData?.background ? (
+      {displayBackground ? (
         <div className="relative h-32 w-full overflow-hidden bg-theme-surface-strong sm:h-40">
           <img
-            src={profileData.background}
+            src={displayBackground}
             alt=""
             className="h-full w-full object-cover"
             onError={(e) => {
@@ -87,13 +136,12 @@ export function ProfileHeader({
       )}
 
       <div className="relative px-4 pb-6 pt-2 sm:px-6">
-        {/* Avatar - overlaps banner */}
         <div className="-mt-12 sm:-mt-14">
           <div className="inline-block rounded-full border-4 border-theme-bg bg-theme-bg">
-            {profileData?.avatar ? (
+            {displayAvatar ? (
               <img
-                src={profileData.avatar}
-                alt={profileData.name || "Profile"}
+                src={displayAvatar}
+                alt={displayName}
                 className="h-20 w-20 rounded-full object-cover sm:h-24 sm:w-24"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
@@ -104,18 +152,15 @@ export function ProfileHeader({
             ) : null}
             <div
               className="flex h-20 w-20 items-center justify-center rounded-full bg-theme-surface-strong sm:h-24 sm:w-24"
-              style={{ display: profileData?.avatar ? "none" : "flex" }}
+              style={{ display: displayAvatar ? "none" : "flex" }}
             >
               <User className="h-10 w-10 text-theme-text-dim sm:h-12 sm:w-12" />
             </div>
           </div>
         </div>
 
-        {/* Name & handle */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-semibold text-theme-text sm:text-2xl">
-            {profileData?.name || formatAddress(address)}
-          </h2>
+          <h2 className="text-xl font-semibold text-theme-text sm:text-2xl">{displayName}</h2>
           {hasGitHubVerified && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-theme-surface-strong px-2 py-0.5 text-xs font-medium text-theme-text"
@@ -128,18 +173,39 @@ export function ProfileHeader({
         </div>
         <p className="mt-1 font-mono text-sm text-theme-text-muted">{address}</p>
 
-        {!profileData && (
+        {indexer && (
           <p className="mt-2 text-xs text-theme-text-muted">
-            No profile metadata (LSP3/LSP4) found for this address.
+            {indexer.followerCount.toLocaleString()} followers · {indexer.followingCount.toLocaleString()}{" "}
+            following
+            {indexer.timestamp != null && (
+              <span className="text-theme-text-dim">
+                {" "}
+                · indexed {new Date(indexer.timestamp).toLocaleDateString()}
+              </span>
+            )}
+            <span className="text-theme-text-dim"> · </span>
+            <a
+              href="https://indexer.sigmacore.io/docs/quickstart"
+              className="text-theme-accent hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LSP indexer
+            </a>
           </p>
         )}
 
-        {/* Tags (LSP3 tags) */}
-        {profileData?.tags && profileData.tags.length > 0 && (
+        {showNoMetadataHint && (
+          <p className="mt-2 text-xs text-theme-text-muted">
+            No profile metadata (LSP3/LSP4) or LUKSO indexer row found for this address.
+          </p>
+        )}
+
+        {mergedTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {profileData.tags.map((tag, i) => (
+            {mergedTags.map((tag, i) => (
               <span
-                key={i}
+                key={`${tag}-${i}`}
                 className="rounded-full bg-theme-accent-soft px-3 py-1 text-xs font-medium text-theme-accent"
               >
                 {tag}
@@ -148,26 +214,23 @@ export function ProfileHeader({
           </div>
         )}
 
-        {/* Description / bio */}
-        {profileData?.description && (
-          <p className="mt-3 text-sm text-theme-text">{profileData.description}</p>
-        )}
+        {displayDescription ? (
+          <p className="mt-3 text-sm text-theme-text">{displayDescription}</p>
+        ) : null}
 
-        {/* Vouch count from Handshake contract (display-only, no UP write) */}
         {acceptedCount != null && acceptedCount > 0 && (
           <p className="mt-2 text-sm text-theme-text-muted">
             {acceptedCount} {acceptedCount === 1 ? "vouch" : "vouches"} via Handshake
           </p>
         )}
 
-        {/* Links with platform icons */}
-        {profileData?.links && profileData.links.length > 0 && (
+        {mergedLinks.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {profileData.links.map((link, i) => {
+            {mergedLinks.map((link, i) => {
               const Icon = getLinkIcon(link.title, link.url);
               return (
                 <a
-                  key={i}
+                  key={`${link.url}-${i}`}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -175,9 +238,7 @@ export function ProfileHeader({
                   title={link.title}
                 >
                   <Icon className="h-4 w-4 text-theme-text-muted" />
-                  <span className="max-w-[120px] truncate sm:max-w-[180px]">
-                    {link.title}
-                  </span>
+                  <span className="max-w-[120px] truncate sm:max-w-[180px]">{link.title}</span>
                   <ExternalLink className="h-3 w-3 shrink-0 text-theme-text-dim" />
                 </a>
               );
@@ -185,7 +246,6 @@ export function ProfileHeader({
           </div>
         )}
 
-        {/* LSP26 / LSP27 raw data (collapsed by default) */}
         {(profileData?.lsp26Data && Object.keys(profileData.lsp26Data).length > 0) ||
         (profileData?.lsp27Data && Object.keys(profileData.lsp27Data).length > 0) ? (
           <details className="mt-4">

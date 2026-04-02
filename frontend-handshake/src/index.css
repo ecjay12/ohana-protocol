@@ -48,12 +48,12 @@
   background: linear-gradient(180deg, #0a0e1a 0%, #060810 30%, #050508 100%);
 }
 
-[data-theme="dark"]::before {
+[data-theme="dark"] body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9998;
+  z-index: 0;
   background-image:
     radial-gradient(circle 1px at 15% 25%, rgba(0, 212, 255, 0.5), transparent),
     radial-gradient(circle 1px at 55% 65%, rgba(0, 150, 255, 0.4), transparent),
@@ -168,12 +168,12 @@
   100% { background-position: 0 80px; }
 }
 
-[data-theme="cyberpunk"]::before {
+[data-theme="cyberpunk"] body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 0;
   background: repeating-linear-gradient(
     0deg,
     transparent 0,

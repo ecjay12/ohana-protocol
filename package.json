@@ -6,9 +6,9 @@
   "scripts": {
     "compile": "hardhat compile && node -e \"const a=require('./artifacts/contracts/core/OhanaHandshakeRegistry.sol/OhanaHandshakeRegistry.json'); require('fs').writeFileSync('./frontend-handshake/shared/HandshakeAbi.json', JSON.stringify({abi:a.abi}))\"",
     "test": "hardhat test",
+    "test:all": "npm test && npm run test --prefix frontend-miniapp && npm run typecheck --prefix frontend-handshake",
     "deploy": "hardhat run scripts/deploy.js",
     "deploy:multichain": "hardhat run scripts/deployMultiChain.js",
-    "wire:ohana": "hardhat run scripts/wireOhanaPoints.js",
     "deploy:create2": "hardhat run scripts/deployCreate2.js",
     "deploy:mainnet": "hardhat run scripts/deployCreate2.js --network lukso && hardhat run scripts/deployCreate2.js --network base",
     "frontend:handshake": "cd frontend-handshake && npm install && npm run dev",

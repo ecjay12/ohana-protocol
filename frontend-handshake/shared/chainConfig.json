@@ -1,10 +1,4 @@
 {
-  "ohanaPointsAddresses": {
-    "42": "",
-    "4201": "",
-    "8453": "",
-    "84532": "0x66fbf53874221fea9bfc93be4b1e5a36ace4b989"
-  },
   "handshakeAddresses": {
     "1": "",
     "42": "0xfd86a8c73827AE39F4630C6e498e8CCdDD183d4D",
@@ -19,8 +13,7 @@
     "8453": { "name": "Base", "rpc": "https://mainnet.base.org" },
     "84532": {
       "name": "Base Sepolia",
-      "rpc": "https://sepolia.base.org",
-      "pointsSyncFromBlock": "39350000"
+      "rpc": "https://sepolia.base.org"
     }
   }
 }

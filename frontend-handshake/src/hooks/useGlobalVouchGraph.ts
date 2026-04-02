@@ -1,38 +1,38 @@
 import { useState, useEffect } from "react";
 import { fetchGlobalVouchGraph, type GlobalVouchGraphPayload } from "@/lib/globalVouchGraph";
 
-export function useGlobalVouchGraph(chainId: number | undefined) {
+/**
+ * Loads the global vouch graph from LUKSO mainnet Handshake in the browser (no server).
+ */
+export function useGlobalVouchGraph() {
   const [data, setData] = useState<GlobalVouchGraphPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (chainId == null || Number.isNaN(chainId)) {
-      setData(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    const ac = new AbortController();
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchGlobalVouchGraph(chainId)
+    fetchGlobalVouchGraph({ signal: ac.signal })
       .then((payload) => {
         if (!cancelled) setData(payload);
       })
       .catch((e: unknown) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load graph");
-          setData(null);
-        }
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "Failed to load graph";
+        if (msg === "Aborted") return;
+        setError(msg);
+        setData(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      ac.abort();
     };
-  }, [chainId]);
+  }, []);
 
   return { data, loading, error };
 }

@@ -32,13 +32,27 @@ import { GlowButton } from "@/components/GlowButton";
 import { ProfileVouchGraphSection } from "@/components/ProfileVouchGraphSection";
 import { ProfileHandshakeGridCard } from "@/components/ProfileHandshakeGridCard";
 import { ProfileIdentityComingSoonCard } from "@/components/ProfileIdentityComingSoonCard";
-import { ProfileClaimPointsCard } from "@/components/ProfileClaimPointsCard";
+import { AppLayout } from "@/layout/AppLayout";
 
 export function ProfilePage() {
   const { address } = useParams<{ address: string }>();
   const navigate = useNavigate();
-  const { provider, chainId, accounts } = useInjectedWallet();
+  const {
+    provider,
+    chainId,
+    accounts,
+    chains,
+    connect,
+    connectWith,
+    disconnect,
+    switchChain,
+    isConnected,
+    hasInjected,
+    availableWallets,
+    error: walletError,
+  } = useInjectedWallet();
   const account = accounts[0] ?? null;
+  const shortAddr = account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "";
 
   const normalizedAddress = useMemo(() => {
     if (!address) return null;
@@ -54,6 +68,8 @@ export function ProfilePage() {
     address || null,
     chainId
   );
+  const { profileData: navProfileData, isUP: navIsUP, loading: navProfileLoading } =
+    useProfileData(provider, account, chainId);
   const { hasGitHub: hasGitHubVerified } = useGitHubAttestation(address || null);
 
   const {
@@ -235,7 +251,23 @@ export function ProfilePage() {
   const feeDisplay = fee ? `${(Number(fee) / 1e18).toFixed(4)} ETH` : "—";
 
   return (
-    <div className="min-h-screen bg-theme-background">
+    <AppLayout
+      chainId={chainId}
+      chains={chains as Record<number, { name: string; rpc: string }>}
+      shortAddress={shortAddr}
+      account={account ?? undefined}
+      isConnected={isConnected}
+      hasInjected={hasInjected}
+      availableWallets={availableWallets}
+      walletError={walletError}
+      userProfileData={navProfileData}
+      userProfileLoading={navProfileLoading}
+      userIsUP={navIsUP}
+      onConnect={connect}
+      onConnectWith={connectWith}
+      onSwitchChain={switchChain}
+      onDisconnect={disconnect}
+    >
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
         <Link
           to="/app"
@@ -255,6 +287,18 @@ export function ProfilePage() {
           acceptedCount={displayAcceptedCount}
         />
 
+        {isUP && isMultiChainUPAggregate && (
+          <p className="text-xs leading-relaxed text-theme-text-muted">
+            Vouches aggregate across chains where Handshake is deployed (e.g. LUKSO and Base). Link
+            each MetaMask / EOA wallet to this UP{" "}
+            <strong className="font-medium text-theme-text">once on LUKSO</strong> — then activity on
+            Base and elsewhere using that wallet appears here.{" "}
+            <Link to="/up-identity" className="text-theme-accent hover:underline">
+              EOA → UP linking
+            </Link>
+          </p>
+        )}
+
         <ProfileVouchGraphSection
           profileAddress={normalizedAddress}
           chainId={chainId}
@@ -272,13 +316,6 @@ export function ProfilePage() {
               acceptedCount={Number(displayAcceptedCount ?? 0)}
             />
             <ProfileIdentityComingSoonCard />
-            <ProfileClaimPointsCard
-              provider={provider}
-              chainId={chainId}
-              upAddress={normalizedAddress}
-              isOwnProfile={isOwnProfile}
-              isUP={isUP}
-            />
           </>
         )}
 
@@ -357,6 +394,6 @@ export function ProfilePage() {
           />
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

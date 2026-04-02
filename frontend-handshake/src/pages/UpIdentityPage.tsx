@@ -16,15 +16,16 @@ import { useHandshake } from "@/hooks/useHandshake";
 import { GlowButton } from "@/components/GlowButton";
 import { getHandshakeAddress, HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { getAddress } from "ethers";
+import {
+  runHandshakeRegistryDiagnostics,
+  type HandshakeRegistryDiagnostics,
+} from "@/lib/handshakeRegistryDiagnostics";
 
 export function UpIdentityPage() {
   const wallet = useInjectedWallet();
   const account = wallet.accounts[0] ?? null;
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    wallet.provider,
-    account,
-    wallet.chainId
-  );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(wallet.provider, account, wallet.chainId);
   const { getUPForEOA, registerEOAtoUP } = useHandshake(
     wallet.provider,
     wallet.chainId,
@@ -35,6 +36,14 @@ export function UpIdentityPage() {
   const [linkedUP, setLinkedUP] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "linking" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [debouncedUpInput, setDebouncedUpInput] = useState("");
+  const [diag, setDiag] = useState<HandshakeRegistryDiagnostics | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedUpInput(upAddress), 450);
+    return () => window.clearTimeout(t);
+  }, [upAddress]);
 
   /** Linking uses the Handshake registry on whatever chain the wallet is on (LUKSO, Base, etc.). */
   const handshakeOnChain = useMemo(
@@ -42,6 +51,32 @@ export function UpIdentityPage() {
     [wallet.chainId]
   );
   const canLinkHere = !!handshakeOnChain;
+
+  useEffect(() => {
+    if (!canLinkHere || !wallet.isConnected) {
+      setDiag(null);
+      return;
+    }
+    let cancelled = false;
+    setDiagLoading(true);
+    runHandshakeRegistryDiagnostics(
+      wallet.chainId,
+      account,
+      debouncedUpInput.trim() || null
+    )
+      .then((d) => {
+        if (!cancelled) setDiag(d);
+      })
+      .catch(() => {
+        if (!cancelled) setDiag(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDiagLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canLinkHere, wallet.isConnected, wallet.chainId, account, debouncedUpInput]);
   /** On Base networks, LUKSO UP addresses are usually EOAs here — contract requires UP bytecode (see registerEOAtoUP). */
   const isBaseFamily = wallet.chainId === 8453 || wallet.chainId === 84532;
   const supportedChainLabels = useMemo(
@@ -93,12 +128,22 @@ export function UpIdentityPage() {
         setStatus("error");
       }
     } catch (e) {
+      console.error("[UpIdentity] registerEOAtoUP failed:", e);
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");
     }
   };
 
   const isBusy = status === "linking";
+
+  const registryMissing = Boolean(diag) && !diag!.registryReadable;
+  const upHasNoCodeOnThisChain =
+    Boolean(diag?.upChecked) && diag!.upIsContract === false;
+  /** Plain Handshake vs registry, or pasted UP has no bytecode on current chain (expected on Base for a LUKSO UP). */
+  const linkBlockedByDiag = registryMissing || upHasNoCodeOnThisChain;
+  /** Same 0x… UP is a contract on LUKSO but an EOA on Base — not a mistake, just wrong network for linking. */
+  const linkOnLuksoInstead =
+    Boolean(diag?.registryReadable) && isBaseFamily && upHasNoCodeOnThisChain;
 
   const handlePasteUP = async () => {
     try {
@@ -124,6 +169,7 @@ export function UpIdentityPage() {
       availableWallets={wallet.availableWallets}
       walletError={wallet.error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={wallet.connect}
       onConnectWith={wallet.connectWith}
@@ -152,9 +198,14 @@ export function UpIdentityPage() {
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-theme-text-muted">
             Use <strong className="font-medium text-theme-text">one UP</strong> as your public
-            identity. <strong className="font-medium text-theme-text">Link each wallet</strong> you
-            use on LUKSO (and other supported chains) so vouches roll up to your profile. To add the
-            Handshake app to your UP Grid, use the{" "}
+            identity. <strong className="font-medium text-theme-text">Link each EOA on LUKSO</strong>{" "}
+            (same address on Base — no separate Base link needed). Your{" "}
+            <code className="rounded bg-theme-surface-strong px-1 py-0.5 font-mono text-xs">
+              /profile/&lt;UP&gt;
+            </code>{" "}
+            page then pulls vouches from <strong className="font-medium text-theme-text">Base</strong>
+            , LUKSO, and testnets where Handshake is deployed. To add the Handshake app to your UP Grid,
+            use the{" "}
             <a
               href={miniappBase}
               target="_blank"
@@ -293,11 +344,9 @@ export function UpIdentityPage() {
             <div className="mt-8 space-y-4">
               {isBaseFamily && (
                 <div className="rounded-lg border border-sky-500/25 bg-sky-500/5 px-3 py-2.5 text-sm text-theme-text-muted">
-                  <strong className="text-theme-text">Link on LUKSO:</strong> On Base, your Universal
-                  Profile address is usually <em>not</em> a smart contract, so registration reverts.
-                  Switch to <strong className="text-theme-text">LUKSO</strong> or{" "}
-                  <strong className="text-theme-text">LUKSO Testnet</strong>, keep the same wallet,
-                  and paste the same UP address — your UP exists as a contract there.
+                  <strong className="text-theme-text">On Base?</strong> Paste your UP below — if linking is
+                  blocked, use <strong className="text-theme-text">Switch to LUKSO</strong> (your UP is a
+                  contract there, not on Base).
                 </div>
               )}
               <p className="text-xs font-medium uppercase tracking-wide text-theme-text-muted">
@@ -329,9 +378,52 @@ export function UpIdentityPage() {
                   Paste
                 </button>
               </div>
+              {linkBlockedByDiag && registryMissing && (
+                <div className="rounded-lg border border-red-500/25 bg-red-500/5 px-3 py-2 text-sm text-theme-text-muted">
+                  <strong className="text-theme-text">Registry missing on this contract.</strong> The address
+                  in chainConfig must be <code className="text-xs">OhanaHandshakeRegistry</code> (not plain
+                  Handshake). Open <strong>Technical diagnostics</strong> below for the RPC check.
+                </div>
+              )}
+              {linkBlockedByDiag && linkOnLuksoInstead && (
+                <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-3 text-sm text-theme-text-muted">
+                  <p>
+                    <strong className="text-theme-text">This is expected on Base.</strong> Your Universal
+                    Profile is a <strong className="text-theme-text">smart contract on LUKSO</strong>, but the
+                    same address on Base usually has <strong className="text-theme-text">no contract code</strong>
+                    . The app checks bytecode on the network you&apos;re using, so linking has to be signed on
+                    LUKSO (or LUKSO Testnet) — same wallet, same UP address.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <GlowButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => wallet.switchChain(42)}
+                      className="text-sm"
+                    >
+                      Switch to LUKSO
+                    </GlowButton>
+                    <GlowButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => wallet.switchChain(4201)}
+                      className="text-sm"
+                    >
+                      Switch to LUKSO Testnet
+                    </GlowButton>
+                  </div>
+                </div>
+              )}
+              {linkBlockedByDiag && upHasNoCodeOnThisChain && !linkOnLuksoInstead && !registryMissing && (
+                <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-sm text-theme-text-muted">
+                  <strong className="text-theme-text">No contract at this address on this chain.</strong>{" "}
+                  Paste your real Universal Profile address, or switch to the network where that UP was
+                  created (usually LUKSO).
+                </div>
+              )}
               <GlowButton
                 onClick={handleLinkEOAtoUP}
-                disabled={isBusy || !upAddress.trim()}
+                disabled={isBusy || !upAddress.trim() || linkBlockedByDiag}
                 className="w-full sm:w-auto"
               >
                 {status === "linking" ? "Linking…" : "Sign to link wallet"}
@@ -358,6 +450,48 @@ export function UpIdentityPage() {
                 network, or invalid UP address.
               </p>
             </div>
+          )}
+
+          {wallet.isConnected && canLinkHere && (
+            <details className="mt-6 rounded-xl border border-theme-border bg-theme-background/40 px-3 py-2 text-xs">
+              <summary className="cursor-pointer font-medium text-theme-text-muted hover:text-theme-text">
+                Technical diagnostics (EOA → UP)
+                {diagLoading ? " — loading…" : ""}
+              </summary>
+              {diag && (
+                <dl className="mt-3 space-y-2 text-theme-text-dim">
+                  <div>
+                    <dt className="font-medium text-theme-text-muted">Chain ID</dt>
+                    <dd className="font-mono">{diag.chainId}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-theme-text-muted">Handshake contract</dt>
+                    <dd className="break-all font-mono text-[11px]">{diag.handshakeAddress ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium text-theme-text-muted">getUPForEOA (registry)</dt>
+                    <dd>{diag.registryReadable ? "OK — callable" : "Fails — see detail"}</dd>
+                  </div>
+                  <div className="break-words text-[11px] leading-relaxed">{diag.registryDetail}</div>
+                  {diag.linkedUPOnChain && (
+                    <div>
+                      <dt className="font-medium text-theme-text-muted">Linked UP (read from chain)</dt>
+                      <dd className="break-all font-mono text-[11px]">{diag.linkedUPOnChain}</dd>
+                    </div>
+                  )}
+                  {diag.upChecked != null && (
+                    <div>
+                      <dt className="font-medium text-theme-text-muted">Pasted UP on this chain</dt>
+                      <dd>
+                        {diag.upIsContract
+                          ? "Has bytecode (contract) — OK to register here"
+                          : "EOA / no code — register on LUKSO instead"}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </details>
           )}
         </div>
       </div>

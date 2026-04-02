@@ -1,5 +1,5 @@
 /**
- * Global vouch graph — network-wide 3D view (indexed API or stub).
+ * Global vouch graph — LUKSO mainnet Handshake vouches (browser RPC, no server).
  * Ego graph for a single profile lives on /profile/:address.
  */
 
@@ -9,17 +9,14 @@ import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useProfileData } from "@/hooks/useProfileData";
 import { useGlobalVouchGraph } from "@/hooks/useGlobalVouchGraph";
-import {
-  getGraphProfileNameLookupChainIds,
-  useProfileNamesForAddresses,
-} from "@/hooks/useProfileNamesForAddresses";
+import { useProfileNamesForAddresses } from "@/hooks/useProfileNamesForAddresses";
+import { LUKSO_SOCIAL_GRAPH_CHAIN_ID } from "@/lib/luksoHandshakeVouchGraph";
 import { VouchGraph3D } from "@/components/VouchGraph3D";
 
 export function VouchGraphPage() {
   const wallet = useInjectedWallet();
   const account = wallet.accounts[0] ?? null;
-  const chainId = wallet.chainId;
-  const { data: globalData, loading } = useGlobalVouchGraph(chainId);
+  const { data: globalData, loading, error: graphError } = useGlobalVouchGraph();
   const graphPayload = globalData
     ? {
         nodes: globalData.nodes,
@@ -27,14 +24,13 @@ export function VouchGraphPage() {
         centerAddress: null as string | null,
       }
     : { nodes: [] as string[], edges: [] as { voucher: string; target: string; strength: number }[], centerAddress: null as string | null };
-  const nodeLabels = useProfileNamesForAddresses(graphPayload.nodes, chainId, {
-    chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
-  });
-  const { profileData: userProfileData, isUP: userIsUP } = useProfileData(
-    wallet.provider,
-    account,
-    wallet.chainId
+  const nodeLabels = useProfileNamesForAddresses(
+    graphPayload.nodes,
+    LUKSO_SOCIAL_GRAPH_CHAIN_ID,
+    { chainIdsForLookup: [LUKSO_SOCIAL_GRAPH_CHAIN_ID, 4201] }
   );
+  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
+    useProfileData(wallet.provider, account, wallet.chainId);
 
   return (
     <AppLayout
@@ -47,6 +43,7 @@ export function VouchGraphPage() {
       availableWallets={wallet.availableWallets}
       walletError={wallet.error}
       userProfileData={userProfileData}
+      userProfileLoading={userProfileLoading}
       userIsUP={userIsUP}
       onConnect={wallet.connect}
       onConnectWith={wallet.connectWith}
@@ -67,8 +64,9 @@ export function VouchGraphPage() {
         <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
           <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake network graph</h1>
           <p className="mb-4 text-sm text-theme-text-muted">
-            A <strong className="font-medium text-theme-text">global</strong> view of vouch edges on
-            the selected chain (sample or indexed data). Open any{" "}
+            Social graph of <strong className="font-medium text-theme-text">accepted vouches</strong>{" "}
+            on <strong className="font-medium text-theme-text">LUKSO mainnet</strong> Handshake only
+            (Universal Profiles). Loaded in your browser from public RPC — no server required. Open any{" "}
             <Link to={account ? `/profile/${account}` : "/app"} className="text-theme-accent hover:underline">
               profile
             </Link>{" "}
@@ -76,7 +74,13 @@ export function VouchGraphPage() {
             that identity.
           </p>
 
-          {globalData?.message && (
+          {graphError && (
+            <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              {graphError}
+            </div>
+          )}
+
+          {globalData?.message && !graphError && (
             <div className="mb-4 flex gap-2 rounded-xl border border-theme-border bg-theme-background/60 px-3 py-2 text-sm text-theme-text-muted">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" aria-hidden />
               <span>{globalData.message}</span>

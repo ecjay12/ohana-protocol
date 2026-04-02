@@ -4,7 +4,7 @@
  * When not connected (provider null), uses a read-only JsonRpcProvider for the profile's chain so data still loads.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { BrowserProvider, JsonRpcProvider } from "ethers";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { getProfileData, type ProfileData } from "@/lib/lsp4Profile";
@@ -31,6 +31,10 @@ export function useProfileData(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const providerRef = useRef(provider);
+  providerRef.current = provider;
+  const walletConnected = provider != null;
+
   const fetchProfile = useCallback(async () => {
     if (!address) {
       setProfileData(null);
@@ -40,7 +44,7 @@ export function useProfileData(
     }
 
     // When viewer is not connected, use read-only RPC for the profile's chain so we can still load LSP data
-    let effectiveProvider: BrowserProvider | JsonRpcProvider | null = provider;
+    let effectiveProvider: BrowserProvider | JsonRpcProvider | null = providerRef.current;
     if (!effectiveProvider && chainId) {
       const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
       if (rpc) effectiveProvider = createJsonRpcProvider(rpc);
@@ -86,7 +90,7 @@ export function useProfileData(
     } finally {
       setLoading(false);
     }
-  }, [provider, address, chainId]);
+  }, [address, chainId, walletConnected]);
 
   useEffect(() => {
     fetchProfile();

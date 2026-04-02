@@ -84,7 +84,7 @@ export function MiniappPage() {
     return () => {
       cancelled = true;
     };
-  }, [isConnected, isSupported, account, getIncomingPending, getAcceptedCount, refreshKey]);
+  }, [isConnected, isSupported, account, effectiveChainId, refreshKey]);
 
   const handleVouch = async (address: string, category: number) => {
     await vouch(address, category);

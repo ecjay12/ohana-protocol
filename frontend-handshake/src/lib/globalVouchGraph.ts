@@ -1,19 +1,19 @@
 /**
- * Global (network-wide) vouch graph payload for /vouch-graph.
- * API may return indexed edges; until then we ship a deterministic client stub.
+ * Global vouch graph for /vouch-graph — loaded entirely from LUKSO mainnet Handshake in the browser (no server).
  */
 import type { VouchGraphData } from "@/hooks/useVouchGraphData";
+import { fetchLuksoHandshakeVouchGraph } from "@/lib/luksoHandshakeVouchGraph";
 
-export type GlobalVouchGraphSource = "api" | "stub";
+export type GlobalVouchGraphSource = "api" | "stub" | "lukso-rpc";
 
 export interface GlobalVouchGraphPayload extends VouchGraphData {
   centerAddress: null;
   source: GlobalVouchGraphSource;
-  /** Human-readable note (e.g. stub disclaimer). */
   message?: string;
+  truncated?: boolean;
 }
 
-/** Downsampled sample graph for layout preview until an indexer is wired. */
+/** Sample layout (e.g. tests) — not used for the live social graph. */
 export function getGlobalVouchGraphStub(chainId: number): GlobalVouchGraphPayload {
   const n1 = "0x1000000000000000000000000000000000000001";
   const n2 = "0x2000000000000000000000000000000000000002";
@@ -33,10 +33,7 @@ export function getGlobalVouchGraphStub(chainId: number): GlobalVouchGraphPayloa
     edges,
     centerAddress: null,
     source: "stub",
-    message:
-      chainId > 0
-        ? "Sample subgraph — full network view will load from the indexer when available."
-        : "Sample subgraph.",
+    message: chainId > 0 ? "Sample subgraph (stub)." : "Sample subgraph.",
   };
 }
 
@@ -50,7 +47,7 @@ function isVouchGraphData(x: unknown): x is VouchGraphData {
   );
 }
 
-/** Normalize API JSON to global graph (no focal node). */
+/** Normalize remote JSON (e.g. future indexer) to the graph shape. */
 export function parseGlobalVouchGraphResponse(
   json: unknown,
   chainId: number
@@ -66,34 +63,23 @@ export function parseGlobalVouchGraphResponse(
     };
   });
   const j = json as unknown as Record<string, unknown>;
-  const source: GlobalVouchGraphSource = j.source === "api" ? "api" : "stub";
+  const src = j.source;
+  const source: GlobalVouchGraphSource =
+    src === "api" || src === "lukso-rpc" ? src : "stub";
   return {
     nodes,
     edges,
     centerAddress: null,
     source,
     message: typeof j.message === "string" ? j.message : undefined,
+    truncated: j.truncated === true,
   };
 }
 
-export async function fetchGlobalVouchGraph(
-  chainId: number
-): Promise<GlobalVouchGraphPayload> {
-  const q = new URLSearchParams({ chainId: String(chainId) });
-  try {
-    const base =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "";
-    const res = await fetch(`${base}/api/vouch-graph?${q}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (res.ok) {
-      const j: unknown = await res.json();
-      return parseGlobalVouchGraphResponse(j, chainId);
-    }
-  } catch {
-    /* use stub */
-  }
-  return getGlobalVouchGraphStub(chainId);
+/** Social graph = LUKSO mainnet Handshake `VouchAccepted` logs only (UP ecosystem). */
+export async function fetchGlobalVouchGraph(opts?: {
+  signal?: AbortSignal;
+  maxEdges?: number;
+}): Promise<GlobalVouchGraphPayload> {
+  return fetchLuksoHandshakeVouchGraph(opts);
 }

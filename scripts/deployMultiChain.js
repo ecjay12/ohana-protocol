@@ -83,10 +83,7 @@ async function deployOnNetwork() {
   await wire("ImpactLedger.setOhanaPointsHub", impact.setOhanaPointsHub(hubAddr, g));
 
   console.log("\nOhanaPoints wired.");
-  console.log(
-    "\nchainConfig ohanaPointsAddresses entry:",
-    JSON.stringify({ [String(net.chainId)]: hubAddr.toLowerCase() }, null, 2)
-  );
+  console.log("OhanaPoints hub (for reference):", hubAddr, "chainId:", String(net.chainId));
 
   return {
     hubAddr,

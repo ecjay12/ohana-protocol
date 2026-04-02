@@ -74,6 +74,15 @@ export function useProfileVouches(
     []
   );
 
+  const aggregationKey = useMemo(() => aggregationChains.join(","), [aggregationChains]);
+
+  /** Stable primitive — avoid `Contract` in effect deps (identity churn → RPC loops / 429). */
+  const contractPin = useMemo(
+    () =>
+      contractAddress && rpc ? `${effectiveChainId}:${contractAddress}:${rpc}` : "",
+    [effectiveChainId, contractAddress, rpc]
+  );
+
   const isSupported = useMemo(() => {
     if (isUP) return aggregationChains.length > 0;
     return !!roContract;
@@ -110,12 +119,15 @@ export function useProfileVouches(
           const statusMap: Record<string, VouchData> = {};
           let totalAccepted = 0;
 
+          /** Same wallet addresses on every chain; link is stored on LUKSO registry only. */
+          const linkedEOAs = await getEOAsForUP(normalizedAddress, effectiveChainId);
+          const identityAddressesAll = [normalizedAddress, ...linkedEOAs];
+
           for (const cid of aggregationChains) {
             const c = createReadOnlyContract(cid);
             if (!c) continue;
 
-            const linkedEOAs = await getEOAsForUP(normalizedAddress, cid);
-            const identityAddresses = [normalizedAddress, ...linkedEOAs];
+            const identityAddresses = identityAddressesAll;
 
             for (const identity of identityAddresses) {
               const vouchers: string[] = await c.getVouchersFor(identity);
@@ -231,11 +243,12 @@ export function useProfileVouches(
     run();
   }, [
     normalizedAddress,
-    roContract,
+    contractPin,
+    aggregationKey,
     isUP,
     chainId,
+    effectiveChainId,
     isSupported,
-    aggregationChains,
   ]);
 
   useEffect(() => {
@@ -254,12 +267,14 @@ export function useProfileVouches(
           const allKeys = new Set<string>();
           const statusMap: Record<string, VouchData> = {};
 
+          const linkedEOAs = await getEOAsForUP(normalizedAddress, effectiveChainId);
+          const identityAddressesAll = [normalizedAddress, ...linkedEOAs];
+
           for (const cid of aggregationChains) {
             const c = createReadOnlyContract(cid);
             if (!c) continue;
 
-            const linkedEOAs = await getEOAsForUP(normalizedAddress, cid);
-            const identityAddresses = [normalizedAddress, ...linkedEOAs];
+            const identityAddresses = identityAddressesAll;
 
             for (const voucherIdentity of identityAddresses) {
               const targets: string[] = await c.getTargetsVouchedBy(voucherIdentity);
@@ -359,11 +374,12 @@ export function useProfileVouches(
     run();
   }, [
     normalizedAddress,
-    roContract,
+    contractPin,
+    aggregationKey,
     isUP,
     chainId,
+    effectiveChainId,
     isSupported,
-    aggregationChains,
   ]);
 
   return {

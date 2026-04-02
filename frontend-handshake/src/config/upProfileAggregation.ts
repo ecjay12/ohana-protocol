@@ -1,6 +1,7 @@
 /**
  * Hardcoded chains for Universal Profile vouch aggregation (read-only).
- * User links EOAs via registerEOAtoUP on each chain; we merge vouches across these chains.
+ * EOA→UP is registered on LUKSO (registry); the same 0x EOA on Base is discovered via LUKSO
+ * events and included when reading Base Handshake state.
  */
 import { getHandshakeAddress } from "@/config/contracts";
 

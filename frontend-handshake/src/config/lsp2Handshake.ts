@@ -6,26 +6,6 @@ export const OHANA_HANDSHAKE_KEY = keccak256(toUtf8Bytes("OhanaHandshake"));
 /** LSP2-style data key for Ohana hidden vouches list on a Universal Profile. */
 export const OHANA_HIDDEN_VOUCHES_KEY = keccak256(toUtf8Bytes("OhanaHiddenVouches"));
 
-/** Aggregated Ohana Points snapshot for UP reputation (indexer-backed claim). */
-export const OHANA_POINTS_V1_KEY = keccak256(toUtf8Bytes("OhanaPointsV1"));
-
-export interface OhanaPointsV1Value {
-  totalPointsEver: string;
-  pendingPoints: string;
-  lastClaimedBlock: string;
-  chainId: number;
-  updatedAt: number;
-}
-
-export function encodeOhanaPointsV1(value: OhanaPointsV1Value): string {
-  const json = JSON.stringify(value);
-  const bytes = new TextEncoder().encode(json);
-  const hex = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return "0x" + hex;
-}
-
 /** LSP28 LUKSO Grid key (standard). Matches @erc725/erc725.js LSP28 schema. */
 export const LSP28_THE_GRID_KEY =
   "0x724141d9918ce69e6b8afcf53a91748466086ba2c74b94cab43c649ae2ac23ff" as const;
