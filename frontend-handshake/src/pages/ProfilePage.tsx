@@ -32,6 +32,7 @@ import { GlowButton } from "@/components/GlowButton";
 import { ProfileVouchGraphSection } from "@/components/ProfileVouchGraphSection";
 import { ProfileHandshakeGridCard } from "@/components/ProfileHandshakeGridCard";
 import { ProfileIdentityComingSoonCard } from "@/components/ProfileIdentityComingSoonCard";
+import { ProfileAddWalletsCard } from "@/components/ProfileAddWalletsCard";
 import { AppLayout } from "@/layout/AppLayout";
 
 export function ProfilePage() {
@@ -175,7 +176,7 @@ export function ProfilePage() {
       const voucherAddr = parsed?.voucher ?? keyOrVoucher;
       if (parsed && parsed.chainId !== chainId) {
         const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
-        window.alert(`Switch your wallet to ${name} to hide this vouch.`);
+        window.alert(`Please switch your wallet to ${name} in MetaMask (or your wallet), then try again.`);
         return;
       }
       try {
@@ -195,7 +196,7 @@ export function ProfilePage() {
       const voucherAddr = parsed?.voucher ?? keyOrVoucher;
       if (parsed && parsed.chainId !== chainId) {
         const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
-        window.alert(`Switch your wallet to ${name} to unhide this vouch.`);
+        window.alert(`Please switch your wallet to ${name}, then try again.`);
         return;
       }
       try {
@@ -215,7 +216,7 @@ export function ProfilePage() {
       const targetAddr = parsed?.target ?? keyOrTarget;
       if (parsed && parsed.chainId !== chainId) {
         const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
-        window.alert(`Switch your wallet to ${name} to revoke this vouch.`);
+        window.alert(`Please switch your wallet to ${name}, then try removing the vouch again.`);
         return;
       }
       try {
@@ -237,10 +238,11 @@ export function ProfilePage() {
           className="glass-card w-full max-w-md rounded-2xl border border-red-500/30 bg-red-500/10 p-6"
         >
           <h2 className="mb-2 text-lg font-semibold text-theme-text">
-            Invalid Address
+            We couldn&apos;t read this link
           </h2>
           <p className="mb-4 text-sm text-theme-text-muted">
-            The address format is invalid.
+            The profile link doesn&apos;t look like a valid wallet address. Check the URL for typos,
+            or open your profile from the app after you connect.
           </p>
           <GlowButton onClick={() => navigate("/app")}>Go to App</GlowButton>
         </motion.div>
@@ -268,7 +270,7 @@ export function ProfilePage() {
       onSwitchChain={switchChain}
       onDisconnect={disconnect}
     >
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
+      <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:space-y-8 sm:px-5 sm:py-10 md:px-8 md:py-12">
         <Link
           to="/app"
           className="inline-flex items-center gap-2 text-sm text-theme-text-muted transition-colors hover:text-theme-text"
@@ -289,12 +291,12 @@ export function ProfilePage() {
 
         {isUP && isMultiChainUPAggregate && (
           <p className="text-xs leading-relaxed text-theme-text-muted">
-            Vouches aggregate across chains where Handshake is deployed (e.g. LUKSO and Base). Link
-            each MetaMask / EOA wallet to this UP{" "}
-            <strong className="font-medium text-theme-text">once on LUKSO</strong> — then activity on
-            Base and elsewhere using that wallet appears here.{" "}
+            Vouches from different networks are combined here when your wallets are linked to this
+            Universal Profile. Link each extra wallet{" "}
+            <strong className="font-medium text-theme-text">once on LUKSO</strong> so activity on
+            Base and other networks shows under this profile.{" "}
             <Link to="/up-identity" className="text-theme-accent hover:underline">
-              EOA → UP linking
+              How to link wallets
             </Link>
           </p>
         )}
@@ -307,14 +309,7 @@ export function ProfilePage() {
 
         {isOwnProfile && (
           <>
-            <ProfileHandshakeGridCard
-              provider={provider}
-              chainId={chainId}
-              upAddress={normalizedAddress}
-              isOwnProfile={isOwnProfile}
-              isUP={isUP}
-              acceptedCount={Number(displayAcceptedCount ?? 0)}
-            />
+            <ProfileAddWalletsCard />
             <ProfileIdentityComingSoonCard />
           </>
         )}
@@ -391,6 +386,17 @@ export function ProfilePage() {
             onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
             txPending={txPending}
             disabled={!account || !isOwnProfile}
+          />
+        )}
+
+        {isOwnProfile && (
+          <ProfileHandshakeGridCard
+            provider={provider}
+            chainId={chainId}
+            upAddress={normalizedAddress}
+            isOwnProfile={isOwnProfile}
+            isUP={isUP}
+            acceptedCount={Number(displayAcceptedCount ?? 0)}
           />
         )}
       </div>

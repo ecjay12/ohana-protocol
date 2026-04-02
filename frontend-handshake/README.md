@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Opens at http://localhost:5173
+Dev server: `http://localhost:5173`. **Production app for integrators:** `https://ohanahandshake.com` (see `/integrate`; set `VITE_PUBLIC_APP_URL` if your deployment URL differs).
 
 ## Build
 

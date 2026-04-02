@@ -76,7 +76,7 @@ export function AppLayout({
       />
       <div className="flex flex-1 flex-col min-w-0">
         {/* Mobile header: menu button + logo (link to home) + title */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-theme-border bg-theme-background/95 px-4 backdrop-blur sm:px-6 md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-theme-border bg-theme-background/95 px-3 pt-[max(0px,env(safe-area-inset-top))] backdrop-blur sm:px-6 md:hidden">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -100,7 +100,7 @@ export function AppLayout({
           </Link>
         </header>
         <div className="flex min-h-0 flex-1 min-w-0">
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-theme-background">
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-theme-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {children}
           </main>
           {!hideLeaderboardRail && (

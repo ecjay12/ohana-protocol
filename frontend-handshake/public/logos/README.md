@@ -1,5 +1,7 @@
 This folder holds the theme-specific Handshake logo images used in the frontend.
 
+**Favicon / PWA icon:** The site uses `/favicon.svg` in the project root (`public/favicon.svg`) so the tab icon matches the Handshake mark without extra PNGs. To use your exported **serene** PNG as the favicon instead, replace `public/favicon.svg` or add `favicon.ico` / PNGs and update `index.html` + `manifest.json`.
+
 Expected files (all **PNG**, square, transparent background recommended):
 
 - `serene.png`    — green / network theme logo

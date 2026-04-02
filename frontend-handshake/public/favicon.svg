@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+  <rect width="32" height="32" rx="8" fill="#0a0a0f"/>
+  <!-- Ohana Handshake mark: linked nodes / handshake arc (matches serene theme greens) -->
+  <path
+    d="M8 18c2.5-5 6.5-8 8-8s5.5 3 8 8"
+    stroke="#6ee7a8"
+    stroke-width="2.25"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path
+    d="M9 22c2.2 2.8 5.4 4.5 7 4.5s4.8-1.7 7-4.5"
+    stroke="#4ade80"
+    stroke-width="2.25"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <circle cx="16" cy="12" r="3.25" fill="#4ade80"/>
+</svg>

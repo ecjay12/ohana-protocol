@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "Ohana Protocol MVP - POAP Forge, Handshake, Reputation Station",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecjay12/ohana-protocol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ecjay12/ohana-protocol/issues"
+  },
+  "homepage": "https://ohanahandshake.com",
   "scripts": {
     "compile": "hardhat compile && node -e \"const a=require('./artifacts/contracts/core/OhanaHandshakeRegistry.sol/OhanaHandshakeRegistry.json'); require('fs').writeFileSync('./frontend-handshake/shared/HandshakeAbi.json', JSON.stringify({abi:a.abi}))\"",
     "test": "hardhat test",

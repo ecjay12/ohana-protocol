@@ -20,9 +20,11 @@
    vercel
    ```
 
-3. Follow prompts: link to your Vercel account, confirm project. You’ll get a URL like `https://ohana-handshake-xxx.vercel.app`.
+3. Follow prompts: link to your Vercel account, confirm project. You’ll get a production URL (e.g. `*.vercel.app`).
 
-4. **Custom domain** (optional): In Vercel dashboard → Project → Settings → Domains.
+4. **Public app URL for integration** — In Vercel → Project → Settings → Environment Variables, set `VITE_PUBLIC_APP_URL` to your live origin (official site: `https://ohanahandshake.com`, no trailing slash). This powers `/integrate` examples and embed copy so they never point at localhost.
+
+5. **Custom domain** (optional): In Vercel dashboard → Project → Settings → Domains.
 
 ---
 

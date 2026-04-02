@@ -6,8 +6,14 @@ Decentralized vouch protocol for Web3 identity. Vouch for others, accept or deny
 
 Handshake is the vouch layer for Web3. Get vouched, vouch for others, and build reputation on LUKSO and Base.
 
+### Security
+
+- **Never commit** `.env`, `.pem`, or private keys — only use `.env.example` as a template. Deployment keys stay in Vercel (or your host) env vars.
+
 ### Live
 
+- **Source**: [github.com/ecjay12/ohana-protocol](https://github.com/ecjay12/ohana-protocol)
+- **Handshake app (production)**: [ohanahandshake.com](https://ohanahandshake.com) — official site; use this base for integration (API, embeds, deep links). Override with `VITE_PUBLIC_APP_URL` only if the deployment URL differs.
 - **Frontend**: Deployed on Vercel (see `frontend-handshake/DEPLOY.md`)
 - **Mini-dapp**: LUKSO Universal Profile widget (see `frontend-miniapp/DEPLOY.md`)
 - **Networks**: LUKSO mainnet (42), Base mainnet (8453), LUKSO Testnet (4201), Base Sepolia (84532)

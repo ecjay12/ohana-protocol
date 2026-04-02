@@ -12,9 +12,9 @@
   --theme-bg: #050508;
   --theme-surface: rgba(255, 255, 255, 0.03);
   --theme-surface-strong: rgba(255, 255, 255, 0.06);
-  --theme-text: rgba(255, 255, 255, 0.9);
-  --theme-text-muted: rgba(255, 255, 255, 0.6);
-  --theme-text-dim: rgba(255, 255, 255, 0.4);
+  --theme-text: rgba(255, 255, 255, 0.92);
+  --theme-text-muted: rgba(255, 255, 255, 0.72);
+  --theme-text-dim: rgba(255, 255, 255, 0.48);
   --theme-accent: #667eea;
   --theme-accent-soft: rgba(102, 126, 234, 0.35);
   --theme-border: rgba(255, 255, 255, 0.08);
@@ -348,4 +348,18 @@ body {
 body > * {
   position: relative;
   z-index: 1;
+}
+
+/* Prevent horizontal scroll and clipped text in flex layouts */
+main {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .content-safe {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }

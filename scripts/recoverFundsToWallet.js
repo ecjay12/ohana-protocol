@@ -1,14 +1,21 @@
 /**
- * Send testnet ETH/LYX from RECOVERY_PRIVATE_KEY address to your wallet.
- * Add to .env: RECOVERY_PRIVATE_KEY=0x... (the UP key / 0x77Ddc... key)
- * Recipient: 0x5112c47af5e6aa0Fa4c207460970BE3F4D2C26E5 (or set RECOVERY_TO_ADDRESS)
+ * Send testnet funds from RECOVERY_PRIVATE_KEY to RECOVERY_TO_ADDRESS (local utility only).
+ * Set in .env — never commit .env. See .env.example.
  *
  * Run: node -r dotenv/config scripts/recoverFundsToWallet.js
  */
 require("dotenv").config();
 const { ethers } = require("ethers");
 
-const RECIPIENT = process.env.RECOVERY_TO_ADDRESS || "0x5112c47af5e6aa0Fa4c207460970BE3F4D2C26E5";
+let recipient;
+try {
+  const raw = process.env.RECOVERY_TO_ADDRESS?.trim();
+  if (!raw) throw new Error("missing");
+  recipient = ethers.getAddress(raw);
+} catch {
+  console.error("Set RECOVERY_TO_ADDRESS in .env to a valid Ethereum address.");
+  process.exit(1);
+}
 const GAS_BUFFER = ethers.parseEther("0.003"); // leave enough for gas (LYX can be tight)
 
 const NETWORKS = [
@@ -19,13 +26,13 @@ const NETWORKS = [
 async function main() {
   const key = process.env.RECOVERY_PRIVATE_KEY;
   if (!key) {
-    console.error("Set RECOVERY_PRIVATE_KEY in .env (the key for 0x77Ddc... that has the testnet funds)");
+    console.error("Set RECOVERY_PRIVATE_KEY in .env (funding wallet — keep local only).");
     process.exit(1);
   }
 
   const wallet = new ethers.Wallet(key.startsWith("0x") ? key : "0x" + key);
   console.log("Recovery from:", wallet.address);
-  console.log("Recipient:", RECIPIENT);
+  console.log("Recipient:", recipient);
   console.log("");
 
   for (const net of NETWORKS) {
@@ -43,7 +50,7 @@ async function main() {
 
     try {
       const tx = await wallet.connect(provider).sendTransaction({
-        to: RECIPIENT,
+        to: recipient,
         value: amountToSend,
         gasLimit: 21000,
       });

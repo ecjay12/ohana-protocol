@@ -3,10 +3,11 @@
  * Shows embed URL and iframe snippet when connected; placeholder when not.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 import { Copy, Check, Code } from "lucide-react";
+import { getPublicAppBaseUrl } from "@/config/publicDev";
 
 interface EmbedVouchesCardProps {
   account: string | undefined;
@@ -17,10 +18,12 @@ interface EmbedVouchesCardProps {
 export function EmbedVouchesCard({
   account,
   chainId,
-  origin = typeof window !== "undefined" ? window.location.origin : "",
+  origin: originProp,
 }: EmbedVouchesCardProps) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedIframe, setCopiedIframe] = useState(false);
+
+  const origin = useMemo(() => originProp ?? getPublicAppBaseUrl(), [originProp]);
 
   const embedUrl =
     account && origin

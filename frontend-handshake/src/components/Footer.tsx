@@ -5,9 +5,9 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="shrink-0 border-t border-theme-border bg-theme-surface/50 px-4 py-6 backdrop-blur-sm md:px-6">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
+    <footer className="shrink-0 border-t border-theme-border bg-theme-surface/50 px-3 py-6 backdrop-blur-sm sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row sm:items-start">
+        <nav className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm content-safe">
           <Link
             to="/"
             className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
@@ -45,6 +45,12 @@ export function Footer() {
             About
           </Link>
           <Link
+            to="/help"
+            className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
+          >
+            Help
+          </Link>
+          <Link
             to="/terms"
             className="text-theme-text-muted transition-colors duration-200 hover:text-theme-accent"
           >
@@ -60,7 +66,7 @@ export function Footer() {
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </nav>
-        <p className="text-center text-sm text-theme-text-dim">
+        <p className="max-w-full text-center text-sm leading-relaxed text-theme-text-dim content-safe sm:text-right">
           Powered by{" "}
           <span className="font-medium text-theme-text-muted">
             Ohana Protocol

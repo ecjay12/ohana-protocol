@@ -1,6 +1,11 @@
 {
   "name": "ohana-handshake",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecjay12/ohana-protocol.git",
+    "directory": "frontend-handshake"
+  },
   "version": "0.1.0",
   "type": "module",
   "scripts": {

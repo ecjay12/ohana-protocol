@@ -54,7 +54,7 @@ export function HeroSection({
   const logoSrc = THEME_LOGOS[theme];
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-theme-border bg-theme-surface px-6 py-12 md:px-12 md:py-16 lg:py-20">
+    <section className="relative overflow-hidden rounded-2xl border border-theme-border bg-theme-surface px-4 py-10 sm:px-8 sm:py-12 md:px-12 md:py-16 lg:py-20">
       {/* Background accents */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -76,36 +76,37 @@ export function HeroSection({
         }}
       />
 
-      <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative flex min-w-0 flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
         <motion.div
           variants={container}
           initial="hidden"
           animate="visible"
-          className="flex-1"
+          className="min-w-0 flex-1 content-safe"
         >
           <motion.div
             variants={item}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-4 py-1.5 text-xs font-medium text-theme-text-muted"
+            className="mb-3 inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-3 py-1.5 text-[11px] font-medium text-theme-text-muted sm:text-xs"
           >
-            <Shield className="h-3.5 w-3.5" />
-            On-chain trust layer
+            <Shield className="h-3.5 w-3.5 shrink-0" />
+            On-chain trust
           </motion.div>
           <motion.h1
             variants={item}
-            className="text-3xl font-bold tracking-tight text-theme-text md:text-4xl lg:text-5xl"
+            className="text-balance text-3xl font-bold tracking-tight text-theme-text md:text-4xl lg:text-5xl"
           >
-            Handshake.{" "}
-            <motion.span
-              className="text-theme-accent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.35, duration: 0.5 }}
-            >
-              Build, earn, and carry your real on-chain reputation across Web3.
-            </motion.span>
+            Handshake.
           </motion.h1>
+          <motion.p
+            variants={item}
+            className="mt-3 max-w-xl text-base leading-relaxed text-theme-accent sm:text-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            Verifiable vouches you own.
+          </motion.p>
 
-          <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-4">
+          <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
             {isConnected && account ? (
               <>
                 <Link to={`/profile/${account}`}>
@@ -158,10 +159,10 @@ export function HeroSection({
                 <Link to="/about">
                   <GlowButton variant="secondary">About</GlowButton>
                 </Link>
-                <p className="w-full text-xs text-theme-text-dim">
-                  By connecting your wallet, you agree to our{" "}
+                <p className="w-full text-xs leading-snug text-theme-text-dim">
+                  Connecting means you accept our{" "}
                   <Link to="/terms" className="text-theme-accent hover:underline">
-                    Terms of Service
+                    Terms
                   </Link>
                   .
                 </p>

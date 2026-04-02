@@ -17,6 +17,8 @@ coverage.json
 .env
 .env.local
 .env.*.local
+*.pem
+secrets/
 
 # Local setup (private, not committed)
 local/

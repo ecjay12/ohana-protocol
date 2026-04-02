@@ -95,8 +95,8 @@ export function VouchLeaderboardCard({
         <Users className="h-5 w-5 shrink-0 text-theme-accent" aria-hidden />
         <h2 className="text-base font-semibold text-theme-text">Vouch leaderboard</h2>
       </div>
-      <p className="mb-4 text-xs leading-relaxed text-theme-text-muted">
-        Top {VOUCH_LEADERBOARD_TOP} by accepted vouches (all networks). Refreshes about every 12 hours.
+      <p className="mb-4 text-xs leading-snug text-theme-text-muted content-safe">
+        Top {VOUCH_LEADERBOARD_TOP} by vouches · updates ~12h
       </p>
       {loading && (
         <div className="flex items-center gap-2 text-sm text-theme-text-muted">
@@ -123,7 +123,7 @@ export function VouchLeaderboardCard({
               <li key={`${r.address}-${i}`}>
                 <Link
                   to={`/profile/${r.address}`}
-                  className={`flex items-center gap-2 sm:gap-3 ${compact ? "py-2" : "py-2.5"} -mx-1 rounded-lg px-1 outline-none transition-colors hover:bg-theme-surface-strong/60`}
+                  className={`flex min-w-0 items-center gap-2 sm:gap-3 ${compact ? "py-2" : "py-2.5"} -mx-1 rounded-lg px-1 outline-none transition-colors hover:bg-theme-surface-strong/60`}
                 >
                   <span
                     className={`w-5 shrink-0 text-right font-mono tabular-nums text-theme-text-dim ${compact ? "text-[10px]" : "text-xs"}`}
@@ -169,7 +169,7 @@ export function VouchLeaderboardCard({
   }
 
   return (
-    <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4 shadow-sm">
+    <div className="glass-card min-w-0 rounded-2xl border border-theme-border bg-theme-surface p-3 shadow-sm sm:p-4">
       {inner}
     </div>
   );

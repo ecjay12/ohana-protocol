@@ -34,8 +34,8 @@ export function LeaderboardPage() {
       onSwitchChain={wallet.switchChain}
       onDisconnect={wallet.disconnect}
     >
-      <div className="mx-auto max-w-lg px-4 py-8 sm:py-10">
-        <h1 className="mb-6 text-2xl font-semibold text-theme-text">Leaderboard</h1>
+      <div className="mx-auto min-w-0 max-w-lg px-3 py-8 sm:px-4 sm:py-10">
+        <h1 className="mb-6 text-balance text-2xl font-semibold text-theme-text">Leaderboard</h1>
         <VouchLeaderboardCard />
       </div>
     </AppLayout>

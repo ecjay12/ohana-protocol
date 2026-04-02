@@ -50,7 +50,7 @@ export function VouchGraphPage() {
       onSwitchChain={wallet.switchChain}
       onDisconnect={wallet.disconnect}
     >
-      <div className="mx-auto max-w-5xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 md:px-6">
+      <div className="mx-auto min-w-0 max-w-5xl space-y-6 px-3 py-6 sm:px-4 sm:py-8 md:px-6">
         <div className="flex items-center justify-between gap-4">
           <Link
             to="/app"
@@ -61,17 +61,14 @@ export function VouchGraphPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
-          <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake network graph</h1>
-          <p className="mb-4 text-sm text-theme-text-muted">
-            Social graph of <strong className="font-medium text-theme-text">accepted vouches</strong>{" "}
-            on <strong className="font-medium text-theme-text">LUKSO mainnet</strong> Handshake only
-            (Universal Profiles). Loaded in your browser from public RPC — no server required. Open any{" "}
+        <div className="min-w-0 rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
+          <h1 className="mb-2 text-balance text-xl font-semibold text-theme-text">Handshake network graph</h1>
+          <p className="mb-4 text-sm leading-relaxed text-theme-text-muted content-safe">
+            <strong className="font-medium text-theme-text">LUKSO mainnet</strong> — accepted vouches between Universal Profiles. Loaded in-browser via public RPC. Open a{" "}
             <Link to={account ? `/profile/${account}` : "/app"} className="text-theme-accent hover:underline">
               profile
             </Link>{" "}
-            to see an <strong className="font-medium text-theme-text">ego</strong> graph centered on
-            that identity.
+            for a graph centered on that identity.
           </p>
 
           {graphError && (

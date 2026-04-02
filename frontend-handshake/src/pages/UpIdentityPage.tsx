@@ -176,7 +176,7 @@ export function UpIdentityPage() {
       onSwitchChain={wallet.switchChain}
       onDisconnect={wallet.disconnect}
     >
-      <div className="mx-auto max-w-xl space-y-6 px-4 py-8">
+      <div className="mx-auto min-w-0 max-w-xl space-y-6 px-3 py-8 sm:px-4">
         <Link
           to="/app"
           className="inline-flex items-center gap-2 text-sm text-theme-text-muted transition-colors hover:text-theme-accent"
@@ -192,20 +192,17 @@ export function UpIdentityPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-theme-border bg-theme-surface p-6 sm:p-8">
-          <h1 className="text-2xl font-bold text-theme-text">
+        <div className="min-w-0 rounded-2xl border border-theme-border bg-theme-surface p-5 sm:p-8">
+          <h1 className="text-balance text-2xl font-bold text-theme-text">
             Handshake + your Universal Profile
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-theme-text-muted">
-            Use <strong className="font-medium text-theme-text">one UP</strong> as your public
-            identity. <strong className="font-medium text-theme-text">Link each EOA on LUKSO</strong>{" "}
-            (same address on Base — no separate Base link needed). Your{" "}
+          <p className="mt-2 text-sm leading-relaxed text-theme-text-muted content-safe">
+            One <strong className="font-medium text-theme-text">UP</strong> as your public identity.
+            Link EOAs on LUKSO (same address works on Base).{" "}
             <code className="rounded bg-theme-surface-strong px-1 py-0.5 font-mono text-xs">
               /profile/&lt;UP&gt;
             </code>{" "}
-            page then pulls vouches from <strong className="font-medium text-theme-text">Base</strong>
-            , LUKSO, and testnets where Handshake is deployed. To add the Handshake app to your UP Grid,
-            use the{" "}
+            aggregates vouches across deployed networks. Add the app to your UP Grid via the{" "}
             <a
               href={miniappBase}
               target="_blank"
@@ -222,39 +219,34 @@ export function UpIdentityPage() {
               How it works
             </h2>
             <ol className="mt-3 list-none space-y-3 text-sm text-theme-text-muted">
-              <li className="flex gap-3">
+              <li className="flex min-w-0 gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-theme-accent-soft text-theme-accent">
                   <Wallet className="h-4 w-4" />
                 </span>
-                <span>
-                  <span className="font-medium text-theme-text">Connect on each chain</span> — Use
-                  MetaMask, UP extension, etc. Switch to{" "}
-                  <strong className="text-theme-text">LUKSO</strong>,{" "}
-                  <strong className="text-theme-text">Base</strong>, or{" "}
-                  <strong className="text-theme-text">Base Sepolia</strong> (same UP address on each)
-                  — linking is per chain.
+                <span className="min-w-0 content-safe">
+                  <span className="font-medium text-theme-text">Connect per chain</span> — Switch to
+                  LUKSO, Base, or Base Sepolia; link each EOA you use there.
                 </span>
               </li>
-              <li className="flex gap-3">
+              <li className="flex min-w-0 gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-theme-accent-soft text-theme-accent">
                   <Link2 className="h-4 w-4" />
                 </span>
-                <span>
-                  <span className="font-medium text-theme-text">Link wallet → UP</span> — If you
-                  connect with an EOA, paste your UP address and sign{" "}
-                  <strong className="text-theme-text">Sign to link wallet</strong>. That ties this
-                  wallet&apos;s vouches to your UP for the profile page.
+                <span className="min-w-0 content-safe">
+                  <span className="font-medium text-theme-text">Link EOA → UP</span> — Paste your UP
+                  and sign to attach this wallet&apos;s vouches to that profile.
                 </span>
               </li>
-              <li className="flex gap-3">
+              <li className="flex min-w-0 gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-theme-accent-soft text-theme-accent">
                   <UserCircle className="h-4 w-4" />
                 </span>
-                <span>
-                  <span className="font-medium text-theme-text">See vouches on your profile</span> —{" "}
-                  Open <code className="rounded bg-theme-surface-strong px-1 py-0.5 font-mono text-xs">/profile/YourUP</code>{" "}
-                  to see vouches from your UP and all linked wallets (aggregated across supported
-                  chains).
+                <span className="min-w-0 content-safe">
+                  <span className="font-medium text-theme-text">Profile</span> —{" "}
+                  <code className="rounded bg-theme-surface-strong px-1 py-0.5 font-mono text-xs break-all">
+                    /profile/YourUP
+                  </code>{" "}
+                  shows aggregated vouches.
                 </span>
               </li>
             </ol>

@@ -30,6 +30,7 @@ import { useActivityToast } from "./contexts/ActivityToastContext";
 import { VouchGraphPage } from "./pages/VouchGraphPage";
 import { UpIdentityPage } from "./pages/UpIdentityPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { HelpPage } from "./pages/HelpPage";
 
 function App() {
   const {
@@ -449,7 +450,7 @@ function App() {
       onSwitchChain={switchChain}
       onDisconnect={disconnect}
     >
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:px-6 sm:py-10 md:px-8 md:py-12">
+      <div className="mx-auto max-w-6xl space-y-6 px-3 py-6 sm:space-y-8 sm:px-5 sm:py-10 md:px-8 md:py-12">
         <HeroSection
           isConnected={isConnected}
           account={account}
@@ -615,6 +616,7 @@ function App() {
           <Route path="/up-identity" element={<UpIdentityPage />} />
           <Route path="/profile/:address" element={<ProfilePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/help" element={<HelpPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/vouch" element={<VouchRedirect />} />
           <Route path="/integrate" element={<IntegratePage />} />

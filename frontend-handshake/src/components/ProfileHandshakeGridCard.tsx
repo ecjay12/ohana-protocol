@@ -41,16 +41,16 @@ export function ProfileHandshakeGridCard({
 
   const onAddToGrid = async () => {
     if (!provider) {
-      setNotice("Connect your wallet first.");
+      setNotice("Connect your wallet using the button in the sidebar, then try again.");
       return;
     }
     if (!LUKSO_CHAIN_IDS.has(chainId)) {
-      setNotice("Switch to LUKSO Mainnet or Testnet in your wallet, then try again.");
+      setNotice("Use the network switcher in your wallet to pick LUKSO mainnet or testnet, then try again.");
       return;
     }
     const payload = buildHandshakeReferencePayload(chainId, acceptedCount);
     if (!payload) {
-      setNotice("Handshake is not configured on this chain.");
+      setNotice("Handshake isn’t set up on this network in the app. Try another network or contact support.");
       return;
     }
     setBusy(true);
@@ -59,12 +59,15 @@ export function ProfileHandshakeGridCard({
       const signer = await provider.getSigner();
       const allowed = await ensureOhanaKeyAllowed(signer, upAddress);
       if (!allowed.added) {
-        setNotice(allowed.error ?? "Could not allow Ohana keys on your UP.");
+        setNotice(
+          allowed.error ??
+            "We couldn’t get permission to update your profile. Approve the request in your wallet or try again."
+        );
         return;
       }
       const gridEncoded = encodeLsp28MiniappGridValue(upAddress, miniappBase);
       await setHandshakeReferenceAndGrid(signer, upAddress, payload, gridEncoded);
-      setNotice("Done — Handshake reference and Grid were updated. Check your Universal Profile.");
+      setNotice("Done. Open your Universal Profile to see Handshake on your home screen.");
     } catch (e: unknown) {
       setNotice(e instanceof Error ? e.message : String(e));
     } finally {
@@ -80,25 +83,25 @@ export function ProfileHandshakeGridCard({
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold text-theme-text">
-            Add Handshake to your Grid in one click
+            Show Handshake on your Universal Profile home
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-theme-text-muted">
-            Writes your Handshake stats and the miniapp iframe to your UP (LSP28 + LSP2) in one
-            signed transaction. Uses the same layout as the{" "}
+            Adds a Handshake tile to your profile&apos;s app grid and saves your vouch count in one
+            approval—same layout as the{" "}
             <a
               href={miniappBase}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-theme-accent hover:underline"
             >
-              Handshake mini dapp
+              Handshake mini app
             </a>
             .
           </p>
           {!LUKSO_CHAIN_IDS.has(chainId) && (
             <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">
-              Switch your wallet to <strong className="font-medium">LUKSO</strong> to run this on
-              your Universal Profile.
+              Switch your wallet to the <strong className="font-medium">LUKSO</strong> network first,
+              then try again.
             </p>
           )}
           {notice && (
@@ -119,7 +122,7 @@ export function ProfileHandshakeGridCard({
               ) : (
                 <>
                   <LayoutGrid className="h-4 w-4" />
-                  Add to Grid
+                  Add to my profile home
                 </>
               )}
             </GlowButton>

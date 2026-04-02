@@ -4,14 +4,17 @@
  */
 import chainConfig from "@shared/chainConfig.json";
 
-/** Miniapp URL for Grid iframe src. Uses current origin when in browser so the deployed project URL is always correct. */
+const trimOrigin = (u: string | undefined) => u?.replace(/\/$/, "") ?? "";
+
+/** Miniapp URL for Grid iframe src — current origin in the browser; override via env for non-browser contexts. */
 export const MINIAPP_PRODUCTION_URL =
   typeof window !== "undefined" && window.location?.origin
     ? window.location.origin
-    : "https://frontend-miniapp-rho.vercel.app";
+    : trimOrigin(import.meta.env.VITE_MINIAPP_PUBLIC_ORIGIN);
 
-/** Full Handshake app URL — "View vouch activity" link. */
-export const FULL_APP_URL = "https://ohana-protocol.vercel.app";
+/** Main Handshake app — “View vouch activity” (set `VITE_FULL_APP_URL` in Vercel to your deployment). */
+export const FULL_APP_URL =
+  trimOrigin(import.meta.env.VITE_FULL_APP_URL) || "https://ohanahandshake.com";
 
 const rawAddresses = chainConfig.handshakeAddresses as Record<string, string>;
 export const HANDSHAKE_ADDRESSES: Record<number, string> = Object.fromEntries(

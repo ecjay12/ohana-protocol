@@ -27,7 +27,10 @@ function toFriendlyError(raw: string): string {
   if (lower.includes("not pending")) return "This vouch is no longer pending.";
   if (lower.includes("can only cancel pending")) return "You can only cancel pending vouches.";
   if (lower.includes("user rejected") || lower.includes("user denied")) return "Transaction was cancelled.";
-  return raw.length > 80 ? "Transaction failed. Please try again." : raw;
+  if (lower.includes("execution reverted") || lower.includes("revert")) {
+    return "The network rejected this action. Check you’re on the right network and try again.";
+  }
+  return raw.length > 80 ? "Something went wrong. Please try again or ask for help on Common Ground." : raw;
 }
 
 export const CATEGORIES = [

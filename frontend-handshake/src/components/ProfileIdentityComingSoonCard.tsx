@@ -15,12 +15,21 @@ export function ProfileIdentityComingSoonCard() {
             Coming soon
           </p>
           <h2 className="mt-1 text-lg font-semibold text-theme-text">
-            Add vouches to your profile identity metadata
+            Show vouches in your profile details (coming soon)
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-theme-text-muted">
-            We&apos;re finishing the flow to surface Handshake vouches on your Universal
-            Profile&apos;s on-chain identity (LSP2 / ERC725Y). You&apos;ll be able to wire this from
-            here when it&apos;s ready.
+            Soon you&apos;ll be able to attach a short Handshake summary to the detailed profile
+            fields on your Universal Profile—not just the app grid. We&apos;re building this; check
+            back or ask on{" "}
+            <a
+              href="https://app.cg/c/OhanaDao/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-theme-accent hover:underline"
+            >
+              Common Ground
+            </a>{" "}
+            for updates.
           </p>
         </div>
       </div>

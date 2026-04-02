@@ -1,6 +1,19 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, User, Home, LayoutGrid, BookOpen, Info, X, Network, Palette, ChevronDown, Users } from "lucide-react";
+import {
+  LogOut,
+  User,
+  Home,
+  LayoutGrid,
+  BookOpen,
+  Info,
+  X,
+  Network,
+  Palette,
+  ChevronDown,
+  Users,
+  LifeBuoy,
+} from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
@@ -130,10 +143,11 @@ export function Sidebar({
               <LogOut className="h-4 w-4" />
             </GlowButton>
           </div>
-          <p className="text-xs text-theme-dim">
-            Disconnect clears this site in your wallet so the next Connect asks again (MetaMask) or
-            uses your chosen extension. Switch the active account in MetaMask first if you want a
-            different address.
+          <p className="text-xs leading-snug text-theme-dim content-safe">
+            Switch account in your wallet, then connect again.{" "}
+            <Link to="/help" className="text-theme-accent hover:underline" onClick={handleNavClick}>
+              Help
+            </Link>
           </p>
         </>
       ) : (
@@ -209,6 +223,7 @@ export function Sidebar({
           { to: "/vouch-graph", icon: Network, label: "Network graph" },
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
+          { to: "/help", icon: LifeBuoy, label: "Help" },
         ].map(({ to, icon: Icon, label }) => (
           <Link key={to} to={to} className={navItemClass(to)} onClick={handleNavClick}>
             <Icon className="h-4 w-4 shrink-0" />
@@ -274,7 +289,7 @@ export function Sidebar({
       </AnimatePresence>
       {/* Sidebar: drawer on mobile (slide in with transition), static on md+ */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col border-r border-theme-border bg-theme-surface backdrop-blur-xl transition-transform duration-200 ease-out md:static md:inset-auto md:z-auto md:max-w-none md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[min(85vw,20rem)] flex-col overflow-x-hidden border-r border-theme-border bg-theme-surface backdrop-blur-xl transition-transform duration-200 ease-out md:static md:inset-auto md:z-auto md:max-w-none md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
