@@ -1,19 +1,16 @@
 /**
  * Top profiles by Handshake accepted vouch count, summed across all configured chains.
+ * Data from GET /api/vouch-leaderboard (server snapshot + indexer enrichment, ~12h refresh).
  */
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Users, Loader2 } from "lucide-react";
 import {
-  fetchVouchLeaderboard,
+  fetchVouchLeaderboardFromApi,
   VOUCH_LEADERBOARD_TOP,
-  VOUCH_LEADERBOARD_REFRESH_MS,
   type VouchLeaderboardRow,
 } from "@/lib/vouchLeaderboard";
-import {
-  fetchLuksoProfilesFromIndexer,
-  type IndexerLeaderboardProfile,
-} from "@/lib/lspIndexerProfiles";
+import type { IndexerLeaderboardProfile } from "@/lib/lspIndexerProfiles";
 
 export type { VouchLeaderboardRow };
 
@@ -35,59 +32,40 @@ export function VouchLeaderboardCard({
   const [rows, setRows] = useState<VouchLeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  /** LUKSO indexer profile rows; key is lowercased address */
-  const [indexerByAddr, setIndexerByAddr] = useState<Record<string, IndexerLeaderboardProfile>>({});
+  /** From API response (same shape as indexer row) */
+  const [profilesByAddr, setProfilesByAddr] = useState<Record<string, IndexerLeaderboardProfile>>({});
 
   const limitKey = useMemo(
     () => Math.min(VOUCH_LEADERBOARD_TOP, Math.max(1, limit)),
     [limit]
   );
 
+  const reqSeq = useRef(0);
   useEffect(() => {
     const ac = new AbortController();
-    let cancelled = false;
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError(null);
-    fetchVouchLeaderboard(limitKey, { signal: ac.signal })
-      .then(({ rows: r, error: err }) => {
-        if (cancelled) return;
-        if (err) setError(err);
-        setRows(r);
+    setProfilesByAddr({});
+    fetchVouchLeaderboardFromApi(limitKey, { signal: ac.signal })
+      .then((data) => {
+        if (reqSeq.current !== seq) return;
+        if (data.error) setError(data.error);
+        setRows(data.rows ?? []);
+        setProfilesByAddr(data.profiles ?? {});
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        if (!ac.signal.aborted && reqSeq.current === seq) {
+          setError(e instanceof Error ? e.message : "Failed to load");
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (reqSeq.current === seq) setLoading(false);
       });
     return () => {
-      cancelled = true;
       ac.abort();
     };
   }, [limitKey]);
-
-  const indexerSeq = useRef(0);
-  useEffect(() => {
-    if (rows.length === 0) {
-      setIndexerByAddr({});
-      return;
-    }
-    const ac = new AbortController();
-    const seq = ++indexerSeq.current;
-    setIndexerByAddr({});
-    fetchLuksoProfilesFromIndexer(rows.map((r) => r.address), {
-      signal: ac.signal,
-      cacheTtlMs: VOUCH_LEADERBOARD_REFRESH_MS,
-    }).then(
-      (map) => {
-        if (indexerSeq.current !== seq) return;
-        setIndexerByAddr(map);
-      }
-    );
-    return () => {
-      ac.abort();
-    };
-  }, [rows]);
 
   const inner = (
     <>
@@ -113,7 +91,7 @@ export function VouchLeaderboardCard({
       {!loading && rows.length > 0 && (
         <ol className={`divide-y divide-theme-border/80 ${compact ? "text-sm" : ""}`}>
           {rows.map((r, i) => {
-            const idx = indexerByAddr[r.address.toLowerCase()];
+            const idx = profilesByAddr[r.address.toLowerCase()];
             const name = idx?.name?.trim() || shortAddr(r.address);
             const followers = idx ? idx.followerCount.toLocaleString() : "—";
             const following = idx ? idx.followingCount.toLocaleString() : "—";

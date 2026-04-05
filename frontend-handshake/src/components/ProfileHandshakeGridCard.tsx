@@ -1,16 +1,11 @@
 /**
  * One-click: LSP28 Grid + OhanaHandshake reference on the user’s UP (LUKSO), via Key Manager batch.
+ * Heavy deps (@erc725, upHandshake) load only when the user clicks "Add to my profile home".
  */
 import { useState } from "react";
 import { LayoutGrid, Loader2 } from "lucide-react";
 import { GlowButton } from "@/components/GlowButton";
 import type { BrowserProvider } from "ethers";
-import {
-  ensureOhanaKeyAllowed,
-  setHandshakeReferenceAndGrid,
-  buildHandshakeReferencePayload,
-} from "@/lib/upHandshake";
-import { encodeLsp28MiniappGridValue } from "@/lib/encodeLsp28MiniappGrid";
 
 const LUKSO_CHAIN_IDS = new Set([42, 4201]);
 
@@ -48,14 +43,17 @@ export function ProfileHandshakeGridCard({
       setNotice("Use the network switcher in your wallet to pick LUKSO mainnet or testnet, then try again.");
       return;
     }
-    const payload = buildHandshakeReferencePayload(chainId, acceptedCount);
-    if (!payload) {
-      setNotice("Handshake isn’t set up on this network in the app. Try another network or contact support.");
-      return;
-    }
     setBusy(true);
     setNotice(null);
     try {
+      const [{ buildHandshakeReferencePayload, ensureOhanaKeyAllowed, setHandshakeReferenceAndGrid }, { encodeLsp28MiniappGridValue }] =
+        await Promise.all([import("@/lib/upHandshake"), import("@/lib/encodeLsp28MiniappGrid")]);
+
+      const payload = buildHandshakeReferencePayload(chainId, acceptedCount);
+      if (!payload) {
+        setNotice("Handshake isn’t set up on this network in the app. Try another network or contact support.");
+        return;
+      }
       const signer = await provider.getSigner();
       const allowed = await ensureOhanaKeyAllowed(signer, upAddress);
       if (!allowed.added) {

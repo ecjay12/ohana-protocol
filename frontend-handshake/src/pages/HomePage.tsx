@@ -2,6 +2,7 @@
  * Home page — landing page explaining Handshake, use cases, and proof of humanity.
  */
 
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -42,6 +43,17 @@ export function HomePage() {
   const logoSrc = THEME_LOGOS[theme];
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
+
+  /** Warm cache for the dashboard route (same SPA shell; helps repeat visits feel instant). */
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/app";
+    document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, []);
 
   return (
     <AppLayout
@@ -141,7 +153,13 @@ export function HomePage() {
                     transition={{ delay: 0.3, duration: 0.4 }}
                     className="relative flex h-44 w-44 items-center justify-center rounded-2xl border border-theme-border bg-theme-surface-strong shadow-lg sm:h-52 sm:w-52 md:h-60 md:w-60"
                   >
-                    <img src={logoSrc} alt="Handshake logo" className="h-28 w-28 sm:h-32 sm:w-32 md:h-40 md:w-40" />
+                    <img
+                      src={logoSrc}
+                      alt="Handshake logo"
+                      className="h-28 w-28 sm:h-32 sm:w-32 md:h-40 md:w-40"
+                      decoding="async"
+                      fetchPriority="high"
+                    />
                   </motion.div>
                 </>
               )}

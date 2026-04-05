@@ -77,6 +77,13 @@ export function VouchGraphPage() {
             </div>
           )}
 
+          {globalData?.truncated && !graphError && (
+            <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              Graph capped for performance — showing a subset of vouches. Public RPC limits may apply; use a
+              dedicated RPC for heavy use.
+            </div>
+          )}
+
           {globalData?.message && !graphError && (
             <div className="mb-4 flex gap-2 rounded-xl border border-theme-border bg-theme-background/60 px-3 py-2 text-sm text-theme-text-muted">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" aria-hidden />

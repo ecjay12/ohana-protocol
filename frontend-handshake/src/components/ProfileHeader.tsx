@@ -1,5 +1,5 @@
 /**
- * Profile header: on-chain LSP3/LSP4 plus LUKSO LSP indexer (followers/following, merged metadata).
+ * Profile header: on-chain LSP3/LSP4 metadata (name, avatar, links, etc.).
  */
 
 import { useMemo } from "react";
@@ -15,8 +15,6 @@ import {
   Music2,
 } from "lucide-react";
 import type { ProfileData } from "@/lib/lsp4Profile";
-import type { IndexerLeaderboardProfile } from "@/lib/lspIndexerProfiles";
-import { useIndexerProfile } from "@/hooks/useIndexerProfile";
 
 interface ProfileHeaderProps {
   profileData: ProfileData | null;
@@ -41,31 +39,6 @@ function getLinkIcon(title: string, url: string) {
   return ExternalLink;
 }
 
-function mergeTags(
-  profileData: ProfileData | null,
-  indexer: IndexerLeaderboardProfile | null
-): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const t of [...(profileData?.tags ?? []), ...(indexer?.tags ?? [])]) {
-    const s = t.trim();
-    if (!s || seen.has(s)) continue;
-    seen.add(s);
-    out.push(s);
-  }
-  return out;
-}
-
-function mergeLinks(
-  profileData: ProfileData | null,
-  indexer: IndexerLeaderboardProfile | null
-): { title: string; url: string }[] {
-  const chain = profileData?.links ?? [];
-  const idx = indexer?.links ?? [];
-  const seen = new Set(chain.map((l) => l.url));
-  return [...chain, ...idx.filter((l) => !seen.has(l.url))];
-}
-
 export function ProfileHeader({
   profileData,
   address,
@@ -76,27 +49,31 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const formatAddress = (addr: string) => `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
-  const { data: indexer, loading: indexerLoading } = useIndexerProfile(address);
-
   const displayName = useMemo(() => {
-    const n = profileData?.name?.trim() || indexer?.name?.trim();
+    const n = profileData?.name?.trim();
     return n || formatAddress(address);
-  }, [profileData, indexer, address]);
+  }, [profileData, address]);
 
-  const displayAvatar = profileData?.avatar ?? indexer?.avatarUrl ?? null;
-  const displayBackground = profileData?.background ?? indexer?.backgroundUrl ?? null;
+  const displayAvatar = profileData?.avatar ?? null;
+  const displayBackground = profileData?.background ?? null;
 
-  const displayDescription = useMemo(() => {
-    const c = profileData?.description?.trim();
-    if (c) return c;
-    return indexer?.description?.trim() ?? "";
-  }, [profileData, indexer]);
+  const displayDescription = useMemo(() => profileData?.description?.trim() ?? "", [profileData]);
 
-  const mergedTags = useMemo(() => mergeTags(profileData, indexer), [profileData, indexer]);
-  const mergedLinks = useMemo(() => mergeLinks(profileData, indexer), [profileData, indexer]);
+  const mergedTags = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of profileData?.tags ?? []) {
+      const s = t.trim();
+      if (!s || seen.has(s)) continue;
+      seen.add(s);
+      out.push(s);
+    }
+    return out;
+  }, [profileData]);
 
-  const showNoMetadataHint =
-    !loading && !indexerLoading && !profileData && !indexer;
+  const mergedLinks = profileData?.links ?? [];
+
+  const showNoMetadataHint = !loading && !profileData;
 
   if (loading) {
     return (
@@ -126,6 +103,8 @@ export function ProfileHeader({
             src={displayBackground}
             alt=""
             className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
             onError={(e) => {
               e.currentTarget.style.display = "none";
             }}
@@ -143,6 +122,8 @@ export function ProfileHeader({
                 src={displayAvatar}
                 alt={displayName}
                 className="h-20 w-20 rounded-full object-cover sm:h-24 sm:w-24"
+                decoding="async"
+                fetchPriority="high"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -173,31 +154,9 @@ export function ProfileHeader({
         </div>
         <p className="mt-1 font-mono text-sm text-theme-text-muted">{address}</p>
 
-        {indexer && (
-          <p className="mt-2 text-xs text-theme-text-muted">
-            {indexer.followerCount.toLocaleString()} followers · {indexer.followingCount.toLocaleString()}{" "}
-            following
-            {indexer.timestamp != null && (
-              <span className="text-theme-text-dim">
-                {" "}
-                · indexed {new Date(indexer.timestamp).toLocaleDateString()}
-              </span>
-            )}
-            <span className="text-theme-text-dim"> · </span>
-            <a
-              href="https://indexer.sigmacore.io/docs/quickstart"
-              className="text-theme-accent hover:underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              LSP indexer
-            </a>
-          </p>
-        )}
-
         {showNoMetadataHint && (
           <p className="mt-2 text-xs text-theme-text-muted">
-            No profile metadata (LSP3/LSP4) or LUKSO indexer row found for this address.
+            No profile metadata (LSP3/LSP4) found for this address.
           </p>
         )}
 

@@ -44,7 +44,10 @@ export function apiDevPlugin(): Plugin {
         }
         const pathname = new URL(rawUrl, "http://localhost").pathname;
         type HandlerMod = { default: (req: unknown, res: unknown) => unknown };
-        const handlers: Record<string, () => Promise<HandlerMod>> = {};
+        const handlers: Record<string, () => Promise<HandlerMod>> = {
+          "/api/vouches": () => import("./api/vouches.js"),
+          "/api/vouch-leaderboard": () => import("./api/vouch-leaderboard.js"),
+        };
         const load = handlers[pathname];
         if (!load) {
           next();

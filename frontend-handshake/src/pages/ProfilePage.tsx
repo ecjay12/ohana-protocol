@@ -3,7 +3,7 @@
  * Accessible via /profile/:address route.
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, lazy, Suspense } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
@@ -22,18 +22,38 @@ import {
 } from "@/lib/vouchAggregationKeys";
 import { useGitHubAttestation } from "@/hooks/useGitHubAttestation";
 import { ProfileHeader } from "@/components/ProfileHeader";
-import { AcceptedVouchesCard } from "@/components/AcceptedVouchesCard";
-import {
-  ProfileVouchHistoryCard,
-  type ProfileVouchRow,
-} from "@/components/ProfileVouchHistoryCard";
-import { VouchCard } from "@/components/VouchCard";
-import { GlowButton } from "@/components/GlowButton";
-import { ProfileVouchGraphSection } from "@/components/ProfileVouchGraphSection";
+import type { ProfileVouchRow } from "@/components/ProfileVouchHistoryCard";
 import { ProfileHandshakeGridCard } from "@/components/ProfileHandshakeGridCard";
-import { ProfileIdentityComingSoonCard } from "@/components/ProfileIdentityComingSoonCard";
-import { ProfileAddWalletsCard } from "@/components/ProfileAddWalletsCard";
+import { GlowButton } from "@/components/GlowButton";
 import { AppLayout } from "@/layout/AppLayout";
+
+const ProfileVouchGraphSection = lazy(() =>
+  import("@/components/ProfileVouchGraphSection").then((m) => ({ default: m.ProfileVouchGraphSection }))
+);
+const AcceptedVouchesCard = lazy(() =>
+  import("@/components/AcceptedVouchesCard").then((m) => ({ default: m.AcceptedVouchesCard }))
+);
+const ProfileVouchHistoryCard = lazy(() =>
+  import("@/components/ProfileVouchHistoryCard").then((m) => ({ default: m.ProfileVouchHistoryCard }))
+);
+const VouchCard = lazy(() => import("@/components/VouchCard").then((m) => ({ default: m.VouchCard })));
+const ProfileAddWalletsCard = lazy(() =>
+  import("@/components/ProfileAddWalletsCard").then((m) => ({ default: m.ProfileAddWalletsCard }))
+);
+const ProfileIdentityComingSoonCard = lazy(() =>
+  import("@/components/ProfileIdentityComingSoonCard").then((m) => ({
+    default: m.ProfileIdentityComingSoonCard,
+  }))
+);
+
+function ProfileSectionSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`animate-pulse rounded-2xl border border-theme-border bg-theme-surface/50 ${className ?? "min-h-32"}`}
+      aria-hidden
+    />
+  );
+}
 
 export function ProfilePage() {
   const { address } = useParams<{ address: string }>();
@@ -64,6 +84,7 @@ export function ProfilePage() {
     }
   }, [address]);
 
+  /** URL param profile (main column). Sidebar uses `navProfileData` only — keep separate to avoid shared-cache races between two hooks on the same key. */
   const { profileData, isUP, loading: profileLoading } = useProfileData(
     provider,
     address || null,
@@ -88,6 +109,11 @@ export function ProfilePage() {
     normalizedAddress
   );
 
+  const isOwnProfile =
+    normalizedAddress != null &&
+    account != null &&
+    normalizedAddress.toLowerCase() === account.toLowerCase();
+
   const {
     vouchersForTarget,
     vouchStatuses,
@@ -102,9 +128,6 @@ export function ProfilePage() {
 
   const displayAcceptedCount =
     isUP && aggregatedAcceptedCount != null ? aggregatedAcceptedCount : contractAcceptedCount;
-
-  const isOwnProfile =
-    normalizedAddress?.toLowerCase() === account?.toLowerCase();
 
   const profileVouchesReceived: ProfileVouchRow[] = useMemo(() => {
     const rows = vouchersForTarget.map((key) => {
@@ -280,10 +303,14 @@ export function ProfilePage() {
         </Link>
 
         <ProfileHeader
-          profileData={profileData}
+          profileData={isOwnProfile ? (navProfileData ?? profileData) : profileData}
           address={normalizedAddress}
-          isUP={isUP}
-          loading={profileLoading}
+          isUP={isOwnProfile ? navIsUP || isUP : isUP}
+          loading={
+            isOwnProfile
+              ? !(navProfileData || profileData) && (navProfileLoading || profileLoading)
+              : profileLoading
+          }
           isOwnProfile={isOwnProfile}
           hasGitHubVerified={hasGitHubVerified}
           acceptedCount={displayAcceptedCount}
@@ -301,17 +328,19 @@ export function ProfilePage() {
           </p>
         )}
 
-        <ProfileVouchGraphSection
-          profileAddress={normalizedAddress}
-          chainId={chainId}
-          isUP={isUP}
-        />
+        <Suspense fallback={<ProfileSectionSkeleton className="min-h-[min(420px,55vh)]" />}>
+          <ProfileVouchGraphSection
+            profileAddress={normalizedAddress}
+            chainId={chainId}
+            isUP={isUP}
+          />
+        </Suspense>
 
         {isOwnProfile && (
-          <>
+          <Suspense fallback={<ProfileSectionSkeleton className="min-h-40" />}>
             <ProfileAddWalletsCard />
             <ProfileIdentityComingSoonCard />
-          </>
+          </Suspense>
         )}
 
         {error && (
@@ -325,30 +354,34 @@ export function ProfilePage() {
         )}
 
         {!isOwnProfile && account && isSupported && (
-          <VouchCard
-            feeLabel={feeDisplay}
-            categories={CATEGORIES}
-            txPending={txPending}
-            onVouch={async (target, category) => {
-              await vouch(target, category);
-            }}
-            disabled={false}
-            initialAddress={normalizedAddress}
-            compact
-          />
+          <Suspense fallback={<ProfileSectionSkeleton className="min-h-48" />}>
+            <VouchCard
+              feeLabel={feeDisplay}
+              categories={CATEGORIES}
+              txPending={txPending}
+              onVouch={async (target, category) => {
+                await vouch(target, category);
+              }}
+              disabled={false}
+              initialAddress={normalizedAddress}
+              compact
+            />
+          </Suspense>
         )}
 
         {isSupported && (
-          <AcceptedVouchesCard
-            vouchersForMe={vouchersForTarget}
-            vouchStatuses={vouchStatuses}
-            loading={loading}
-            categories={CATEGORIES}
-            hiddenVouchers={new Set()}
-            onHideVouch={undefined}
-            onRefresh={() => window.location.reload()}
-            disabled={!account || !isOwnProfile}
-          />
+          <Suspense fallback={<ProfileSectionSkeleton className="min-h-36" />}>
+            <AcceptedVouchesCard
+              vouchersForMe={vouchersForTarget}
+              vouchStatuses={vouchStatuses}
+              loading={loading}
+              categories={CATEGORIES}
+              hiddenVouchers={new Set()}
+              onHideVouch={undefined}
+              onRefresh={() => window.location.reload()}
+              disabled={!account || !isOwnProfile}
+            />
+          </Suspense>
         )}
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -373,20 +406,22 @@ export function ProfilePage() {
         </div>
 
         {isSupported && (
-          <ProfileVouchHistoryCard
-            vouchesGiven={profileVouchesGiven}
-            vouchesReceived={profileVouchesReceived}
-            categories={CATEGORIES}
-            loading={loading || loadingGiven}
-            isConnectedProfile={isOwnProfile}
-            onRemoveVouch={
-              isOwnProfile && account ? handleRemoveGivenVouch : undefined
-            }
-            onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
-            onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
-            txPending={txPending}
-            disabled={!account || !isOwnProfile}
-          />
+          <Suspense fallback={<ProfileSectionSkeleton className="min-h-56" />}>
+            <ProfileVouchHistoryCard
+              vouchesGiven={profileVouchesGiven}
+              vouchesReceived={profileVouchesReceived}
+              categories={CATEGORIES}
+              loading={loading || loadingGiven}
+              isConnectedProfile={isOwnProfile}
+              onRemoveVouch={
+                isOwnProfile && account ? handleRemoveGivenVouch : undefined
+              }
+              onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
+              onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
+              txPending={txPending}
+              disabled={!account || !isOwnProfile}
+            />
+          </Suspense>
         )}
 
         {isOwnProfile && (

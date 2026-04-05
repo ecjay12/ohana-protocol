@@ -1,6 +1,6 @@
 /**
  * Serverless read API: GET /api/vouches?chainId=4201&address=0x...
- * Returns { acceptedCount, vouchers[] }. No auth; short cache recommended.
+ * Returns { acceptedCount, vouchers[] }. No auth; CDN-cached GET (see CACHE_SECONDS).
  * Chain/handshake config from shared/chainConfig.json (single source of truth).
  */
 
@@ -22,7 +22,9 @@ const HANDSHAKE_ABI = [
   "function getVouchersFor(address target) view returns (address[])",
 ];
 
-const CACHE_SECONDS = 60;
+/** Edge/browser cache for read-only vouch counts (balance freshness vs RPC load). */
+const CACHE_SECONDS = 300;
+const STALE_WHILE_REVALIDATE_SECONDS = 600;
 
 const ALLOWED_CHAIN_IDS = new Set(
   Object.keys(handshakeAddresses).map((k) => parseInt(k, 10))
@@ -69,7 +71,10 @@ export default async function handler(req, res) {
       acceptedCount: Number(acceptedCount),
       vouchers: vouchers.map((a) => a.toLowerCase()),
     };
-    res.setHeader("Cache-Control", `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate`);
+    res.setHeader(
+      "Cache-Control",
+      `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_WHILE_REVALIDATE_SECONDS}`
+    );
     return res.status(200).json(result);
   } catch (e) {
     console.error("vouches API error:", e);

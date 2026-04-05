@@ -7,6 +7,7 @@ import { ActivityToastContainer } from "./components/ActivityToast";
 import { Network } from "./components/Network";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
+import { Analytics } from "@vercel/analytics/react";
 import App from "./App";
 
 function AppWithBackground() {
@@ -49,6 +50,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <ActivityToastProvider>
             <AppWithBackground />
             <ActivityToastContainer />
+            <Analytics />
           </ActivityToastProvider>
         </ThemeProvider>
       </BrowserRouter>

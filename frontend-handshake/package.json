@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@erc725/erc725.js": "^0.28.2",
+    "@vercel/analytics": "^2.0.1",
     "ethers": "^6.9.0",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.564.0",

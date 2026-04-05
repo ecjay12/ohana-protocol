@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Routes, Route, Link, useSearchParams, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInjectedWallet } from "./hooks/useInjectedWallet";
@@ -17,20 +17,29 @@ import { PendingVouchesCard } from "./components/PendingVouchesCard";
 import { HistoryCard, type HistoryVouch } from "./components/HistoryCard";
 import { AcceptedVouchesCard } from "./components/AcceptedVouchesCard";
 import { GlowButton } from "./components/GlowButton";
-import { ProfilePage } from "./pages/ProfilePage";
-import { HomePage } from "./pages/HomePage";
-import { IntegratePage } from "./pages/IntegratePage";
-import { BadgePage } from "./pages/BadgePage";
-import { EmbedPage } from "./pages/EmbedPage";
-import { MiniappPage } from "./pages/MiniappPage";
-import { AboutPage } from "./pages/AboutPage";
-import { TermsPage } from "./pages/TermsPage";
 import { VouchRedirect } from "./components/VouchRedirect";
 import { useActivityToast } from "./contexts/ActivityToastContext";
-import { VouchGraphPage } from "./pages/VouchGraphPage";
-import { UpIdentityPage } from "./pages/UpIdentityPage";
-import { LeaderboardPage } from "./pages/LeaderboardPage";
-import { HelpPage } from "./pages/HelpPage";
+
+const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const IntegratePage = lazy(() => import("./pages/IntegratePage").then((m) => ({ default: m.IntegratePage })));
+const BadgePage = lazy(() => import("./pages/BadgePage").then((m) => ({ default: m.BadgePage })));
+const EmbedPage = lazy(() => import("./pages/EmbedPage").then((m) => ({ default: m.EmbedPage })));
+const MiniappPage = lazy(() => import("./pages/MiniappPage").then((m) => ({ default: m.MiniappPage })));
+const AboutPage = lazy(() => import("./pages/AboutPage").then((m) => ({ default: m.AboutPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage").then((m) => ({ default: m.TermsPage })));
+const VouchGraphPage = lazy(() => import("./pages/VouchGraphPage").then((m) => ({ default: m.VouchGraphPage })));
+const UpIdentityPage = lazy(() => import("./pages/UpIdentityPage").then((m) => ({ default: m.UpIdentityPage })));
+const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage").then((m) => ({ default: m.LeaderboardPage })));
+const HelpPage = lazy(() => import("./pages/HelpPage").then((m) => ({ default: m.HelpPage })));
+
+function RouteLoading() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-sm text-theme-text-muted">
+      Loading…
+    </div>
+  );
+}
 
 function App() {
   const {
@@ -610,22 +619,24 @@ function App() {
   return (
     <AnimatePresence mode="wait">
       <motion.div key={location.pathname} {...pageTransition} className="min-h-full">
-        <Routes location={location}>
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route path="/vouch-graph" element={<VouchGraphPage />} />
-          <Route path="/up-identity" element={<UpIdentityPage />} />
-          <Route path="/profile/:address" element={<ProfilePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/vouch" element={<VouchRedirect />} />
-          <Route path="/integrate" element={<IntegratePage />} />
-          <Route path="/badge" element={<BadgePage />} />
-          <Route path="/embed" element={<EmbedPage />} />
-          <Route path="/miniapp" element={<MiniappPage />} />
-          <Route path="/app" element={dashboardContent} />
-          <Route path="/" element={<HomePage />} />
-        </Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes location={location}>
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/vouch-graph" element={<VouchGraphPage />} />
+            <Route path="/up-identity" element={<UpIdentityPage />} />
+            <Route path="/profile/:address" element={<ProfilePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/vouch" element={<VouchRedirect />} />
+            <Route path="/integrate" element={<IntegratePage />} />
+            <Route path="/badge" element={<BadgePage />} />
+            <Route path="/embed" element={<EmbedPage />} />
+            <Route path="/miniapp" element={<MiniappPage />} />
+            <Route path="/app" element={dashboardContent} />
+            <Route path="/" element={<HomePage />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );
