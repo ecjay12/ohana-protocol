@@ -14,9 +14,14 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { VouchGraphData } from "@/hooks/useVouchGraphData";
 
 const COLOR_CENTER = new THREE.Color(0x60a5fa);
-const COLOR_RECEIVED = new THREE.Color(0x34d399);
-const COLOR_GIVEN = new THREE.Color(0xa78bfa);
+/** Endorsements toward the focal profile — cool green (reads clearly vs “given”). */
+const COLOR_RECEIVED = new THREE.Color(0x22c55e);
+/** Vouches from the focal profile — warm amber (far from green + cyan in hue & luminance). */
+const COLOR_GIVEN = new THREE.Color(0xf97316);
+/** Global graph or edges not tied to the center — neutral cyan. */
 const COLOR_EDGE = new THREE.Color(0x67e8f9);
+/** Rare peripheral-only edges in ego mode. */
+const COLOR_EDGE_OTHER = new THREE.Color(0x94a3b8);
 
 const NOISE_FUNCTIONS = `
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -256,13 +261,20 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
         const isReceived =
           !globalMode &&
           data.edges.some((e) => e.target === centerAddr && e.voucher === addr);
+        const isGivenNeighbor =
+          !globalMode &&
+          !isCenter &&
+          !isReceived &&
+          data.edges.some((e) => e.voucher === centerAddr && e.target === addr);
         const c = globalMode
           ? COLOR_EDGE
           : isCenter
             ? COLOR_CENTER
             : isReceived
               ? COLOR_RECEIVED
-              : COLOR_GIVEN;
+              : isGivenNeighbor
+                ? COLOR_GIVEN
+                : COLOR_EDGE_OTHER;
         nodeColors.push(c.r, c.g, c.b);
         nodeSizes.push(isCenter ? 1.8 : globalMode ? 1.1 : 0.9);
       });
@@ -317,6 +329,17 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
           const end = positions.get(e.target);
           if (!start || !end) continue;
 
+          let edgeRgb = COLOR_EDGE;
+          if (!globalMode && centerAddr) {
+            const incomingToCenter =
+              e.target === centerAddr && e.voucher !== centerAddr;
+            const outgoingFromCenter =
+              e.voucher === centerAddr && e.target !== centerAddr;
+            if (incomingToCenter) edgeRgb = COLOR_RECEIVED;
+            else if (outgoingFromCenter) edgeRgb = COLOR_GIVEN;
+            else edgeRgb = COLOR_EDGE_OTHER;
+          }
+
           for (let k = 0; k < 16; k++) {
             const t = k / 15;
             connPos.push(t, 0, 0);
@@ -324,7 +347,7 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
             connEnd.push(end.x, end.y, end.z);
             connPath.push(pathIdx);
             connStr.push(e.strength);
-            connCol.push(COLOR_EDGE.r, COLOR_EDGE.g, COLOR_EDGE.b);
+            connCol.push(edgeRgb.r, edgeRgb.g, edgeRgb.b);
           }
           pathIdx++;
         }

@@ -42,6 +42,20 @@ export function ProfileVouchGraphSection({
           Who endorsed this person and who they endorsed. If they use more than one wallet tied to the same
           profile, this map matches the totals you see elsewhere — including activity on Base and LUKSO.
         </p>
+        <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-theme-dim">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[#60a5fa]" aria-hidden />
+            This profile
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[#22c55e]" aria-hidden />
+            Received (toward them)
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[#f97316]" aria-hidden />
+            Given (from them)
+          </span>
+        </p>
       </div>
       <div className="relative min-h-[380px] w-full">
         {loading ? (
