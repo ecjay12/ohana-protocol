@@ -16,6 +16,8 @@ interface VouchCardProps {
   initialAddress?: string;
   /** Compact layout for profile page (one primary action). */
   compact?: boolean;
+  /** Error message from the hook (displayed below the form). */
+  errorMessage?: string | null;
 }
 
 export function VouchCard({
@@ -26,9 +28,12 @@ export function VouchCard({
   disabled = false,
   initialAddress = "",
   compact = false,
+  errorMessage = null,
 }: VouchCardProps) {
   const [targetAddress, setTargetAddress] = useState(initialAddress);
   const [category, setCategory] = useState(0);
+  const compactTarget = initialAddress.trim();
+  const effectiveTargetAddress = compact && compactTarget ? compactTarget : targetAddress.trim();
 
   useEffect(() => {
     if (initialAddress?.trim()) setTargetAddress(initialAddress.trim());
@@ -36,9 +41,11 @@ export function VouchCard({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetAddress.trim() || disabled) return;
-    await onVouch(targetAddress.trim(), category);
-    setTargetAddress("");
+    if (!effectiveTargetAddress || disabled) return;
+    await onVouch(effectiveTargetAddress, category);
+    if (!compact) {
+      setTargetAddress("");
+    }
   };
 
   return (
@@ -64,8 +71,9 @@ export function VouchCard({
           <input
             type="text"
             placeholder="0x..."
-            value={targetAddress}
+            value={compact && compactTarget ? compactTarget : targetAddress}
             onChange={(e) => setTargetAddress(e.target.value)}
+            readOnly={compact && !!compactTarget}
             className="w-full rounded-xl border border-theme-border bg-theme-surface px-4 py-2.5 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent-soft"
           />
         </div>
@@ -83,10 +91,13 @@ export function VouchCard({
             ))}
           </select>
         </div>
-        <GlowButton type="submit" variant="primary" disabled={disabled || txPending || !targetAddress.trim()}>
+        <GlowButton type="submit" variant="primary" disabled={disabled || txPending || !effectiveTargetAddress}>
           {txPending ? "Sending…" : compact ? "Vouch" : `Vouch (${feeLabel})`}
         </GlowButton>
       </form>
+      {errorMessage && (
+        <p className="mt-3 text-sm text-red-400">{errorMessage}</p>
+      )}
     </GlassCard>
   );
 }

@@ -11,6 +11,7 @@ import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 import { exportVouchesToCSV, type VouchHistoryRow } from "@/lib/csvExport";
 import { getStoredAgentId } from "@/lib/agentIdStorage";
+import { CHAINS } from "@/hooks/useInjectedWallet";
 import type { BrowserProvider } from "ethers";
 
 interface CategoryOption {
@@ -47,6 +48,19 @@ interface HistoryCardProps {
   disabled?: boolean;
   hasERC8004Support?: boolean;
   onPublishToERC8004?: (targetAddress: string, category: number, targetAgentId: number) => Promise<void>;
+  /**
+   * When set, headline + tab totals match multi-chain aggregation (same as profile).
+   * Rows below still reflect `vouchesGiven` / `vouchesReceived` (this network only).
+   */
+  crossNetworkSummary?: {
+    totalGiven: number;
+    totalReceived: number;
+    givenAccepted: number;
+    receivedAccepted: number;
+    receivedPending: number;
+  };
+  /** Defaults to `account` — use public profile address (e.g. linked UP) when it differs from the signer. */
+  viewProfileAddress?: string;
 }
 
 export function HistoryCard({
@@ -67,6 +81,8 @@ export function HistoryCard({
   disabled = false,
   hasERC8004Support = false,
   onPublishToERC8004,
+  crossNetworkSummary,
+  viewProfileAddress,
 }: HistoryCardProps) {
   const [activeTab, setActiveTab] = useState<"given" | "received">("given");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -150,13 +166,19 @@ export function HistoryCard({
         <div>
           <h3 className="text-base font-semibold text-theme-text">Vouch History</h3>
           <p className="mt-1 text-xs text-theme-text-muted">
-            {vouchesGiven.length} given ({indexSummary.givenAccepted} accepted) · {vouchesReceived.length} received ({indexSummary.receivedAccepted} accepted, {indexSummary.receivedPending} pending)
+            {totalGivenDisplay} given ({indexSummary.givenAccepted} accepted) · {totalReceivedDisplay} received (
+            {indexSummary.receivedAccepted} accepted, {indexSummary.receivedPending} pending)
+            {crossNetworkSummary && (
+              <span className="block mt-1 text-[11px] text-theme-dim">
+                List below: {networkLabel} only · profile page shows every network
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {account && (
             <Link
-              to={`/profile/${account}`}
+              to={`/profile/${viewProfileAddress ?? account}`}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-theme-accent hover:bg-theme-accent-soft transition-colors"
             >
               View profile
@@ -194,7 +216,7 @@ export function HistoryCard({
               : "text-theme-text-muted hover:text-theme-text"
           }`}
         >
-          Given ({vouchesGiven.length})
+          Given ({totalGivenDisplay})
         </button>
         <button
           type="button"
@@ -205,7 +227,7 @@ export function HistoryCard({
               : "text-theme-text-muted hover:text-theme-text"
           }`}
         >
-          Received ({vouchesReceived.length})
+          Received ({totalReceivedDisplay})
         </button>
       </div>
 
@@ -244,9 +266,23 @@ export function HistoryCard({
       ) : filteredVouches.length === 0 ? (
         <div className="py-8 text-center text-sm text-theme-dim space-y-2">
           <p>No vouches in this tab.</p>
-          {!loading && vouchesGiven.length === 0 && vouchesReceived.length === 0 && (
-            <p className="text-xs">Give a vouch above or switch to the chain where you have vouches, then refresh.</p>
-          )}
+          {!loading &&
+            vouchesGiven.length === 0 &&
+            vouchesReceived.length === 0 &&
+            (!crossNetworkSummary ||
+              (crossNetworkSummary.totalGiven === 0 && crossNetworkSummary.totalReceived === 0)) && (
+              <p className="text-xs">Give a vouch above or switch to the chain where you have vouches, then refresh.</p>
+            )}
+          {!loading &&
+            vouchesGiven.length === 0 &&
+            vouchesReceived.length === 0 &&
+            crossNetworkSummary &&
+            (crossNetworkSummary.totalGiven > 0 || crossNetworkSummary.totalReceived > 0) && (
+              <p className="text-xs">
+                You have vouches on other networks. Open your profile for the full history, or switch to{" "}
+                {networkLabel} here to manage vouches on this chain.
+              </p>
+            )}
         </div>
       ) : (
         <ul className="space-y-2 max-h-[600px] overflow-y-auto">

@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { getProfileData } from "@/lib/lsp4Profile";
 import { CHAINS } from "@/hooks/useInjectedWallet";
+import { getRpcUrlForChain } from "@/lib/chainRpc";
 
 function shortAddress(addr: string): string {
   if (!addr || addr.length < 10) return addr;
@@ -92,7 +93,7 @@ export function useProfileNamesForAddresses(
     Promise.all(
       normalized.map(async (addr) => {
         for (const cid of lookupChainIds) {
-          const rpc = CHAINS[cid as keyof typeof CHAINS]?.rpc;
+          const rpc = getRpcUrlForChain(cid);
           if (!rpc) continue;
           const provider = createJsonRpcProvider(rpc);
           try {

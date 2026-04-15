@@ -3,8 +3,8 @@
  * Accessible via /profile/:address route.
  */
 
-import { useMemo, useCallback, lazy, Suspense } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useMemo, useCallback, useEffect, lazy, Suspense } from "react";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { getAddress } from "ethers";
@@ -12,6 +12,7 @@ import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
 import { useProfileData } from "@/hooks/useProfileData";
+import { useSessionSidebarProfile } from "@/hooks/useSessionSidebarProfile";
 import { useProfileVouches } from "@/hooks/useProfileVouches";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import {
@@ -20,10 +21,16 @@ import {
   displayAddressFromReceivedKey,
   displayAddressFromGivenKey,
 } from "@/lib/vouchAggregationKeys";
+import { buildIdentityVouchStatsForUpProfile } from "@/lib/profileWalletVouchStats";
+import {
+  useProfileNamesForAddresses,
+  getGraphProfileNameLookupChainIds,
+} from "@/hooks/useProfileNamesForAddresses";
 import { useGitHubAttestation } from "@/hooks/useGitHubAttestation";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import type { ProfileVouchRow } from "@/components/ProfileVouchHistoryCard";
 import { ProfileHandshakeGridCard } from "@/components/ProfileHandshakeGridCard";
+import { UpIdentityWalletDashboard } from "@/components/UpIdentityWalletDashboard";
 import { GlowButton } from "@/components/GlowButton";
 import { AppLayout } from "@/layout/AppLayout";
 
@@ -37,13 +44,8 @@ const ProfileVouchHistoryCard = lazy(() =>
   import("@/components/ProfileVouchHistoryCard").then((m) => ({ default: m.ProfileVouchHistoryCard }))
 );
 const VouchCard = lazy(() => import("@/components/VouchCard").then((m) => ({ default: m.VouchCard })));
-const ProfileAddWalletsCard = lazy(() =>
-  import("@/components/ProfileAddWalletsCard").then((m) => ({ default: m.ProfileAddWalletsCard }))
-);
-const ProfileIdentityComingSoonCard = lazy(() =>
-  import("@/components/ProfileIdentityComingSoonCard").then((m) => ({
-    default: m.ProfileIdentityComingSoonCard,
-  }))
+const ProfileLinkWalletsSection = lazy(() =>
+  import("@/components/ProfileLinkWalletsSection").then((m) => ({ default: m.ProfileLinkWalletsSection }))
 );
 
 function ProfileSectionSkeleton({ className }: { className?: string }) {
@@ -58,6 +60,7 @@ function ProfileSectionSkeleton({ className }: { className?: string }) {
 export function ProfilePage() {
   const { address } = useParams<{ address: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     provider,
     chainId,
@@ -84,14 +87,12 @@ export function ProfilePage() {
     }
   }, [address]);
 
-  /** URL param profile (main column). Sidebar uses `navProfileData` only — keep separate to avoid shared-cache races between two hooks on the same key. */
+  /** URL param profile (main column). Sidebar/session uses `useSessionSidebarProfile` (linked UP + cross-chain LSP). */
   const { profileData, isUP, loading: profileLoading } = useProfileData(
     provider,
     address || null,
     chainId
   );
-  const { profileData: navProfileData, isUP: navIsUP, loading: navProfileLoading } =
-    useProfileData(provider, account, chainId);
   const { hasGitHub: hasGitHubVerified } = useGitHubAttestation(address || null);
 
   const {
@@ -102,7 +103,14 @@ export function ProfilePage() {
     txPending,
     fee,
     isSupported,
+    error: handshakeError,
+    getUPForEOA,
   } = useHandshake(provider, chainId, account);
+
+  const sidebarSession = useSessionSidebarProfile(provider, chainId, account, getUPForEOA);
+  const navProfileData = sidebarSession.headerProfileData;
+  const navProfileLoading = sidebarSession.headerLoading;
+  const navIsUP = sidebarSession.headerIsUP;
 
   const { acceptedCount: contractAcceptedCount } = useHandshakeReadOnly(
     chainId,
@@ -112,7 +120,56 @@ export function ProfilePage() {
   const isOwnProfile =
     normalizedAddress != null &&
     account != null &&
-    normalizedAddress.toLowerCase() === account.toLowerCase();
+    (normalizedAddress.toLowerCase() === account.toLowerCase() ||
+      Boolean(
+        sidebarSession.headerAddress &&
+          normalizedAddress.toLowerCase() === sidebarSession.headerAddress.toLowerCase()
+      ));
+
+  /** While LSP metadata loads, `isUP` can be false briefly; treat as UP when wallet + URL are the same UP. */
+  const aggregateAsUP = useMemo(
+    () =>
+      isUP ||
+      Boolean(
+        isOwnProfile &&
+          account &&
+          normalizedAddress &&
+          account.toLowerCase() === normalizedAddress.toLowerCase() &&
+          sidebarSession.signingIsUP
+      ),
+    [isUP, isOwnProfile, account, normalizedAddress, sidebarSession.signingIsUP]
+  );
+
+  /** Merge session LSP into the big header only when the URL is the same identity as the sidebar (not /eoa while session shows linked UP). */
+  const ownProfileHeaderUsesSessionLsp = useMemo(
+    () =>
+      Boolean(
+        isOwnProfile &&
+          sidebarSession.headerAddress &&
+          normalizedAddress &&
+          normalizedAddress.toLowerCase() === sidebarSession.headerAddress.toLowerCase()
+      ),
+    [isOwnProfile, normalizedAddress, sidebarSession.headerAddress]
+  );
+
+  useEffect(() => {
+    if (location.hash !== "#link-wallets") return;
+    const scroll = () => {
+      document.getElementById("link-wallets")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    };
+    scroll();
+    const t1 = window.setTimeout(scroll, 100);
+    const t2 = window.setTimeout(scroll, 500);
+    const t3 = window.setTimeout(scroll, 1200);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
+  }, [location.hash, location.pathname, isOwnProfile, isUP]);
 
   const {
     vouchersForTarget,
@@ -120,14 +177,67 @@ export function ProfilePage() {
     targetsVouchedBy,
     givenVouchStatuses,
     aggregatedAcceptedCount,
+    linkedEOAs,
     loading,
     loadingGiven,
     error,
     isMultiChainUPAggregate,
-  } = useProfileVouches(address || null, chainId, isUP);
+  } = useProfileVouches(address || null, chainId, aggregateAsUP);
+
+  const identityVouchStatsFull = useMemo(
+    () =>
+      buildIdentityVouchStatsForUpProfile(
+        aggregateAsUP,
+        normalizedAddress,
+        linkedEOAs,
+        vouchersForTarget,
+        vouchStatuses,
+        targetsVouchedBy,
+        givenVouchStatuses,
+        account,
+        isOwnProfile
+      ),
+    [
+      aggregateAsUP,
+      normalizedAddress,
+      linkedEOAs,
+      vouchersForTarget,
+      vouchStatuses,
+      targetsVouchedBy,
+      givenVouchStatuses,
+      isOwnProfile,
+      account,
+    ]
+  );
+
+  const identityVouchStats = useMemo(
+    () => identityVouchStatsFull,
+    [identityVouchStatsFull]
+  );
+
+  const nameLookupAddresses = useMemo(() => {
+    const ids = new Set<string>();
+    identityVouchStatsFull?.forEach((row) => ids.add(row.address));
+    if (account) ids.add(account);
+    return [...ids];
+  }, [identityVouchStatsFull, account]);
+
+  const namesByAddress = useProfileNamesForAddresses(nameLookupAddresses, chainId, {
+    chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
+  });
+
+  const upProfileLabel =
+    (isOwnProfile ? (navProfileData?.name ?? profileData?.name) : profileData?.name)?.trim() ||
+    (normalizedAddress
+      ? `${normalizedAddress.slice(0, 6)}…${normalizedAddress.slice(-4)}`
+      : "");
+
+  const sessionWalletLabel =
+    (account && namesByAddress[account.toLowerCase()]) ||
+    (account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "");
 
   const displayAcceptedCount =
-    isUP && aggregatedAcceptedCount != null ? aggregatedAcceptedCount : contractAcceptedCount;
+    aggregateAsUP && aggregatedAcceptedCount != null ? aggregatedAcceptedCount : contractAcceptedCount;
 
   const profileVouchesReceived: ProfileVouchRow[] = useMemo(() => {
     const rows = vouchersForTarget.map((key) => {
@@ -287,7 +397,8 @@ export function ProfilePage() {
       walletError={walletError}
       userProfileData={navProfileData}
       userProfileLoading={navProfileLoading}
-      userIsUP={navIsUP}
+      profileHeaderAddress={sidebarSession.headerAddress ?? undefined}
+      userIsUP={sidebarSession.signerIsUPOnWalletChain}
       onConnect={connect}
       onConnectWith={connectWith}
       onSwitchChain={switchChain}
@@ -316,46 +427,10 @@ export function ProfilePage() {
           acceptedCount={displayAcceptedCount}
         />
 
-        {isUP && isMultiChainUPAggregate && (
-          <p className="text-xs leading-relaxed text-theme-text-muted">
-            Vouches from different networks are combined here when your wallets are linked to this
-            Universal Profile. Link each extra wallet{" "}
-            <strong className="font-medium text-theme-text">once on LUKSO</strong> so activity on
-            Base and other networks shows under this profile.{" "}
-            <Link to="/up-identity" className="text-theme-accent hover:underline">
-              How to link wallets
-            </Link>
-          </p>
-        )}
-
-        <Suspense fallback={<ProfileSectionSkeleton className="min-h-[min(420px,55vh)]" />}>
-          <ProfileVouchGraphSection
-            profileAddress={normalizedAddress}
-            chainId={chainId}
-            isUP={isUP}
-          />
-        </Suspense>
-
-        {isOwnProfile && (
-          <Suspense fallback={<ProfileSectionSkeleton className="min-h-40" />}>
-            <ProfileAddWalletsCard />
-            <ProfileIdentityComingSoonCard />
-          </Suspense>
-        )}
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-          >
-            {error}
-          </motion.div>
-        )}
-
         {!isOwnProfile && account && isSupported && (
           <Suspense fallback={<ProfileSectionSkeleton className="min-h-48" />}>
             <VouchCard
+              key={normalizedAddress}
               feeLabel={feeDisplay}
               categories={CATEGORIES}
               txPending={txPending}
@@ -365,21 +440,7 @@ export function ProfilePage() {
               disabled={false}
               initialAddress={normalizedAddress}
               compact
-            />
-          </Suspense>
-        )}
-
-        {isSupported && (
-          <Suspense fallback={<ProfileSectionSkeleton className="min-h-36" />}>
-            <AcceptedVouchesCard
-              vouchersForMe={vouchersForTarget}
-              vouchStatuses={vouchStatuses}
-              loading={loading}
-              categories={CATEGORIES}
-              hiddenVouchers={new Set()}
-              onHideVouch={undefined}
-              onRefresh={() => window.location.reload()}
-              disabled={!account || !isOwnProfile}
+              errorMessage={handshakeError}
             />
           </Suspense>
         )}
@@ -419,6 +480,81 @@ export function ProfilePage() {
               onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
               onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
               txPending={txPending}
+              disabled={!account || !isOwnProfile}
+            />
+          </Suspense>
+        )}
+
+        {aggregateAsUP && account && (
+          <UpIdentityWalletDashboard
+            variant={navIsUP && isOwnProfile ? "up" : "eoa"}
+            navIsUP={sidebarSession.signerIsUPOnWalletChain}
+            targetProfileAddress={normalizedAddress}
+            account={account}
+            sessionWalletLabel={sessionWalletLabel}
+            upProfileLabel={upProfileLabel}
+            namesByAddress={namesByAddress}
+            identityVisible={identityVouchStats}
+            identityFull={identityVouchStatsFull}
+            statsLoading={loading}
+            vouchersForTarget={vouchersForTarget}
+            targetsVouchedBy={targetsVouchedBy}
+            viewerIsProfileOwner={isOwnProfile}
+            hiddenSet={new Set<string>()}
+            setHidden={() => {
+              /* hide controls disabled on profile page */
+            }}
+            showVisibilityControls={false}
+          />
+        )}
+
+        {(isOwnProfile || isUP) && (
+          <div id="link-wallets" className="scroll-mt-24">
+            <Suspense fallback={<ProfileSectionSkeleton className="min-h-40" />}>
+              <ProfileLinkWalletsSection
+                profileAddress={normalizedAddress}
+                isOwnProfile={isOwnProfile}
+                isProfileUP={aggregateAsUP}
+                identityVouchStats={aggregateAsUP ? identityVouchStats : undefined}
+                identityVouchStatsLoading={aggregateAsUP && loading}
+                hideLinkedWalletStatsCard={aggregateAsUP}
+                disableOnChainUnlink={aggregateAsUP}
+                hideControlMessaging={false}
+                minimalLinkUi
+              />
+
+            </Suspense>
+          </div>
+        )}
+
+        <Suspense fallback={<ProfileSectionSkeleton className="min-h-[min(420px,55vh)]" />}>
+          <ProfileVouchGraphSection
+            profileAddress={normalizedAddress}
+            chainId={chainId}
+            isUP={aggregateAsUP}
+          />
+        </Suspense>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {isSupported && (
+          <Suspense fallback={<ProfileSectionSkeleton className="min-h-36" />}>
+            <AcceptedVouchesCard
+              vouchersForMe={vouchersForTarget}
+              vouchStatuses={vouchStatuses}
+              loading={loading}
+              categories={CATEGORIES}
+              hiddenVouchers={new Set()}
+              onHideVouch={undefined}
+              onRefresh={() => window.location.reload()}
               disabled={!account || !isOwnProfile}
             />
           </Suspense>

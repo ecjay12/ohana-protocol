@@ -39,8 +39,8 @@ export function ProfileVouchGraphSection({
       <div className="border-b border-theme-border px-4 py-3 sm:px-6">
         <h2 className="text-lg font-semibold text-theme-text">Vouch network</h2>
         <p className="mt-1 text-sm text-theme-text-muted">
-          Ego graph for this profile — who vouched them and who they vouched (same chain / UP
-          aggregation as the lists below).
+          Who endorsed this person and who they endorsed. If they use more than one wallet tied to the same
+          profile, this map matches the totals you see elsewhere — including activity on Base and LUKSO.
         </p>
       </div>
       <div className="relative min-h-[380px] w-full">

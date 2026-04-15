@@ -9,7 +9,8 @@ import { Contract, getAddress } from "ethers";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { getHandshakeAddress } from "@/config/contracts";
 import { getAggregationChainsWithHandshake } from "@/config/upProfileAggregation";
-import { CHAINS } from "@/hooks/useInjectedWallet";
+import { getRpcUrlForChain } from "@/lib/chainRpc";
+import { rpcPauseBetweenChains, withRpcRetry } from "@/lib/rpcRetry";
 import { getEOAsForUP } from "@/lib/upEoaLookup";
 import {
   makeReceivedVouchKey,
@@ -30,7 +31,7 @@ function getEffectiveChainId(chainId: number, isUP: boolean): number {
 
 function createReadOnlyContract(chainId: number): Contract | null {
   const addr = getHandshakeAddress(chainId);
-  const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
+  const rpc = getRpcUrlForChain(chainId);
   if (!addr || !rpc) return null;
   return new Contract(
     addr,
@@ -58,7 +59,7 @@ export function useProfileVouches(
     [chainId, isUP]
   );
   const contractAddress = getHandshakeAddress(effectiveChainId);
-  const rpc = CHAINS[effectiveChainId as keyof typeof CHAINS]?.rpc;
+  const rpc = getRpcUrlForChain(effectiveChainId);
 
   const roContract = useMemo(() => {
     if (!contractAddress || !rpc) return null;
@@ -93,6 +94,8 @@ export function useProfileVouches(
   const [targetsVouchedBy, setTargetsVouchedBy] = useState<string[]>([]);
   const [givenVouchStatuses, setGivenVouchStatuses] = useState<Record<string, VouchData>>({});
   const [aggregatedAcceptedCount, setAggregatedAcceptedCount] = useState<number | null>(null);
+  /** EOAs linked to this UP on LUKSO registry (same list used for aggregation). */
+  const [linkedEOAs, setLinkedEOAs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingGiven, setLoadingGiven] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +108,7 @@ export function useProfileVouches(
       setVouchersForTarget([]);
       setVouchStatuses({});
       setAggregatedAcceptedCount(null);
+      setLinkedEOAs([]);
       return;
     }
 
@@ -120,23 +124,32 @@ export function useProfileVouches(
           let totalAccepted = 0;
 
           /** Same wallet addresses on every chain; link is stored on LUKSO registry only. */
-          const linkedEOAs = await getEOAsForUP(normalizedAddress, effectiveChainId);
-          const identityAddressesAll = [normalizedAddress, ...linkedEOAs];
+          const linkedFromRegistry = await withRpcRetry(() =>
+            getEOAsForUP(normalizedAddress, effectiveChainId)
+          );
+          setLinkedEOAs(linkedFromRegistry);
+          if (myId !== receivedGenRef.current) return;
+          /** Unblock UI: linked-EOA list is enough to render wallet rows; vouch rows refine below. */
+          setLoading(false);
 
-          for (const cid of aggregationChains) {
+          const identityAddressesAll = [normalizedAddress, ...linkedFromRegistry];
+
+          for (let chainIdx = 0; chainIdx < aggregationChains.length; chainIdx++) {
+            if (chainIdx > 0) await rpcPauseBetweenChains();
+            const cid = aggregationChains[chainIdx];
             const c = createReadOnlyContract(cid);
             if (!c) continue;
 
             const identityAddresses = identityAddressesAll;
 
             for (const identity of identityAddresses) {
-              const vouchers: string[] = await c.getVouchersFor(identity);
+              const vouchers: string[] = await withRpcRetry(() => c.getVouchersFor(identity));
               for (const v of vouchers) {
                 const vAddr = getAddress(v);
                 const key = makeReceivedVouchKey(cid, identity, vAddr);
                 allKeys.add(key);
                 try {
-                  const raw = await c.getVouch(identity, vAddr);
+                  const raw = await withRpcRetry(() => c.getVouch(identity, vAddr));
                   if (raw)
                     statusMap[key] = {
                       category: Number(raw.category),
@@ -153,7 +166,7 @@ export function useProfileVouches(
 
             for (const identity of identityAddresses) {
               try {
-                const count = await c.acceptedCount(identity);
+                const count = await withRpcRetry(() => c.acceptedCount(identity));
                 totalAccepted += Number(count);
               } catch {
                 /* ignore */
@@ -168,6 +181,7 @@ export function useProfileVouches(
         } catch (e: unknown) {
           if (myId === receivedGenRef.current) {
             setError(e instanceof Error ? e.message : "Failed to load vouches");
+            setLinkedEOAs([]);
           }
         } finally {
           if (myId === receivedGenRef.current) setLoading(false);
@@ -177,6 +191,8 @@ export function useProfileVouches(
       run();
       return;
     }
+
+    setLinkedEOAs([]);
 
     if (!roContract) {
       setVouchersForTarget([]);
@@ -197,7 +213,7 @@ export function useProfileVouches(
         const voucherToTarget = new Map<string, string>();
 
         for (const identity of identityAddresses) {
-          const vouchers: string[] = await roContract.getVouchersFor(identity);
+          const vouchers: string[] = await withRpcRetry(() => roContract.getVouchersFor(identity));
           for (const v of vouchers) {
             allVouchers.add(getAddress(v));
             if (!voucherToTarget.has(getAddress(v))) {
@@ -211,24 +227,22 @@ export function useProfileVouches(
         setVouchersForTarget(vouchersList);
 
         const statusMap: Record<string, VouchData> = {};
-        await Promise.all(
-          vouchersList.map(async (voucher) => {
-            const target = voucherToTarget.get(voucher) ?? identityAddresses[0];
-            try {
-              const v = await roContract.getVouch(target, voucher);
-              if (v)
-                statusMap[voucher] = {
-                  category: Number(v.category),
-                  status: Number(v.status) as VouchStatus,
-                  timestamp: v.timestamp,
-                  updatedAt: v.updatedAt,
-                  hidden: Boolean(v.hidden),
-                };
-            } catch {
-              /* ignore */
-            }
-          })
-        );
+        for (const voucher of vouchersList) {
+          const target = voucherToTarget.get(voucher) ?? identityAddresses[0];
+          try {
+            const v = await withRpcRetry(() => roContract.getVouch(target, voucher));
+            if (v)
+              statusMap[voucher] = {
+                category: Number(v.category),
+                status: Number(v.status) as VouchStatus,
+                timestamp: v.timestamp,
+                updatedAt: v.updatedAt,
+                hidden: Boolean(v.hidden),
+              };
+          } catch {
+            /* ignore */
+          }
+        }
         if (myId === receivedGenRef.current) setVouchStatuses(statusMap);
         if (myId === receivedGenRef.current) setAggregatedAcceptedCount(null);
       } catch (e: unknown) {
@@ -267,24 +281,30 @@ export function useProfileVouches(
           const allKeys = new Set<string>();
           const statusMap: Record<string, VouchData> = {};
 
-          const linkedEOAs = await getEOAsForUP(normalizedAddress, effectiveChainId);
-          const identityAddressesAll = [normalizedAddress, ...linkedEOAs];
+          const linkedFromRegistry = await withRpcRetry(() =>
+            getEOAsForUP(normalizedAddress, effectiveChainId)
+          );
+          const identityAddressesAll = [normalizedAddress, ...linkedFromRegistry];
 
-          for (const cid of aggregationChains) {
+          for (let chainIdx = 0; chainIdx < aggregationChains.length; chainIdx++) {
+            if (chainIdx > 0) await rpcPauseBetweenChains();
+            const cid = aggregationChains[chainIdx];
             const c = createReadOnlyContract(cid);
             if (!c) continue;
 
             const identityAddresses = identityAddressesAll;
 
             for (const voucherIdentity of identityAddresses) {
-              const targets: string[] = await c.getTargetsVouchedBy(voucherIdentity);
+              const targets: string[] = await withRpcRetry(() =>
+                c.getTargetsVouchedBy(voucherIdentity)
+              );
               for (const t of targets) {
                 const tAddr = getAddress(t);
                 const vAddr = getAddress(voucherIdentity);
                 const key = makeGivenVouchKey(cid, tAddr, vAddr);
                 allKeys.add(key);
                 try {
-                  const raw = await c.getVouch(tAddr, vAddr);
+                  const raw = await withRpcRetry(() => c.getVouch(tAddr, vAddr));
                   if (raw)
                     statusMap[key] = {
                       category: Number(raw.category),
@@ -331,7 +351,9 @@ export function useProfileVouches(
         const targetToVoucher = new Map<string, string>();
 
         for (const identity of identityAddresses) {
-          const targets: string[] = await roContract.getTargetsVouchedBy(identity);
+          const targets: string[] = await withRpcRetry(() =>
+            roContract.getTargetsVouchedBy(identity)
+          );
           for (const t of targets) {
             allTargets.add(getAddress(t));
             if (!targetToVoucher.has(getAddress(t))) {
@@ -345,24 +367,22 @@ export function useProfileVouches(
         setTargetsVouchedBy(targetsList);
 
         const statusMap: Record<string, VouchData> = {};
-        await Promise.all(
-          targetsList.map(async (target) => {
-            const voucher = targetToVoucher.get(target) ?? identityAddresses[0];
-            try {
-              const v = await roContract.getVouch(target, voucher);
-              if (v)
-                statusMap[target] = {
-                  category: Number(v.category),
-                  status: Number(v.status) as VouchStatus,
-                  timestamp: v.timestamp,
-                  updatedAt: v.updatedAt,
-                  hidden: Boolean(v.hidden),
-                };
-            } catch {
-              /* ignore */
-            }
-          })
-        );
+        for (const target of targetsList) {
+          const voucher = targetToVoucher.get(target) ?? identityAddresses[0];
+          try {
+            const v = await withRpcRetry(() => roContract.getVouch(target, voucher));
+            if (v)
+              statusMap[target] = {
+                category: Number(v.category),
+                status: Number(v.status) as VouchStatus,
+                timestamp: v.timestamp,
+                updatedAt: v.updatedAt,
+                hidden: Boolean(v.hidden),
+              };
+          } catch {
+            /* ignore */
+          }
+        }
         if (myId === givenGenRef.current) setGivenVouchStatuses(statusMap);
       } catch {
         if (myId === givenGenRef.current) setTargetsVouchedBy([]);
@@ -388,6 +408,8 @@ export function useProfileVouches(
     targetsVouchedBy,
     givenVouchStatuses,
     aggregatedAcceptedCount: isUP ? aggregatedAcceptedCount : null,
+    /** Set when `isUP`: EOAs registered to this UP (LUKSO registry). */
+    linkedEOAs,
     loading,
     loadingGiven,
     error,

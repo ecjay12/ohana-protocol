@@ -1,6 +1,6 @@
 /**
- * Global vouch graph — LUKSO mainnet Handshake vouches (browser RPC, no server).
- * Ego graph for a single profile lives on /profile/:address.
+ * Global vouch graph — LUKSO mainnet Handshake accepted vouches.
+ * Profile-centered graph lives on /profile/:address.
  */
 
 import { Link } from "react-router-dom";
@@ -64,11 +64,12 @@ export function VouchGraphPage() {
         <div className="min-w-0 rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
           <h1 className="mb-2 text-balance text-xl font-semibold text-theme-text">Handshake network graph</h1>
           <p className="mb-4 text-sm leading-relaxed text-theme-text-muted content-safe">
-            <strong className="font-medium text-theme-text">LUKSO mainnet</strong> — accepted vouches between Universal Profiles. Loaded in-browser via public RPC. Open a{" "}
+            <strong className="font-medium text-theme-text">LUKSO</strong> — people endorsing each other across the
+            network. Open a{" "}
             <Link to={account ? `/profile/${account}` : "/app"} className="text-theme-accent hover:underline">
               profile
             </Link>{" "}
-            for a graph centered on that identity.
+            to see a map focused on one person.
           </p>
 
           {graphError && (
@@ -79,8 +80,8 @@ export function VouchGraphPage() {
 
           {globalData?.truncated && !graphError && (
             <div className="mb-4 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-              Graph capped for performance — showing a subset of vouches. Public RPC limits may apply; use a
-              dedicated RPC for heavy use.
+              Showing a sample of connections so the page stays fast. If the map looks sparse, the full network
+              is larger than we can display at once.
             </div>
           )}
 

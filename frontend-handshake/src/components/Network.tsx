@@ -478,7 +478,7 @@ export function Network() {
       const connMesh = new THREE.LineSegments(connGeo, connMat);
       scene.add(connMesh);
 
-      const clock = new THREE.Clock();
+      const timeStart = performance.now();
       let animId: number;
 
       function resize() {
@@ -494,7 +494,7 @@ export function Network() {
 
       function animate() {
         animId = requestAnimationFrame(animate);
-        const t = clock.getElapsedTime();
+        const t = (performance.now() - timeStart) / 1000;
         starMat.uniforms.uTime.value = t;
         nodeMat.uniforms.uTime.value = t;
         connMat.uniforms.uTime.value = t;

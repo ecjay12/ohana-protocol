@@ -2,12 +2,14 @@
  * Minidapp layout for UPs / smart wallets (iframe-friendly).
  * Optional ?address=0x... or postMessage { type: 'ohana-handshake-address', address } from host.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
+import { useSessionSidebarProfile } from "@/hooks/useSessionSidebarProfile";
+import { useProfileVouches } from "@/hooks/useProfileVouches";
 import { useHostAddress } from "@/hooks/useHostAddress";
 import { VOUCH_FEE_DISPLAY } from "@/config/contracts";
 import { MiniappLayout } from "@/layout/MiniappLayout";
@@ -47,7 +49,29 @@ export function MiniappPage() {
     denyVouch,
     getIncomingPending,
     getAcceptedCount,
+    getUPForEOA,
   } = useHandshake(provider, effectiveChainId, isConnected ? account : null);
+
+  const sidebarSession = useSessionSidebarProfile(
+    provider,
+    effectiveChainId,
+    isConnected ? account || null : null,
+    getUPForEOA
+  );
+  const dashboardVouchIdentity = useMemo(() => {
+    const raw = (sidebarSession.headerAddress ?? account ?? "").trim();
+    return raw || null;
+  }, [sidebarSession.headerAddress, account]);
+  const dashboardAggregateAsUP = useMemo(
+    () => Boolean(sidebarSession.headerIsUP || sidebarSession.signingIsUP),
+    [sidebarSession.headerIsUP, sidebarSession.signingIsUP]
+  );
+  const dashboardVouches = useProfileVouches(
+    dashboardVouchIdentity,
+    effectiveChainId,
+    Boolean(dashboardVouchIdentity && dashboardAggregateAsUP)
+  );
+  const miniappProfilePath = (sidebarSession.headerAddress ?? account).trim() || "";
 
   const { acceptedCount: readOnlyCount, incomingPending: readOnlyPending, loading: readOnlyLoading } = useHandshakeReadOnly(
     effectiveChainId,
@@ -87,8 +111,8 @@ export function MiniappPage() {
   }, [isConnected, isSupported, account, effectiveChainId, refreshKey]);
 
   const handleVouch = async (address: string, category: number) => {
-    await vouch(address, category);
-    refresh();
+    const ok = await vouch(address, category);
+    if (ok) refresh();
   };
 
   const handleAccept = async (voucher: string) => {
@@ -108,7 +132,11 @@ export function MiniappPage() {
       ? `${(Number(fee) / 1e18).toFixed(4)} ETH`
       : "—";
 
-  const displayCount = isConnected ? acceptedCount : readOnlyCount;
+  const displayCount = isConnected
+    ? dashboardAggregateAsUP && dashboardVouches.aggregatedAcceptedCount != null
+      ? dashboardVouches.aggregatedAcceptedCount
+      : acceptedCount
+    : readOnlyCount;
   const displayPending = isConnected ? incoming : readOnlyPending;
 
   return (
@@ -204,8 +232,11 @@ export function MiniappPage() {
         )}
 
         <p className="text-center text-sm text-theme-text-muted">
-          <Link to={account ? `/profile/${account}` : "/"} className="text-theme-accent hover:underline">
-            {account ? "View profile" : "Open full app"}
+          <Link
+            to={miniappProfilePath ? `/profile/${miniappProfilePath}` : "/"}
+            className="text-theme-accent hover:underline"
+          >
+            {miniappProfilePath ? "View profile" : "Open full app"}
           </Link>
         </p>
       </div>

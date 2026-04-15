@@ -103,7 +103,7 @@ export function HomePage() {
                 className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-theme-text-muted sm:text-xs"
               >
                 <Shield className="h-3.5 w-3.5 shrink-0" />
-                On-chain trust
+                Trust you can verify
               </motion.div>
               <motion.h1
                 id="hero-heading"
@@ -158,7 +158,6 @@ export function HomePage() {
                       alt="Handshake logo"
                       className="h-28 w-28 sm:h-32 sm:w-32 md:h-40 md:w-40"
                       decoding="async"
-                      fetchPriority="high"
                     />
                   </motion.div>
                 </>
@@ -196,7 +195,7 @@ export function HomePage() {
             transition={{ delay: 0.45 }}
             className="mx-auto max-w-2xl text-center text-base leading-relaxed text-theme-text-muted content-safe"
           >
-            Someone vouches for you; you accept. That proof lives on-chain and moves with your wallet—not one company’s
+            Someone vouches for you; you accept. That proof is public and moves with your wallet—not one company’s
             database.
           </motion.p>
         </motion.section>
@@ -299,7 +298,7 @@ export function HomePage() {
             {[
               "Vouches from people you know",
               "You accept or decline what appears",
-              "Proof lives on-chain",
+              "Proof is public",
             ].map((text, i) => (
               <motion.li
                 key={i}
@@ -452,7 +451,7 @@ export function HomePage() {
             transition={{ delay: 0.15 }}
             className="mx-auto max-w-2xl text-center text-base leading-relaxed text-theme-text-muted content-safe"
           >
-            A <strong className="font-semibold text-theme-text">UP</strong> is your on-chain profile on LUKSO—name,
+            A <strong className="font-semibold text-theme-text">UP</strong> is your public profile on LUKSO—name,
             photo, links, and apps in one place you control.
           </motion.p>
           <motion.p
@@ -493,7 +492,11 @@ export function HomePage() {
             className="flex flex-col items-center justify-center gap-2 pt-1 sm:flex-row sm:gap-6"
           >
             <Link
-              to="/up-identity"
+              to={
+                wallet.accounts[0]
+                  ? `/profile/${wallet.accounts[0]}#link-wallets`
+                  : "/app"
+              }
               className="inline-flex items-center gap-1.5 text-sm font-medium text-theme-accent transition-colors hover:underline"
             >
               Link wallets

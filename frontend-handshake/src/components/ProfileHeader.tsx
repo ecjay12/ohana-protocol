@@ -123,7 +123,6 @@ export function ProfileHeader({
                 alt={displayName}
                 className="h-20 w-20 rounded-full object-cover sm:h-24 sm:w-24"
                 decoding="async"
-                fetchPriority="high"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;

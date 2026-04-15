@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Users,
   LifeBuoy,
+  Wallet,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
@@ -36,6 +37,8 @@ interface SidebarProps {
   walletError: string | null;
   userProfileData?: ProfileData | null;
   userProfileLoading?: boolean;
+  /** LSP / public identity address shown in the header (may differ from `account` when linking). */
+  profileHeaderAddress?: string;
   userIsUP?: boolean;
   onConnect: () => void;
   onConnectWith: (wallet: WalletOption) => void;
@@ -57,6 +60,7 @@ export function Sidebar({
   walletError,
   userProfileData,
   userProfileLoading = false,
+  profileHeaderAddress,
   userIsUP: _userIsUP,
   onConnect,
   onConnectWith,
@@ -70,6 +74,13 @@ export function Sidebar({
   const { theme, setTheme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
   const [themeExpanded, setThemeExpanded] = useState(true);
+
+  const headerAddress = profileHeaderAddress || account;
+  const showSigningKeyHint = Boolean(
+    account &&
+      profileHeaderAddress &&
+      profileHeaderAddress.toLowerCase() !== account.toLowerCase()
+  );
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -117,22 +128,29 @@ export function Sidebar({
       </div>
       {isConnected ? (
         <>
-          {account && (
+          {headerAddress && (
             <div className="mb-3">
               <ProfileHeader
                 profileData={userProfileData ?? null}
-                address={account}
+                address={headerAddress}
                 isOwnProfile={true}
                 loading={userProfileLoading}
               />
             </div>
           )}
-          <div className="font-mono text-xs text-theme-text-muted">{shortAddress}</div>
+          {showSigningKeyHint ? (
+            <div className="space-y-0.5 font-mono text-xs text-theme-text-muted">
+              <div>Signing wallet</div>
+              <div>{shortAddress}</div>
+            </div>
+          ) : (
+            <div className="font-mono text-xs text-theme-text-muted">{shortAddress}</div>
+          )}
           <div className="flex gap-2">
-            {account && (
+            {headerAddress && (
               <GlowButton
                 variant="secondary"
-                onClick={() => navigate(`/profile/${account}`)}
+                onClick={() => navigate(`/profile/${headerAddress}`)}
                 className="flex-1"
               >
                 <User className="h-4 w-4 mr-1" />
@@ -219,11 +237,12 @@ export function Sidebar({
         {[
           { to: "/", icon: Home, label: "Home" },
           { to: "/app", icon: LayoutGrid, label: "App" },
+          { to: "/up-identity", icon: Wallet, label: "Linked wallets" },
           { to: "/leaderboard", icon: Users, label: "Leaderboard" },
           { to: "/vouch-graph", icon: Network, label: "Network graph" },
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
-          { to: "/help", icon: LifeBuoy, label: "Help" },
+          { to: "/help", icon: LifeBuoy, label: "How It Works" },
         ].map(({ to, icon: Icon, label }) => (
           <Link key={to} to={to} className={navItemClass(to)} onClick={handleNavClick}>
             <Icon className="h-4 w-4 shrink-0" />

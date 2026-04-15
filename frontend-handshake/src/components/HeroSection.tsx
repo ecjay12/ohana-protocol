@@ -13,6 +13,8 @@ import { THEME_LOGOS } from "@/config/themeLogos";
 interface HeroSectionProps {
   isConnected?: boolean;
   account?: string;
+  /** Public profile route (e.g. linked UP) — defaults to `account` */
+  profilePathAddress?: string;
   vouchesReceived?: number;
   vouchesGiven?: number;
   onConnect?: () => void;
@@ -43,6 +45,7 @@ const item = {
 export function HeroSection({
   isConnected = false,
   account,
+  profilePathAddress,
   vouchesReceived = 0,
   vouchesGiven = 0,
   onConnect,
@@ -88,7 +91,7 @@ export function HeroSection({
             className="mb-3 inline-flex items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-3 py-1.5 text-[11px] font-medium text-theme-text-muted sm:text-xs"
           >
             <Shield className="h-3.5 w-3.5 shrink-0" />
-            On-chain trust
+            Trust you can verify
           </motion.div>
           <motion.h1
             variants={item}
@@ -109,7 +112,7 @@ export function HeroSection({
           <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
             {isConnected && account ? (
               <>
-                <Link to={`/profile/${account}`}>
+                <Link to={`/profile/${(profilePathAddress ?? account).trim()}`}>
                   <GlowButton variant="primary" className="inline-flex items-center gap-2">
                     My Profile
                     <ArrowRight className="h-4 w-4" />
@@ -199,7 +202,6 @@ export function HeroSection({
                   alt="Handshake logo"
                   className="h-24 w-24 md:h-32 md:w-32"
                   decoding="async"
-                  fetchPriority="high"
                 />
               ) : (
                 <div className="h-24 w-24 md:h-32 md:w-32 rounded-full bg-theme-accent" />

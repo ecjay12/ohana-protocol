@@ -8,7 +8,7 @@
  * (including Base) for the same 0x addresses.
  */
 
-import { Contract, getAddress } from "ethers";
+import { Contract, getAddress, ZeroAddress } from "ethers";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 import { getHandshakeAddress } from "@/config/contracts";
 import { CHAINS } from "@/hooks/useInjectedWallet";
@@ -84,4 +84,40 @@ export async function getEOAsForUP(upAddress: string, _chainId: number): Promise
   }
 
   return Array.from(byLower.values());
+}
+
+/**
+ * Resolve EOA → UP from LUKSO Handshake deployments (mainnet + testnet).
+ * Use when the wallet is on another chain (e.g. Base): the registry link is stored on LUKSO.
+ */
+export async function getUPForEOAOnLuksoFamily(eoa: string): Promise<string | null> {
+  let normalizedEoa: string;
+  try {
+    normalizedEoa = getAddress(eoa.trim());
+  } catch {
+    return null;
+  }
+
+  for (const lookupChainId of EOA_REGISTRY_LUKSO_CHAINS) {
+    const contractAddress = getHandshakeAddress(lookupChainId);
+    const rpc = CHAINS[lookupChainId as keyof typeof CHAINS]?.rpc;
+    if (!contractAddress || !rpc) continue;
+
+    try {
+      const provider = createJsonRpcProvider(rpc);
+      const contract = new Contract(contractAddress, ABI, provider);
+      const up = await contract.getUPForEOA(normalizedEoa);
+      if (up && typeof up === "string" && up !== ZeroAddress) {
+        try {
+          return getAddress(up);
+        } catch {
+          /* continue */
+        }
+      }
+    } catch {
+      /* try next chain */
+    }
+  }
+
+  return null;
 }

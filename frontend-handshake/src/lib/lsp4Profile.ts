@@ -3,7 +3,7 @@
  * LSP3 is the primary profile metadata for UPs; LSP4 used for asset metadata; we also read LSP26/LSP27.
  */
 
-import { Contract, type Provider, type Signer, getAddress, keccak256, toUtf8Bytes } from "ethers";
+import { Contract, type Provider, getAddress, keccak256, toUtf8Bytes } from "ethers";
 
 // ERC725Y: getData(bytes32) for single key; setData(bytes32[], bytes[])
 const ERC725Y_ABI = [
@@ -382,24 +382,3 @@ export async function getProfileData(
  * Note: Requires IPFS pinning service or HTTP endpoint for metadata storage.
  * This is a placeholder - actual implementation depends on metadata storage solution.
  */
-export async function updateLSP4Description(
-  _signer: Signer,
-  _upAddress: string,
-  newDescription: string
-): Promise<void> {
-  // Security: Sanitize description (max length, no script tags)
-  void newDescription
-    .slice(0, 1000) // Max length
-    .replace(/<script[^>]*>.*?<\/script>/gi, "") // Remove script tags
-    .trim();
-
-  void _signer;
-  void _upAddress;
-  // TODO: Implement actual metadata update:
-  // 1. Fetch current LSP4 metadata
-  // 2. Update description field
-  // 3. Upload to IPFS (via Pinata, NFT.Storage, etc.)
-  // 4. Update LSP4 key to point to new URL via setData()
-  
-  throw new Error("LSP4 description update not yet implemented - requires IPFS pinning service");
-}

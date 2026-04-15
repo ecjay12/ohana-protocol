@@ -7,19 +7,37 @@ import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
 import HandshakeArtifact from "@contracts";
 import { getHandshakeAddress } from "@/config/contracts";
-import { CHAINS } from "@/hooks/useInjectedWallet";
+import { getRpcUrlForChain } from "@/lib/chainRpc";
+
+function extractRevertText(e: unknown): string {
+  if (e instanceof Error) {
+    const err = e as Error & {
+      reason?: string;
+      shortMessage?: string;
+      info?: { error?: { message?: string }; reason?: string };
+    };
+    const nested =
+      err.info && typeof err.info === "object" && err.info.error?.message
+        ? String(err.info.error.message)
+        : "";
+    return [err.reason, nested, err.shortMessage, err.message].filter(Boolean).join(" ");
+  }
+  return String(e ?? "");
+}
 
 function getRevertReason(e: unknown): string {
-  if (e instanceof Error) {
-    const err = e as Error & { reason?: string; shortMessage?: string };
-    const raw = err.reason || err.shortMessage || err.message || "Transaction failed";
-    return toFriendlyError(raw);
-  }
-  return "Something went wrong. Please try again.";
+  const raw = extractRevertText(e) || "Transaction failed";
+  return toFriendlyError(raw);
 }
 
 function toFriendlyError(raw: string): string {
   const lower = raw.toLowerCase();
+  if (lower.includes("429") || lower.includes("too many requests") || lower.includes("-32016")) {
+    return "The network is busy right now. Wait a few seconds and try again, or pick a different connection in your wallet settings.";
+  }
+  if (lower.includes("insufficient funds")) {
+    return "Not enough ETH in your wallet to cover the vouch fee + gas. Please add funds and try again.";
+  }
   if (lower.includes("vouch exists")) return "You've already vouched for this profile.";
   if (lower.includes("cannot vouch for self")) return "You can't vouch for yourself.";
   if (lower.includes("invalid target") || lower.includes("invalid address")) return "Please enter a valid address.";
@@ -32,6 +50,7 @@ function toFriendlyError(raw: string): string {
   }
   return raw.length > 80 ? "Something went wrong. Please try again or ask for help on Common Ground." : raw;
 }
+
 
 export const CATEGORIES = [
   { value: 0, label: "Agent/Bot" },
@@ -61,7 +80,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
 
   const handshakeAddr = getHandshakeAddress(chainId);
   const isSupported = !!handshakeAddr;
-  const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc ?? null;
+  const rpc = getRpcUrlForChain(chainId) || null;
 
   /** Read-only Handshake contract — ref avoids unstable `Contract` in useCallback deps (RPC spam / 429s). */
   const readContractRef = useRef<Contract | null>(null);
@@ -95,9 +114,9 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
   }, [provider, handshakeAddr, account]);
 
   const vouch = useCallback(
-    async (target: string, category: number) => {
+    async (target: string, category: number): Promise<boolean> => {
       const c = await getSignerContract();
-      if (!c) return;
+      if (!c) return false;
       setTxPending(true);
       setError(null);
       try {
@@ -106,20 +125,36 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
           normalizedTarget = getAddress(target.trim());
         } catch {
           setError("Invalid address");
-          setTxPending(false);
-          return;
+          return false;
         }
         if (normalizedTarget.toLowerCase() === account?.toLowerCase()) {
           setError("Cannot vouch for yourself");
-          setTxPending(false);
-          return;
+          return false;
         }
-        const tx = await c.vouch(normalizedTarget, category, { value: fee });
+        let liveFee = fee;
+        if (liveFee === 0n) {
+          try {
+            liveFee = await c.fee();
+          } catch { /* keep cached fee */ }
+        }
+
+        const rc = readContractRef.current;
+        if (rc) {
+          try {
+            await rc.vouch.staticCall(normalizedTarget, category, { value: liveFee, from: account });
+          } catch (simErr) {
+            setError(toFriendlyError(extractRevertText(simErr)) || "This wouldn’t go through — check your balance and try again.");
+            return false;
+          }
+        }
+
+        const tx = await c.vouch(normalizedTarget, category, { value: liveFee, gasLimit: 450000n });
         await tx.wait();
         setError(null);
+        return true;
       } catch (e: unknown) {
         setError(getRevertReason(e));
-        throw e;
+        return false;
       } finally {
         setTxPending(false);
       }
@@ -390,6 +425,30 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
     [getSignerContract, chainId]
   );
 
+  /** Remove EOA→UP binding; caller must be the linked EOA (OhanaHandshakeRegistry). */
+  const unregisterEOAtoUP = useCallback(async (): Promise<boolean> => {
+    const c = await getSignerContract();
+    if (!c) return false;
+    setTxPending(true);
+    setError(null);
+    try {
+      if (typeof c.unregisterEOAtoUP !== "function") {
+        setError("This Handshake deployment does not support removing wallet links.");
+        return false;
+      }
+      await c.unregisterEOAtoUP.staticCall();
+      const tx = await c.unregisterEOAtoUP();
+      await tx.wait();
+      setError(null);
+      return true;
+    } catch (e: unknown) {
+      setError(getRevertReason(e));
+      return false;
+    } finally {
+      setTxPending(false);
+    }
+  }, [getSignerContract]);
+
   return {
     error,
     txPending,
@@ -410,6 +469,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
     getAcceptedCount,
     getUPForEOA,
     registerEOAtoUP,
+    unregisterEOAtoUP,
     STATUS_LABELS,
   };
 }

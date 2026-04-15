@@ -1,5 +1,3 @@
-import type { BrowserProvider } from "ethers";
-
 export type VouchStatus = 0 | 1 | 2 | 3;
 
 export interface VouchData {
@@ -8,19 +6,4 @@ export interface VouchData {
   timestamp: bigint;
   updatedAt: bigint;
   hidden: boolean;
-}
-
-export type FeedItemType = "vouch" | "accept" | "deny" | "cancel";
-
-export interface FeedItem {
-  id: string;
-  type: FeedItemType;
-  label: string;
-  timestamp: number;
-}
-
-export interface HandshakeUIProps {
-  provider: BrowserProvider | null;
-  chainId: number;
-  account: string;
 }

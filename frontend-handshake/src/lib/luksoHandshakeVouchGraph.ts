@@ -168,10 +168,10 @@ export async function fetchLuksoHandshakeVouchGraph(opts?: {
 
   const truncated = atCap() && cursor <= latest;
   const parts = [
-    `LUKSO mainnet Handshake (${handshake.slice(0, 10)}…) — accepted vouches between Universal Profiles.`,
+    "LUKSO — map of who has endorsed whom among Universal Profiles using Handshake.",
   ];
   if (truncated) {
-    parts.push(`Showing up to ${maxEdges} edges (cap).`);
+    parts.push(`Showing up to ${maxEdges} connections so the page stays responsive.`);
   }
 
   return {

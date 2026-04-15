@@ -1,5 +1,7 @@
-# UP as Identity (experimental route)
+# UP as Identity (link wallets)
 
-The `/up-identity` route lets you link EOAs to a Universal Profile so vouches can aggregate on the profile page. It is not in the main navigation.
+Linking EOAs to a Universal Profile lives on the **profile page** (`/profile/:address`), in the **Link wallets** section (`#link-wallets`). It lists wallets registered to that UP (from the LUKSO Handshake registry) and lets you sign to link the connected wallet when it’s your profile.
 
-For user-facing copy, see the in-app page. For developers, see **Integrate** in the app and the Handshake registry in the repo.
+The legacy route `/up-identity` redirects to `/profile/<connected>#link-wallets`.
+
+For developers, see **Integrate** in the app and the Handshake registry in the repo.

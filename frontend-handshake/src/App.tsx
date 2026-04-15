@@ -3,7 +3,9 @@ import { Routes, Route, Link, useSearchParams, useLocation } from "react-router-
 import { motion, AnimatePresence } from "framer-motion";
 import { useInjectedWallet } from "./hooks/useInjectedWallet";
 import { useHandshake, CATEGORIES, type VouchData } from "./hooks/useHandshake";
-import { useProfileData } from "./hooks/useProfileData";
+import { useSessionSidebarProfile } from "./hooks/useSessionSidebarProfile";
+import { useProfileVouches } from "./hooks/useProfileVouches";
+import { countVouchesWithStatus } from "./lib/vouchStatusCounts";
 import { VOUCH_FEE_DISPLAY } from "./config/contracts";
 import { getHiddenVouchesFromUP, addHiddenVoucherToUP, removeHiddenVoucherFromUP } from "./lib/upHiddenVouches";
 import { getHiddenVouchers } from "./lib/hiddenVouchersStorage";
@@ -81,9 +83,40 @@ function App() {
     STATUS_LABELS,
   } = useHandshake(provider, chainId, account);
 
-  // Profile data for logged-in user
-  const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
-    useProfileData(provider, account, chainId);
+  // Sidebar / hero: show linked UP when signed in with EOA; LUKSO LSP when UP is used off-LUKSO
+  const sidebarSession = useSessionSidebarProfile(
+    provider,
+    chainId,
+    account || null,
+    getUPForEOA
+  );
+  const userProfileData = sidebarSession.headerProfileData;
+  const userProfileLoading = sidebarSession.headerLoading;
+  /** UP on the wallet’s current chain only — used for LSP2 / UP-only flows */
+  const userIsUP = sidebarSession.signerIsUPOnWalletChain;
+
+  /** Same identity + aggregation as profile page — totals include all Handshake networks for UPs / linked EOAs. */
+  const dashboardVouchIdentity = useMemo(() => {
+    const raw = (sidebarSession.headerAddress ?? account ?? "").trim();
+    return raw || null;
+  }, [sidebarSession.headerAddress, account]);
+
+  const dashboardAggregateAsUP = useMemo(
+    () => Boolean(sidebarSession.headerIsUP || sidebarSession.signingIsUP),
+    [sidebarSession.headerIsUP, sidebarSession.signingIsUP]
+  );
+
+  const dashboardVouches = useProfileVouches(
+    dashboardVouchIdentity,
+    chainId,
+    Boolean(dashboardVouchIdentity && dashboardAggregateAsUP)
+  );
+
+  const profilePathAddress = (sidebarSession.headerAddress ?? account).trim() || undefined;
+
+  const dashboardAggregateLoading = Boolean(
+    dashboardVouchIdentity && dashboardAggregateAsUP && dashboardVouches.loading
+  );
 
   const [incoming, setIncoming] = useState<{ voucher: string; category: number }[]>([]);
   const [pendingTargetAddress, setPendingTargetAddress] = useState<string | null>(null);
@@ -94,10 +127,66 @@ function App() {
   const [loadingPending, setLoadingPending] = useState(false);
   const [loadingGiven, setLoadingGiven] = useState(false);
   const loading = loadingPending || loadingGiven;
+
   const [refreshKey, setRefreshKey] = useState(0);
   const [hiddenVouchers, setHiddenVouchers] = useState<Set<string>>(new Set());
   const [hiddenVouchersLSP2, setHiddenVouchersLSP2] = useState<Set<string>>(new Set());
   const [pendingBannerDismissed, setPendingBannerDismissed] = useState(false);
+
+  const heroVouchesReceived = useMemo(() => {
+    if (!isConnected || !dashboardVouchIdentity) return 0;
+    if (dashboardAggregateLoading) return vouchersForMe.length;
+    if (!dashboardAggregateAsUP && dashboardVouches.loading) return vouchersForMe.length;
+    return dashboardVouches.vouchersForTarget.length;
+  }, [
+    isConnected,
+    dashboardVouchIdentity,
+    dashboardAggregateLoading,
+    dashboardAggregateAsUP,
+    dashboardVouches.loading,
+    vouchersForMe.length,
+    dashboardVouches.vouchersForTarget.length,
+  ]);
+
+  const heroVouchesGiven = useMemo(() => {
+    if (!isConnected || !dashboardVouchIdentity) return 0;
+    if (dashboardAggregateLoading) return targetsVouchedBy.length;
+    if (!dashboardAggregateAsUP && dashboardVouches.loading) return targetsVouchedBy.length;
+    return dashboardVouches.targetsVouchedBy.length;
+  }, [
+    isConnected,
+    dashboardVouchIdentity,
+    dashboardAggregateLoading,
+    dashboardAggregateAsUP,
+    dashboardVouches.loading,
+    targetsVouchedBy.length,
+    dashboardVouches.targetsVouchedBy.length,
+  ]);
+
+  const crossNetworkHistorySummary = useMemo(() => {
+    if (!isConnected || !dashboardVouchIdentity || !dashboardAggregateAsUP || dashboardVouches.loading) {
+      return undefined;
+    }
+    const { vouchersForTarget, targetsVouchedBy: aggTargets, vouchStatuses, givenVouchStatuses } =
+      dashboardVouches;
+    return {
+      totalGiven: aggTargets.length,
+      totalReceived: vouchersForTarget.length,
+      givenAccepted: countVouchesWithStatus(aggTargets, givenVouchStatuses, [2]),
+      receivedAccepted: countVouchesWithStatus(vouchersForTarget, vouchStatuses, [2]),
+      receivedPending: countVouchesWithStatus(vouchersForTarget, vouchStatuses, [1]),
+    };
+  }, [
+    isConnected,
+    dashboardVouchIdentity,
+    dashboardAggregateAsUP,
+    dashboardVouches.loading,
+    dashboardVouches.vouchersForTarget,
+    dashboardVouches.targetsVouchedBy,
+    dashboardVouches.vouchStatuses,
+    dashboardVouches.givenVouchStatuses,
+  ]);
+
   const [searchParams] = useSearchParams();
   const { showToast } = useActivityToast();
   const pendingToastShownRef = useRef(false);
@@ -142,7 +231,7 @@ function App() {
     if (!account || !isSupported || loading || welcomeToastShownRef.current) return;
     if (incoming.length > 0) return; // Don't show welcome if they have pending
     welcomeToastShownRef.current = true;
-    showToast("Welcome! Vouch for others or get vouched to build your on-chain reputation.", {
+    showToast("Welcome! Vouch for others or get vouched to grow your public reputation.", {
       type: "engagement",
       duration: 6000,
     });
@@ -151,13 +240,13 @@ function App() {
   // Engagement: first vouch received milestone
   useEffect(() => {
     if (!account || loading) return;
-    const count = vouchersForMe.length;
+    const count = heroVouchesReceived;
     const prev = prevAcceptedCountRef.current;
     prevAcceptedCountRef.current = count;
     if (prev !== null && count > prev && prev === 0 && count === 1) {
       showToast("You've received your first vouch! 🎉", { type: "engagement", duration: 5000 });
     }
-  }, [account, loading, vouchersForMe.length, showToast]);
+  }, [account, loading, heroVouchesReceived, showToast]);
 
   // Load LSP2 hidden vouches from UP (ref: avoid re-running on new BrowserProvider identity)
   useEffect(() => {
@@ -343,7 +432,8 @@ function App() {
   }, [vouchersForMe, vouchStatuses]);
 
   const handleVouch = async (address: string, category: number) => {
-    await vouch(address, category);
+    const ok = await vouch(address, category);
+    if (!ok) return;
     refresh();
     showToast("Vouch sent! They'll see it in their pending list.", { type: "success" });
   };
@@ -453,6 +543,7 @@ function App() {
       walletError={error}
       userProfileData={userProfileData}
       userProfileLoading={userProfileLoading}
+      profileHeaderAddress={sidebarSession.headerAddress ?? undefined}
       userIsUP={userIsUP}
       onConnect={connect}
       onConnectWith={connectWith}
@@ -463,8 +554,9 @@ function App() {
         <HeroSection
           isConnected={isConnected}
           account={account}
-          vouchesReceived={vouchersForMe.length}
-          vouchesGiven={targetsVouchedBy.length}
+          profilePathAddress={profilePathAddress}
+          vouchesReceived={heroVouchesReceived}
+          vouchesGiven={heroVouchesGiven}
           onConnect={connect}
           onConnectWith={connectWith}
           availableWallets={availableWallets}
@@ -510,6 +602,25 @@ function App() {
               </motion.div>
             )}
             <AgentDashboardCard isSupported={isSupported} chainName={chainName} />
+            {isConnected && account && isSupported && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-5"
+              >
+                <h3 className="text-sm font-semibold text-theme-text">Universal Profile &amp; wallets</h3>
+                <p className="mt-1 text-sm text-theme-text-muted">
+                  Link your other wallets to your Universal Profile on LUKSO so endorsements from every address show
+                  on one profile.
+                </p>
+                <Link
+                  to={`/profile/${profilePathAddress ?? account}#link-wallets`}
+                  className="mt-3 inline-flex text-sm font-medium text-theme-accent hover:underline"
+                >
+                  Open Link wallets on your profile →
+                </Link>
+              </motion.div>
+            )}
             {!isConnected && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
@@ -586,6 +697,8 @@ function App() {
                 disabled={!isConnected}
                 hasERC8004Support={hasERC8004Support(chainId)}
                 onPublishToERC8004={handlePublishToERC8004}
+                crossNetworkSummary={crossNetworkHistorySummary}
+                viewProfileAddress={profilePathAddress}
               />
               <AcceptedVouchesCard
                 vouchersForMe={vouchersForMe}
@@ -609,6 +722,7 @@ function App() {
   );
 
   const location = useLocation();
+
   const pageTransition = {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0 },

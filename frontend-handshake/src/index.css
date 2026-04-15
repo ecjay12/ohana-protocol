@@ -75,22 +75,53 @@
     inset 0 1px 0 rgba(0, 212, 255, 0.1);
 }
 
-/* Light theme — soft, not harsh */
+/* Light theme — warm paper, ink text, indigo accent (distinct from Lyx slate/blue) */
 [data-theme="light"] {
-  --theme-bg: #e8eae6;
-  --theme-surface: rgba(0, 0, 0, 0.06);
-  --theme-surface-strong: rgba(0, 0, 0, 0.12);
-  --theme-text: #1c1917;
-  --theme-text-muted: #57534e;
-  --theme-text-dim: #78716c;
-  --theme-accent: #059669;
-  --theme-accent-soft: rgba(5, 150, 105, 0.15);
-  --theme-border: rgba(0, 0, 0, 0.1);
-  --theme-border-strong: rgba(0, 0, 0, 0.18);
-  --theme-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --theme-shadow-glow: 0 0 20px rgba(5, 150, 105, 0.12);
-  --theme-shadow-hover: 0 8px 30px rgba(5, 150, 105, 0.08);
-  --theme-shadow-active: 0 0 30px rgba(5, 150, 105, 0.25);
+  --theme-bg: #f4f2f8;
+  --theme-surface: rgba(255, 255, 255, 0.78);
+  --theme-surface-strong: rgba(255, 255, 255, 0.95);
+  --theme-text: #14121a;
+  --theme-text-muted: #4b4658;
+  --theme-text-dim: #6e677d;
+  --theme-accent: #4f3df0;
+  --theme-accent-soft: rgba(79, 61, 240, 0.14);
+  --theme-border: rgba(20, 18, 26, 0.09);
+  --theme-border-strong: rgba(20, 18, 26, 0.16);
+  --theme-shadow: 0 8px 28px rgba(20, 18, 26, 0.07);
+  --theme-shadow-glow: 0 0 0 1px rgba(79, 61, 240, 0.06), 0 10px 36px rgba(79, 61, 240, 0.12);
+  --theme-shadow-hover: 0 0 0 1px rgba(79, 61, 240, 0.1), 0 14px 44px rgba(79, 61, 240, 0.16);
+  --theme-shadow-active: 0 0 0 1px rgba(79, 61, 240, 0.14), 0 0 40px rgba(79, 61, 240, 0.22);
+}
+
+[data-theme="light"] body {
+  background: linear-gradient(168deg, #fdfcfa 0%, #f3f0fa 42%, #ebe6f4 100%);
+}
+
+[data-theme="light"] .glass-card,
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(79, 61, 240, 0.1);
+  box-shadow: 0 4px 24px rgba(20, 18, 26, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] select,
+[data-theme="light"] select.select-readable {
+  background-color: #ffffff !important;
+  color: #14121a !important;
+  border-color: rgba(79, 61, 240, 0.2);
+  color-scheme: light;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] select.select-readable option {
+  background-color: #ffffff !important;
+  color: #14121a !important;
+}
+
+[data-theme="light"] .bg-theme-background {
+  background-color: transparent;
 }
 
 /* Lyx theme — clean light-mode, LUKSO/Universal Everything style */

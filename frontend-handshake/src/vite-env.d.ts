@@ -6,4 +6,10 @@ interface ImportMetaEnv {
   readonly VITE_PUBLIC_APP_URL?: string;
   /** Public GitHub repo URL for Integrate / footer links (optional). */
   readonly VITE_GITHUB_REPO_URL?: string;
+  /** Optional JSON-RPC overrides (Alchemy/Infura/etc.) to avoid public-RPC 429s. Must be https URLs. */
+  readonly VITE_RPC_BASE?: string;
+  readonly VITE_RPC_BASE_SEPOLIA?: string;
+  readonly VITE_RPC_LUKSO?: string;
+  readonly VITE_RPC_LUKSO_TESTNET?: string;
+  readonly VITE_RPC_ETHEREUM?: string;
 }

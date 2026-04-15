@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Contract, getAddress } from "ethers";
 import { createJsonRpcProvider } from "@/lib/jsonRpcProvider";
-import { CHAINS } from "@/hooks/useInjectedWallet";
+import { getRpcUrlForChain } from "@/lib/chainRpc";
 import { getHandshakeAddress } from "@/config/contracts";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
 import HandshakeArtifact from "@contracts";
@@ -31,7 +31,7 @@ export function useHandshakeReadOnly(chainId: number, address: string | null) {
       return;
     }
     const contractAddress = getHandshakeAddress(chainId);
-    const rpc = CHAINS[chainId as keyof typeof CHAINS]?.rpc;
+    const rpc = getRpcUrlForChain(chainId);
     if (!contractAddress || !rpc) {
       setError("Unsupported chain");
       return;

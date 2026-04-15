@@ -22,6 +22,8 @@ interface AppLayoutProps {
   userProfileData?: ProfileData | null;
   /** True while on-chain LSP profile fetch is in progress (sidebar profile header). */
   userProfileLoading?: boolean;
+  /** When set (e.g. linked UP while signing with an EOA), sidebar shows this address’s LSP header. */
+  profileHeaderAddress?: string;
   userIsUP?: boolean;
   onConnect: () => void;
   onConnectWith: (wallet: WalletOption) => void;
@@ -41,6 +43,7 @@ export function AppLayout({
   walletError,
   userProfileData,
   userProfileLoading = false,
+  profileHeaderAddress,
   userIsUP,
   onConnect,
   onConnectWith,
@@ -66,6 +69,7 @@ export function AppLayout({
         walletError={walletError}
         userProfileData={userProfileData}
         userProfileLoading={userProfileLoading}
+        profileHeaderAddress={profileHeaderAddress}
         userIsUP={userIsUP}
         onConnect={onConnect}
         onConnectWith={onConnectWith}

@@ -380,7 +380,7 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
       }
     }
 
-    const clock = new THREE.Clock();
+    const timeStart = performance.now();
     let animId: number;
     const materialsToUpdate: THREE.ShaderMaterial[] = [];
     scene.traverse((obj) => {
@@ -405,7 +405,7 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
 
     function animate() {
       animId = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime();
+      const t = (performance.now() - timeStart) / 1000;
       for (const mat of materialsToUpdate) {
         mat.uniforms.uTime.value = t;
       }
@@ -436,6 +436,8 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
     return () => {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(animId);
+      controls.dispose();
+      composer.dispose();
       if (container.contains(labelsDiv)) container.removeChild(labelsDiv);
       if (container.contains(r.domElement)) container.removeChild(r.domElement);
       r.dispose();
@@ -456,7 +458,7 @@ export function VouchGraph3D({ data, nodeLabels = {}, className = "" }: VouchGra
         className={`flex items-center justify-center rounded-xl border border-theme-border bg-theme-surface p-12 ${className}`}
       >
         <p className="text-theme-text-muted text-sm">
-          WebGL is not available. Connect your wallet and view the vouch graph on a supported device.
+          3D view isn&apos;t available here — try another device or update your system, then open this page again.
         </p>
       </div>
     );

@@ -28,7 +28,7 @@ function RootErrorFallback() {
       <div className="max-w-md text-center">
         <h1 className="mb-2 text-lg font-semibold">Something went wrong</h1>
         <p className="mb-4 text-sm text-gray-400">
-          Check the browser console for details. Try refreshing or switching to a different theme.
+          Try refreshing the page. If it keeps happening, switch theme in settings or try again later.
         </p>
         <button
           type="button"
@@ -50,7 +50,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <ActivityToastProvider>
             <AppWithBackground />
             <ActivityToastContainer />
-            <Analytics />
+            {import.meta.env.PROD ? <Analytics /> : null}
           </ActivityToastProvider>
         </ThemeProvider>
       </BrowserRouter>
