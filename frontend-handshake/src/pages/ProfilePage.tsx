@@ -48,6 +48,13 @@ const ProfileLinkWalletsSection = lazy(() =>
   import("@/components/ProfileLinkWalletsSection").then((m) => ({ default: m.ProfileLinkWalletsSection }))
 );
 
+const LUKSO_MAIN = 42;
+const LUKSO_TEST = 4201;
+
+function luksoProfileChainIdForWallet(walletChain: number): number {
+  return walletChain === LUKSO_TEST ? LUKSO_TEST : LUKSO_MAIN;
+}
+
 function ProfileSectionSkeleton({ className }: { className?: string }) {
   return (
     <div
@@ -87,12 +94,23 @@ export function ProfilePage() {
     }
   }, [address]);
 
-  /** URL param profile (main column). Sidebar/session uses `useSessionSidebarProfile` (linked UP + cross-chain LSP). */
+  /** URL param profile on the wallet’s chain (may miss UP bytecode off-LUKSO). */
   const { profileData, isUP, loading: profileLoading } = useProfileData(
     provider,
-    address || null,
+    normalizedAddress,
     chainId
   );
+  const onLuksoFamily = chainId === LUKSO_MAIN || chainId === LUKSO_TEST;
+  const profileUrlCrossReadAddress =
+    normalizedAddress && !onLuksoFamily ? normalizedAddress : null;
+  const profileUrlOnLukso = useProfileData(
+    null,
+    profileUrlCrossReadAddress,
+    luksoProfileChainIdForWallet(chainId)
+  );
+  /** True when the profile URL is a Universal Profile (current chain or LUKSO read). */
+  const urlIdentityIsUP = isUP || Boolean(profileUrlCrossReadAddress && profileUrlOnLukso.isUP);
+
   const { hasGitHub: hasGitHubVerified } = useGitHubAttestation(address || null);
 
   const {
@@ -129,7 +147,7 @@ export function ProfilePage() {
   /** While LSP metadata loads, `isUP` can be false briefly; treat as UP when wallet + URL are the same UP. */
   const aggregateAsUP = useMemo(
     () =>
-      isUP ||
+      urlIdentityIsUP ||
       Boolean(
         isOwnProfile &&
           account &&
@@ -137,7 +155,7 @@ export function ProfilePage() {
           account.toLowerCase() === normalizedAddress.toLowerCase() &&
           sidebarSession.signingIsUP
       ),
-    [isUP, isOwnProfile, account, normalizedAddress, sidebarSession.signingIsUP]
+    [urlIdentityIsUP, isOwnProfile, account, normalizedAddress, sidebarSession.signingIsUP]
   );
 
   /** Merge session LSP into the big header only when the URL is the same identity as the sidebar (not /eoa while session shows linked UP). */
@@ -150,6 +168,53 @@ export function ProfilePage() {
           normalizedAddress.toLowerCase() === sidebarSession.headerAddress.toLowerCase()
       ),
     [isOwnProfile, normalizedAddress, sidebarSession.headerAddress]
+  );
+
+  const headerProfileData = useMemo(() => {
+    if (isOwnProfile && ownProfileHeaderUsesSessionLsp) {
+      return navProfileData ?? profileData ?? profileUrlOnLukso.profileData;
+    }
+    if (isOwnProfile) {
+      return profileData ?? profileUrlOnLukso.profileData;
+    }
+    if (urlIdentityIsUP && profileUrlOnLukso.profileData) {
+      return profileUrlOnLukso.profileData ?? profileData;
+    }
+    return profileData;
+  }, [
+    isOwnProfile,
+    ownProfileHeaderUsesSessionLsp,
+    navProfileData,
+    profileData,
+    profileUrlOnLukso.profileData,
+    urlIdentityIsUP,
+  ]);
+
+  const headerIsUP = useMemo(
+    () =>
+      (isOwnProfile && ownProfileHeaderUsesSessionLsp ? navIsUP || urlIdentityIsUP : urlIdentityIsUP),
+    [isOwnProfile, ownProfileHeaderUsesSessionLsp, navIsUP, urlIdentityIsUP]
+  );
+
+  const headerLoading = useMemo(
+    () =>
+      isOwnProfile && ownProfileHeaderUsesSessionLsp
+        ? !(navProfileData || profileData || profileUrlOnLukso.profileData) &&
+            (navProfileLoading || profileLoading || profileUrlOnLukso.loading)
+        : !headerProfileData &&
+            (profileLoading || Boolean(profileUrlCrossReadAddress && profileUrlOnLukso.loading)),
+    [
+      isOwnProfile,
+      ownProfileHeaderUsesSessionLsp,
+      navProfileData,
+      profileData,
+      profileUrlOnLukso.profileData,
+      profileUrlOnLukso.loading,
+      navProfileLoading,
+      profileLoading,
+      profileUrlCrossReadAddress,
+      headerProfileData,
+    ]
   );
 
   useEffect(() => {
@@ -169,7 +234,7 @@ export function ProfilePage() {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [location.hash, location.pathname, isOwnProfile, isUP]);
+  }, [location.hash, location.pathname, isOwnProfile, urlIdentityIsUP]);
 
   const {
     vouchersForTarget,
@@ -227,7 +292,7 @@ export function ProfilePage() {
   });
 
   const upProfileLabel =
-    (isOwnProfile ? (navProfileData?.name ?? profileData?.name) : profileData?.name)?.trim() ||
+    headerProfileData?.name?.trim() ||
     (normalizedAddress
       ? `${normalizedAddress.slice(0, 6)}…${normalizedAddress.slice(-4)}`
       : "");
@@ -414,14 +479,10 @@ export function ProfilePage() {
         </Link>
 
         <ProfileHeader
-          profileData={isOwnProfile ? (navProfileData ?? profileData) : profileData}
+          profileData={headerProfileData}
           address={normalizedAddress}
-          isUP={isOwnProfile ? navIsUP || isUP : isUP}
-          loading={
-            isOwnProfile
-              ? !(navProfileData || profileData) && (navProfileLoading || profileLoading)
-              : profileLoading
-          }
+          isUP={headerIsUP}
+          loading={headerLoading}
           isOwnProfile={isOwnProfile}
           hasGitHubVerified={hasGitHubVerified}
           acceptedCount={displayAcceptedCount}
@@ -508,7 +569,7 @@ export function ProfilePage() {
           />
         )}
 
-        {(isOwnProfile || isUP) && (
+        {(isOwnProfile || urlIdentityIsUP) && (
           <div id="link-wallets" className="scroll-mt-24">
             <Suspense fallback={<ProfileSectionSkeleton className="min-h-40" />}>
               <ProfileLinkWalletsSection
@@ -566,7 +627,7 @@ export function ProfilePage() {
             chainId={chainId}
             upAddress={normalizedAddress}
             isOwnProfile={isOwnProfile}
-            isUP={isUP}
+            isUP={urlIdentityIsUP}
             acceptedCount={Number(displayAcceptedCount ?? 0)}
           />
         )}
