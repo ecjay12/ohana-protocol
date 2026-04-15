@@ -439,12 +439,14 @@ export function ProfileLinkWalletsSection({
                   Current wallet:
                   <span className="ml-2 break-all font-mono text-lg sm:text-2xl">{shortAddr(account)}</span>
                 </p>
-                <p className="mt-3 text-center text-base font-bold uppercase tracking-wide text-theme-text sm:text-lg">
-                  Connected UP:
-                  <span className="ml-2 break-all font-mono text-sm normal-case sm:text-base">
-                    {linkedUP ?? "Not linked yet"}
-                  </span>
-                </p>
+                {!userIsUP && (
+                  <p className="mt-3 text-center text-base font-bold uppercase tracking-wide text-theme-text sm:text-lg">
+                    Connected UP:
+                    <span className="ml-2 break-all font-mono text-sm normal-case sm:text-base">
+                      {linkedUP ?? "Not linked yet"}
+                    </span>
+                  </p>
+                )}
 
                 <div className="mt-12 grid gap-3 sm:grid-cols-[1fr_auto]">
                   <input
