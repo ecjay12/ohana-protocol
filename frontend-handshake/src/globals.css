@@ -1,0 +1,43 @@
+/**
+ * shadcn/ui-style semantic tokens — scoped to Handshake light (clay) theme.
+ * Use with hsl(var(--primary) / <alpha>) etc. when integrating shadcn components.
+ */
+@layer base {
+  [data-theme="light"] {
+    --background: 330 100% 96%;
+    --foreground: 300 18% 16%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 300 18% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 300 18% 16%;
+
+    --primary: 340 100% 71%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 175 55% 58%;
+    --secondary-foreground: 190 40% 12%;
+
+    --muted: 330 35% 92%;
+    --muted-foreground: 300 12% 40%;
+
+    --accent: 275 100% 77%;
+    --accent-foreground: 280 30% 18%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 330 45% 88%;
+    --input: 330 45% 88%;
+    --ring: 340 100% 71%;
+
+    --chart-1: 340 100% 71%;
+    --chart-2: 175 55% 58%;
+    --chart-3: 275 100% 77%;
+    --chart-4: 25 100% 71%;
+    --chart-5: 100 65% 58%;
+
+    --radius: 1.25rem;
+  }
+}

@@ -34,6 +34,9 @@ const VouchGraphPage = lazy(() => import("./pages/VouchGraphPage").then((m) => (
 const UpIdentityPage = lazy(() => import("./pages/UpIdentityPage").then((m) => ({ default: m.UpIdentityPage })));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage").then((m) => ({ default: m.LeaderboardPage })));
 const HelpPage = lazy(() => import("./pages/HelpPage").then((m) => ({ default: m.HelpPage })));
+const ThemeDemoPage = lazy(() =>
+  import("./pages/ThemeDemoPage").then((m) => ({ default: m.ThemeDemoPage }))
+);
 
 function RouteLoading() {
   return (
@@ -748,6 +751,7 @@ function App() {
             <Route path="/embed" element={<EmbedPage />} />
             <Route path="/miniapp" element={<MiniappPage />} />
             <Route path="/app" element={dashboardContent} />
+            <Route path="/theme-demo" element={<ThemeDemoPage />} />
             <Route path="/" element={<HomePage />} />
           </Routes>
         </Suspense>
