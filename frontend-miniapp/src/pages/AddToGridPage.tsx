@@ -138,13 +138,17 @@ export function AddToGridPage() {
         ) : status === "success" ? (
           <div className="space-y-4">
             <p className="text-center text-green-600">Grid set successfully.</p>
-            <button
-              type="button"
-              onClick={() => navigate(`/?address=${account}`)}
-              className="miniapp-btn-primary w-full rounded-lg px-4 py-2.5 font-medium"
+            <a
+              href={`https://universaleverything.io/${account}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="miniapp-btn-primary block w-full rounded-lg px-4 py-2.5 text-center font-medium"
             >
               View your profile
-            </button>
+            </a>
+            <p className="text-center text-xs text-theme-text-dim">
+              Opens your Universal Profile on universaleverything.io in a new tab.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
