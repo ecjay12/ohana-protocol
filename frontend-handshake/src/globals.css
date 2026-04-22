@@ -1,9 +1,9 @@
 /**
- * shadcn/ui-style semantic tokens — scoped to Handshake light (clay) theme.
+ * shadcn/ui-style semantic tokens — scoped to Handshake Lyx (clay) theme.
  * Use with hsl(var(--primary) / <alpha>) etc. when integrating shadcn components.
  */
 @layer base {
-  [data-theme="light"] {
+  [data-theme="lyx"] {
     --background: 330 100% 96%;
     --foreground: 300 18% 16%;
 

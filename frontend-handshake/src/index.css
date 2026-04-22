@@ -98,8 +98,8 @@
     inset 0 1px 0 rgba(0, 212, 255, 0.1);
 }
 
-/* Light theme — clay / neumorphic: warm pink field, coral accent, teal & mint accents */
-[data-theme="light"] {
+/* Lyx theme — clay / neumorphic: warm pink field, coral accent, teal & mint accents */
+[data-theme="lyx"] {
   --theme-bg: #ffebf0;
   --theme-surface: rgb(255 255 255 / 0.94);
   --theme-surface-strong: #ffffff;
@@ -123,7 +123,7 @@
   --theme-clay-mint: #7ae582;
 }
 
-[data-theme="light"] body {
+[data-theme="lyx"] body {
   font-family: "Inter", "Outfit", system-ui, sans-serif;
   background:
     radial-gradient(ellipse 90% 55% at 50% -15%, rgb(255 107 157 / 0.18), transparent 55%),
@@ -132,8 +132,8 @@
     linear-gradient(180deg, #ffebf0 0%, #ffe8f3 45%, #ffd8ea 100%);
 }
 
-[data-theme="light"] .glass-card,
-[data-theme="light"] .glass {
+[data-theme="lyx"] .glass-card,
+[data-theme="lyx"] .glass {
   background: linear-gradient(155deg, rgb(255 255 255 / 0.98) 0%, rgb(255 245 250 / 0.95) 100%);
   backdrop-filter: blur(12px) saturate(135%);
   -webkit-backdrop-filter: blur(12px) saturate(135%);
@@ -141,8 +141,8 @@
   box-shadow: var(--shadow-clay);
 }
 
-[data-theme="light"] select,
-[data-theme="light"] select.select-readable {
+[data-theme="lyx"] select,
+[data-theme="lyx"] select.select-readable {
   background-color: #ffffff !important;
   color: #2d1f2a !important;
   border-color: rgb(255 107 157 / 0.28);
@@ -150,18 +150,28 @@
   border-radius: var(--radius-2xl);
 }
 
-[data-theme="light"] select option,
-[data-theme="light"] select.select-readable option {
+[data-theme="lyx"] select option,
+[data-theme="lyx"] select.select-readable option {
   background-color: #ffffff !important;
   color: #2d1f2a !important;
 }
 
-[data-theme="light"] .bg-theme-background {
+[data-theme="lyx"] .bg-theme-background {
   background-color: transparent;
 }
 
-/* Lyx theme — clean light-mode, LUKSO/Universal Everything style */
-[data-theme="lyx"] {
+/* Lyx readability — render accent/yellowish copy as dark text. */
+[data-theme="lyx"] .text-theme-accent,
+[data-theme="lyx"] .hover\:text-theme-accent:hover,
+[data-theme="lyx"] .text-amber-100,
+[data-theme="lyx"] .text-amber-200,
+[data-theme="lyx"] .text-amber-700,
+[data-theme="lyx"] .text-amber-900 {
+  color: var(--theme-text) !important;
+}
+
+/* Light theme — clean light-mode, LUKSO/Universal Everything style */
+[data-theme="light"] {
   --theme-bg: #D1D5DB;
   --theme-surface: #FFFFFF;
   --theme-surface-strong: #F3F4F6;
@@ -178,29 +188,29 @@
   --theme-shadow-active: 0 0 30px rgba(37, 99, 235, 0.3);
 }
 
-/* Lyx theme — subtle header gradient (teal/green to gray) */
-[data-theme="lyx"] body {
+/* Light theme — subtle header gradient (teal/green to gray) */
+[data-theme="light"] body {
   background: linear-gradient(180deg, #B8E6EC 0%, #C5D8DC 8%, #D1D5DB 100%);
 }
 
-[data-theme="lyx"] .glass-card,
-[data-theme="lyx"] .glass {
+[data-theme="light"] .glass-card,
+[data-theme="light"] .glass {
   background: rgba(255, 255, 255, 0.98);
   border-color: #CBD5E1;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
-/* Lyx — select/dropdown light mode */
-[data-theme="lyx"] select,
-[data-theme="lyx"] select.select-readable {
+/* Light — select/dropdown light mode */
+[data-theme="light"] select,
+[data-theme="light"] select.select-readable {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
   border-color: #CBD5E1;
   color-scheme: light;
 }
 
-[data-theme="lyx"] select option,
-[data-theme="lyx"] select.select-readable option {
+[data-theme="light"] select option,
+[data-theme="light"] select.select-readable option {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
 }
