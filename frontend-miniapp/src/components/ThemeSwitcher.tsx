@@ -8,24 +8,24 @@ import { useEffect } from "react";
 export const THEME_STORAGE_KEY = "ohana-miniapp-theme";
 
 export const THEMES = [
+  { id: "lyx", label: "Lyx" },
   { id: "serene", label: "Network" },
   { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
   { id: "cyberpunk", label: "Cyber Punk" },
-  { id: "lyx", label: "Lyx" },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
 
 function getStoredTheme(): ThemeId {
-  if (typeof window === "undefined") return "serene";
+  if (typeof window === "undefined") return "lyx";
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored && THEMES.some((t) => t.id === stored)) return stored as ThemeId;
   } catch {
     // ignore
   }
-  return "serene";
+  return "lyx";
 }
 
 export function useTheme(): ThemeId {
@@ -33,7 +33,7 @@ export function useTheme(): ThemeId {
   const urlTheme = searchParams.get("theme");
   const storedTheme = getStoredTheme();
   const themeParam = urlTheme ?? storedTheme;
-  return THEMES.some((t) => t.id === themeParam) ? (themeParam as ThemeId) : "serene";
+  return THEMES.some((t) => t.id === themeParam) ? (themeParam as ThemeId) : "lyx";
 }
 
 export function ThemeSwitcher({ className = "" }: { className?: string }) {
@@ -41,7 +41,7 @@ export function ThemeSwitcher({ className = "" }: { className?: string }) {
   const urlTheme = searchParams.get("theme");
   const storedTheme = getStoredTheme();
   const themeParam = urlTheme ?? storedTheme;
-  const theme = THEMES.some((t) => t.id === themeParam) ? (themeParam as ThemeId) : "serene";
+  const theme = THEMES.some((t) => t.id === themeParam) ? (themeParam as ThemeId) : "lyx";
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

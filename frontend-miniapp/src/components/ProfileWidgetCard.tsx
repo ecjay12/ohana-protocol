@@ -184,37 +184,57 @@ export function ProfileWidgetCard({
   const logoSrc = THEME_LOGOS[theme];
 
   return (
-    <div className={`miniapp-card glass-card flex w-full flex-col rounded-xl ${compact ? "max-w-[360px] shrink-0 self-center gap-2 p-2.5 sm:p-3" : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"}`}>
+    <div
+      className={`miniapp-card glass-card flex w-full flex-col ${
+        compact
+          ? "max-w-[520px] shrink-0 self-center gap-3 rounded-2xl p-4 sm:max-w-[600px] sm:gap-4 sm:p-5"
+          : "max-w-md gap-4 rounded-2xl p-4 sm:p-5"
+      }`}
+    >
       <header className={`flex flex-col items-center text-center ${compact ? "mb-0 leading-tight" : ""}`}>
         <img
           src={logoSrc}
           alt="Handshake"
-          className={`object-contain ${compact ? "h-8" : "h-10"}`}
+          className={`object-contain ${compact ? "h-10 sm:h-12" : "h-10"}`}
         />
-        <h1 className={`font-semibold text-theme-text ${compact ? "text-sm" : "text-lg"}`}>Handshake</h1>
-        <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Reputation Layer</p>
+        <h1 className={`font-semibold text-theme-text ${compact ? "text-lg sm:text-xl" : "text-lg"}`}>Handshake</h1>
+        <p className={`text-theme-text-muted ${compact ? "text-xs sm:text-sm" : "text-xs"}`}>Reputation Layer</p>
       </header>
 
-      <div className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2.5 py-2" : "px-3 py-2"}`}>
-        <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Vouch for</p>
-        <p className="font-medium text-theme-text truncate text-sm" title={profileAddress}>
+      <div
+        className={`rounded-lg border border-theme-border bg-theme-surface-strong/50 ${
+          compact ? "px-4 py-3 sm:px-5 sm:py-4" : "px-3 py-2"
+        }`}
+      >
+        <p className={`text-theme-text-muted ${compact ? "text-xs sm:text-sm" : "text-xs"}`}>Vouch for</p>
+        <p className={`font-medium text-theme-text truncate ${compact ? "text-xl sm:text-2xl" : "text-sm"}`} title={profileAddress}>
           {profileLabel}
         </p>
-        <p className="text-[9px] font-mono text-theme-text-dim opacity-50">{truncateAddress(profileAddress)}</p>
+        <p className={`font-mono text-theme-text-dim opacity-50 ${compact ? "text-xs sm:text-sm" : "text-[9px]"}`}>
+          {truncateAddress(profileAddress)}
+        </p>
       </div>
 
       <div className={`flex flex-col items-center ${compact ? "gap-2" : "gap-3"}`}>
         <div className={`flex w-full ${compact ? "gap-2" : "gap-4"}`}>
-          <div className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-2 text-center" : "px-4 py-3 text-center"}`}>
-            <p className={`font-semibold text-theme-text ${compact ? "text-lg" : "text-xl"}`}>{received}</p>
-            <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Received</p>
+          <div
+            className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${
+              compact ? "px-3 py-3 text-center sm:px-4 sm:py-4" : "px-4 py-3 text-center"
+            }`}
+          >
+            <p className={`font-semibold text-theme-text ${compact ? "text-3xl sm:text-4xl" : "text-xl"}`}>{received}</p>
+            <p className={`text-theme-text-muted ${compact ? "text-xs sm:text-sm" : "text-xs"}`}>Received</p>
           </div>
-          <div className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${compact ? "px-2 py-2 text-center" : "px-4 py-3 text-center"}`}>
-            <p className={`font-semibold text-theme-text ${compact ? "text-lg" : "text-xl"}`}>{given}</p>
-            <p className={`text-theme-text-muted ${compact ? "text-[10px]" : "text-xs"}`}>Given</p>
+          <div
+            className={`flex-1 rounded-lg border border-theme-border bg-theme-surface-strong/50 ${
+              compact ? "px-3 py-3 text-center sm:px-4 sm:py-4" : "px-4 py-3 text-center"
+            }`}
+          >
+            <p className={`font-semibold text-theme-text ${compact ? "text-3xl sm:text-4xl" : "text-xl"}`}>{given}</p>
+            <p className={`text-theme-text-muted ${compact ? "text-xs sm:text-sm" : "text-xs"}`}>Given</p>
           </div>
         </div>
-        {loading && <p className="text-[10px] text-theme-text-dim">Loading…</p>}
+        {loading && <p className={`${compact ? "text-xs" : "text-[10px]"} text-theme-text-dim`}>Loading…</p>}
       </div>
 
       <>
@@ -244,7 +264,7 @@ export function ProfileWidgetCard({
             <div className="flex flex-col gap-3">
               {isOwnProfile ? (
                 <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
-                  <p className={`text-center text-theme-text-muted ${compact ? "text-xs" : "text-sm"}`}>
+                  <p className={`text-center text-theme-text-muted ${compact ? "text-sm" : "text-sm"}`}>
                     Can&apos;t vouch for yourself.
                   </p>
                   {pendingVouches.length > 0 && (
@@ -296,10 +316,10 @@ export function ProfileWidgetCard({
                     </div>
                   )}
                   {loadingPending && pendingVouches.length === 0 && (
-                    <p className={`text-center text-theme-text-dim ${compact ? "text-[10px]" : "text-xs"}`}>Loading pending…</p>
+                    <p className={`text-center text-theme-text-dim ${compact ? "text-xs" : "text-xs"}`}>Loading pending…</p>
                   )}
                   {!loadingPending && pendingVouches.length === 0 && (
-                    <p className={`text-center text-theme-text-dim ${compact ? "text-[10px]" : "text-xs"}`}>No pending vouches</p>
+                    <p className={`text-center text-theme-text-dim ${compact ? "text-xs" : "text-xs"}`}>No pending vouches</p>
                   )}
                 </div>
               ) : isSupported ? (
@@ -365,7 +385,7 @@ export function ProfileWidgetCard({
           href={FULL_APP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className={`flex items-center justify-center gap-1 text-theme-accent hover:underline ${compact ? "text-xs" : "text-sm"}`}
+          className={`flex items-center justify-center gap-1 text-theme-accent hover:underline ${compact ? "text-base sm:text-lg" : "text-sm"}`}
         >
           View vouch activity
           <ExternalLink className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
@@ -373,14 +393,14 @@ export function ProfileWidgetCard({
         <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-1" : "gap-2"}`}>
           <Link
             to="/add-to-grid"
-            className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
+            className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
           >
             Add to my profile
           </Link>
           <button
             type="button"
             onClick={handleCopyGridUrl}
-            className={`miniapp-btn-secondary flex items-center gap-1 font-medium ${compact ? "rounded px-1.5 py-0.5 text-[10px]" : "rounded px-2 py-1 text-xs"}`}
+            className={`miniapp-btn-secondary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
           >
             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             {copied ? "Copied" : "Copy URL"}
@@ -395,7 +415,7 @@ export function ProfileWidgetCard({
       )}
 
       {compact && (
-        <p className="text-center text-[9px] text-theme-text-dim opacity-50">
+        <p className="text-center text-xs text-theme-text-dim opacity-60">
           Resize this tile in your profile Grid settings if needed.
         </p>
       )}
@@ -404,7 +424,7 @@ export function ProfileWidgetCard({
         <select
           value={chainId}
           onChange={(e) => switchChain(Number(e.target.value))}
-          className={`rounded border border-theme-border bg-theme-surface text-theme-text opacity-70 ${compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-1 text-xs"}`}
+          className={`rounded border border-theme-border bg-theme-surface text-theme-text opacity-70 ${compact ? "px-2 py-1 text-xs sm:px-3 sm:py-1.5" : "px-2 py-1 text-xs"}`}
           disabled={upProviderContext?.isInUPContext}
         >
           {Object.entries(chains).map(([id, c]) => (
@@ -413,7 +433,7 @@ export function ProfileWidgetCard({
             </option>
           ))}
         </select>
-        <div className={`flex text-theme-text-dim hover:text-theme-accent ${compact ? "gap-2 text-[9px] opacity-60" : "gap-4 text-xs"}`}>
+        <div className={`flex text-theme-text-dim hover:text-theme-accent ${compact ? "gap-3 text-[10px] opacity-70 sm:text-xs" : "gap-4 text-xs"}`}>
           <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-theme-text-dim hover:text-theme-accent">
             DOCS
           </a>
