@@ -96,8 +96,6 @@ export function useSessionSidebarProfile(
     linkedUP && account && linkedUP.toLowerCase() !== account.toLowerCase() ? linkedUP : null;
   const linkedProfile = useProfileData(null, linkedAddr, luksoProfileChainId(chainId));
 
-  const signingIsUP = primary.isUP || Boolean(crossChainReadAddress && crossChain.isUP);
-
   return useMemo(() => {
     if (!account) {
       return {

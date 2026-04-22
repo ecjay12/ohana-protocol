@@ -23,6 +23,7 @@ import { useProfileData } from "@/hooks/useProfileData";
 import { GlowButton } from "@/components/GlowButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
+import { ProofOfWordScroll } from "@/components/ProofOfWordScroll";
 
 const container = {
   hidden: { opacity: 0 },
@@ -85,42 +86,43 @@ export function HomePage() {
           initial="hidden"
           animate="visible"
           aria-labelledby="hero-heading"
-          className="relative overflow-hidden rounded-2xl border border-theme-border bg-theme-surface px-4 py-12 sm:px-8 sm:py-16 md:px-14 md:py-20 lg:px-16 lg:py-24"
+          className="relative overflow-x-hidden rounded-2xl border border-theme-border bg-theme-surface px-4 py-6 sm:px-8 sm:py-8 md:px-14 md:py-10 lg:px-16 lg:py-12"
         >
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.04]"
+            className="pointer-events-none absolute inset-0 opacity-[0.055]"
             style={{
               backgroundImage: `
-                radial-gradient(circle at 20% 50%, var(--theme-accent) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, var(--theme-accent) 0%, transparent 40%)
+                radial-gradient(ellipse 85% 70% at 50% 42%, var(--theme-accent) 0%, transparent 52%),
+                radial-gradient(ellipse 120% 85% at 50% 55%, var(--theme-border) 0%, transparent 50%),
+                radial-gradient(circle at 18% 78%, var(--theme-accent) 0%, transparent 38%)
               `,
             }}
           />
-          <div className="relative flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-            <div className="min-w-0 flex-1 content-safe lg:max-w-xl">
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+            <div className="min-w-0 flex-1 content-safe text-left lg:max-w-3xl">
               <motion.div
                 variants={item}
-                className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-theme-text-muted sm:text-xs"
+                className="mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-theme-border bg-theme-surface-strong px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-theme-text-muted sm:text-xs"
               >
                 <Shield className="h-3.5 w-3.5 shrink-0" />
                 Trust you can verify
               </motion.div>
-              <motion.h1
-                id="hero-heading"
-                variants={item}
-                className="text-balance text-3xl font-bold tracking-tight text-theme-text sm:text-4xl md:text-5xl lg:text-6xl"
-              >
-                Handshake.
-              </motion.h1>
+              <motion.div variants={item}>
+                <ProofOfWordScroll id="hero-heading" />
+              </motion.div>
               <motion.p
                 variants={item}
-                className="mt-4 max-w-lg text-base leading-relaxed text-theme-text-muted sm:text-lg"
+                className="mt-3 max-w-lg text-base leading-relaxed text-theme-text-muted sm:text-lg"
               >
-                People vouch for people. Your reputation stays with you—not locked in one app.
+                <span className="font-semibold text-theme-text">Handshake</span>
+                {" — "}People vouch for people. Your reputation stays with you—not locked in one app.
               </motion.p>
-              <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
+              <motion.div variants={item} className="mt-5 flex flex-wrap items-center gap-3 sm:gap-4">
                 <Link to="/app">
-                  <GlowButton variant="primary" className="inline-flex items-center gap-2 px-6 py-3 text-base">
+                  <GlowButton
+                    variant="primary"
+                    className="inline-flex items-center gap-2 !rounded-full px-6 py-3 text-base"
+                  >
                     Get started
                     <ArrowRight className="h-4 w-4" />
                   </GlowButton>
@@ -129,7 +131,7 @@ export function HomePage() {
                   href="https://app.cg/c/OhanaDao/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-theme-text-muted transition-colors hover:text-theme-accent"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-theme-accent transition-opacity hover:opacity-90"
                 >
                   Community
                   <ExternalLink className="h-4 w-4 shrink-0" />
@@ -151,7 +153,7 @@ export function HomePage() {
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.4 }}
-                    className="relative flex h-44 w-44 items-center justify-center rounded-2xl border border-theme-border bg-theme-surface-strong shadow-lg sm:h-52 sm:w-52 md:h-60 md:w-60"
+                    className="relative flex h-44 w-44 items-center justify-center rounded-3xl border border-theme-border bg-theme-surface-strong shadow-[0_22px_56px_-18px_rgba(15,23,42,0.14),0_8px_24px_-12px_rgba(15,23,42,0.08)] sm:h-52 sm:w-52 md:h-60 md:w-60 dark:shadow-[0_22px_56px_-18px_rgba(0,0,0,0.45),0_8px_24px_-12px_rgba(0,0,0,0.35)]"
                   >
                     <img
                       src={logoSrc}

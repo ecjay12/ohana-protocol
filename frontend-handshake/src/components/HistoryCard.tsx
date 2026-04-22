@@ -95,6 +95,14 @@ export function HistoryCard({
 
   const categoryLabel = (cat: number) => categories.find((c) => c.value === cat)?.label ?? String(cat);
 
+  /**
+   * Headline totals use cross-network aggregation when available (matches profile page),
+   * otherwise fall back to this chain's rows only.
+   */
+  const totalGivenDisplay = crossNetworkSummary?.totalGiven ?? vouchesGiven.length;
+  const totalReceivedDisplay = crossNetworkSummary?.totalReceived ?? vouchesReceived.length;
+  const networkLabel = CHAINS[chainId]?.name ?? `chain ${chainId}`;
+
   const indexSummary = useMemo(() => {
     const givenAccepted = vouchesGiven.filter((v) => v.status === 2).length;
     const receivedAccepted = vouchesReceived.filter((v) => v.status === 2).length;
