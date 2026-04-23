@@ -63,7 +63,7 @@ export function Sidebar({
   userProfileData,
   userProfileLoading = false,
   profileHeaderAddress,
-  userIsUP: _userIsUP,
+  userIsUP = false,
   onConnect,
   onConnectWith,
   onSwitchChain,
@@ -77,9 +77,14 @@ export function Sidebar({
   const logoSrc = THEME_LOGOS[theme];
   const [themeExpanded, setThemeExpanded] = useState(true);
 
-  /** Show "Admin" link only for contract owner/fee collector on the current chain. */
-  const admin = useHandshakeAdmin(null, chainId, account ?? null);
-  const showAdminLink = isConnected && (admin.isOwner || admin.canWithdraw);
+  const LUKSO_MAIN = 42;
+  const LUKSO_TEST = 4201;
+  /** LSP6: also show Admin when Handshake owner is a controller of the connected UP (see useHandshakeAdmin). */
+  const admin = useHandshakeAdmin(null, chainId, account ?? null, {
+    signerIsUniversalProfileOnChain: userIsUP && (chainId === LUKSO_MAIN || chainId === LUKSO_TEST),
+  });
+  const showAdminLink =
+    isConnected && (admin.isOwner || admin.canWithdraw || admin.handshakeOwnerIsLsp6ControllerOfUp);
 
   const headerAddress = profileHeaderAddress || account;
   const showSigningKeyHint = Boolean(

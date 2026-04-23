@@ -9,6 +9,18 @@ import { getRpcUrlForChain } from "@/lib/chainRpc";
 import { getHandshakeAddress } from "@/config/contracts";
 // @ts-expect-error - JSON artifact from repo root via Vite alias
 import HandshakeArtifact from "@contracts";
+import { handshakeOwnerIsControllerOfUniversalProfile } from "@/lib/luksoHandshakeOwnerLink";
+
+const LUKSO_MAIN = 42;
+const LUKSO_TEST = 4201;
+
+export interface UseHandshakeAdminOptions {
+  /**
+   * When the connected account is a Universal Profile on the active chain (e.g. UP extension on LUKSO),
+   * we can resolve Handshake `owner()` against LSP6 `AddressPermissions[]` on the profile.
+   */
+  signerIsUniversalProfileOnChain?: boolean;
+}
 
 export interface AdminState {
   owner: string | null;
@@ -38,6 +50,10 @@ export interface UseHandshakeAdminResult {
   setFeeCollector: (newCollector: string) => Promise<boolean>;
   /** Ownable: moves admin to a new address (e.g. UP profile). Caller must be current owner. */
   transferOwnership: (newOwner: string) => Promise<boolean>;
+  /** LUKSO: Handshake owner EOA appears in this profile's AddressPermissions[] (LSP6). */
+  handshakeOwnerIsLsp6ControllerOfUp: boolean;
+  /** True while fetching LSP6 AddressPermissions[] (LUKSO + UP only). */
+  lsp6ControllerCheckLoading: boolean;
 }
 
 const EMPTY_STATE: AdminState = {
@@ -60,7 +76,8 @@ function extractRevertText(e: unknown): string {
 export function useHandshakeAdmin(
   provider: BrowserProvider | null,
   chainId: number,
-  account: string | null
+  account: string | null,
+  options: UseHandshakeAdminOptions = {}
 ): UseHandshakeAdminResult {
   const handshakeAddress = getHandshakeAddress(chainId);
   const rpc = getRpcUrlForChain(chainId) || null;
@@ -71,6 +88,8 @@ export function useHandshakeAdmin(
   const [error, setError] = useState<string | null>(null);
   const [txPending, setTxPending] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
+  const [handshakeOwnerIsLsp6ControllerOfUp, setHandshakeOwnerIsLsp6ControllerOfUp] = useState(false);
+  const [lsp6ControllerCheckLoading, setLsp6ControllerCheckLoading] = useState(false);
 
   const reqIdRef = useRef(0);
 
@@ -131,6 +150,38 @@ export function useHandshakeAdmin(
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const onLukso = chainId === LUKSO_MAIN || chainId === LUKSO_TEST;
+    if (
+      !onLukso ||
+      !options.signerIsUniversalProfileOnChain ||
+      !account ||
+      !state.owner ||
+      !rpc
+    ) {
+      setHandshakeOwnerIsLsp6ControllerOfUp(false);
+      setLsp6ControllerCheckLoading(false);
+      return;
+    }
+
+    setLsp6ControllerCheckLoading(true);
+    handshakeOwnerIsControllerOfUniversalProfile(rpc, account, state.owner)
+      .then((ok) => {
+        if (!cancelled) setHandshakeOwnerIsLsp6ControllerOfUp(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setHandshakeOwnerIsLsp6ControllerOfUp(false);
+      })
+      .finally(() => {
+        if (!cancelled) setLsp6ControllerCheckLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId, account, state.owner, rpc, options.signerIsUniversalProfileOnChain]);
 
   const isOwner = useMemo(() => {
     if (!account || !state.owner) return false;
@@ -254,5 +305,7 @@ export function useHandshakeAdmin(
     setFee,
     setFeeCollector,
     transferOwnership,
+    handshakeOwnerIsLsp6ControllerOfUp,
+    lsp6ControllerCheckLoading,
   };
 }

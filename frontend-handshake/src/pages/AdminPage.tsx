@@ -89,7 +89,10 @@ export function AdminPage() {
   const { getUPForEOA } = useHandshake(provider, chainId, account);
   const sidebarSession = useSessionSidebarProfile(provider, chainId, account, getUPForEOA);
 
-  const admin = useHandshakeAdmin(provider, chainId, account);
+  const admin = useHandshakeAdmin(provider, chainId, account, {
+    signerIsUniversalProfileOnChain:
+      sidebarSession.signerIsUPOnWalletChain && (chainId === 42 || chainId === 4201),
+  });
   const metricsHook = useProtocolMetrics(chainId);
 
   const [feeInput, setFeeInput] = useState("");
@@ -242,7 +245,11 @@ export function AdminPage() {
           </GlassCard>
         )}
 
-        {isAdminChain && isConnected && !admin.isOwner && !admin.canWithdraw && (
+        {isAdminChain &&
+          isConnected &&
+          !admin.isOwner &&
+          !admin.canWithdraw &&
+          !admin.handshakeOwnerIsLsp6ControllerOfUp && (
           <GlassCard>
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 shrink-0 text-red-500" />
@@ -258,7 +265,8 @@ export function AdminPage() {
                   ) : (
                     ""
                   )}{" "}
-                  or fee collector on {chainName}. Admin controls are hidden.
+                  or fee collector on {chainName}, and LSP6 does not list the Handshake owner as a
+                  controller of this profile. Admin controls are hidden.
                 </p>
               </div>
             </div>
@@ -294,7 +302,10 @@ export function AdminPage() {
           </section>
         )}
 
-        {isAdminChain && isConnected && (admin.isOwner || admin.canWithdraw) && admin.state.owner && (
+        {isAdminChain &&
+          isConnected &&
+          (admin.isOwner || admin.canWithdraw || admin.handshakeOwnerIsLsp6ControllerOfUp) &&
+          admin.state.owner && (
           <GlassCard>
             <h3 className="text-sm font-semibold text-theme-text">Your wallet vs contract roles</h3>
             <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
@@ -314,9 +325,53 @@ export function AdminPage() {
           </GlassCard>
         )}
 
-        {isAdminChain && (admin.isOwner || admin.canWithdraw) && (
+        {isAdminChain &&
+          (admin.isOwner || admin.canWithdraw || admin.handshakeOwnerIsLsp6ControllerOfUp) && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-theme-text">Admin actions</h2>
+
+            {admin.lsp6ControllerCheckLoading && (chainId === 42 || chainId === 4201) && (
+              <p className="text-xs text-theme-text-dim">Checking LSP6 controllers on your profile…</p>
+            )}
+
+            {admin.handshakeOwnerIsLsp6ControllerOfUp && (chainId === 42 || chainId === 4201) && (
+              <GlassCard>
+                <div className="flex items-start gap-3">
+                  <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-500" />
+                  <div className="space-y-2 text-sm text-theme-text-muted">
+                    <p className="font-semibold text-theme-text">Controller link verified (LSP6)</p>
+                    <p>
+                      Handshake <span className="font-mono">owner()</span>{" "}
+                      <span className="font-mono text-theme-text">{admin.state.owner}</span> is listed in
+                      this profile&apos;s{" "}
+                      <code className="rounded bg-theme-surface-strong px-1 text-xs">AddressPermissions[]</code>{" "}
+                      (see{" "}
+                      <a
+                        href="https://docs.lukso.tech/learn/universal-profile/key-manager/get-controller-permissions/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-theme-accent underline"
+                      >
+                        LUKSO: controller permissions
+                      </a>
+                      ). The app uses that to confirm you&apos;re the right operator for this deployment.
+                    </p>
+                    <p>
+                      <span className="font-semibold text-theme-text">Important:</span> Handshake still uses
+                      OpenZeppelin <span className="font-semibold">Ownable</span>. On-chain{" "}
+                      <span className="font-semibold">setFee</span> /{" "}
+                      <span className="font-semibold">setFeeCollector</span> require{" "}
+                      <span className="font-mono">msg.sender == owner()</span> on the Handshake contract. Calls routed
+                      through your UP use your <span className="font-semibold">profile</span> as the sender for those
+                      inner calls, so <span className="font-semibold">owner()</span> should be your profile address for
+                      owner tools to work from the UP extension — use{" "}
+                      <span className="font-semibold">Transfer contract ownership</span> once from the controller
+                      wallet, or connect with the controller for owner transactions.
+                    </p>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
 
             {luksoUpSignerMismatch && (
               <GlassCard>
