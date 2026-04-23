@@ -36,6 +36,8 @@ export interface UseHandshakeAdminResult {
   withdrawFees: () => Promise<boolean>;
   setFee: (amountEth: string) => Promise<boolean>;
   setFeeCollector: (newCollector: string) => Promise<boolean>;
+  /** Ownable: moves admin to a new address (e.g. UP profile). Caller must be current owner. */
+  transferOwnership: (newOwner: string) => Promise<boolean>;
 }
 
 const EMPTY_STATE: AdminState = {
@@ -212,6 +214,28 @@ export function useHandshakeAdmin(
     [getSigner, refresh]
   );
 
+  const transferOwnership = useCallback(
+    async (newOwner: string): Promise<boolean> => {
+      const c = await getSigner();
+      if (!c) return false;
+      setTxPending(true);
+      setTxError(null);
+      try {
+        const normalized = getAddress(newOwner.trim());
+        const tx = await c.transferOwnership(normalized);
+        await tx.wait();
+        await refresh();
+        return true;
+      } catch (e) {
+        setTxError(extractRevertText(e));
+        return false;
+      } finally {
+        setTxPending(false);
+      }
+    },
+    [getSigner, refresh]
+  );
+
   return {
     loading,
     error,
@@ -229,5 +253,6 @@ export function useHandshakeAdmin(
     withdrawFees,
     setFee,
     setFeeCollector,
+    transferOwnership,
   };
 }

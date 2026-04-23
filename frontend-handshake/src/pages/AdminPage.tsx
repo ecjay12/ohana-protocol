@@ -3,7 +3,7 @@
  * Shows contract state, fee balances, withdraw controls, and scannable
  * protocol-wide metrics for the currently selected chain.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -94,9 +94,28 @@ export function AdminPage() {
 
   const [feeInput, setFeeInput] = useState("");
   const [collectorInput, setCollectorInput] = useState("");
+  const [transferOwnerInput, setTransferOwnerInput] = useState("");
+  const transferOwnerPrefilled = useRef(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const isAdminChain = HANDSHAKE_CHAIN_IDS.includes(chainId);
+
+  useEffect(() => {
+    if (transferOwnerPrefilled.current || !admin.state.feeCollector) return;
+    setTransferOwnerInput(admin.state.feeCollector);
+    transferOwnerPrefilled.current = true;
+  }, [admin.state.feeCollector]);
+
+  /** LUKSO: owner is controller EOA, fee collector is often the UP — connected UP can withdraw but not onlyOwner. */
+  const luksoUpSignerMismatch = useMemo(() => {
+    if (chainId !== 42 && chainId !== 4201) return false;
+    if (!account || !admin.state.owner || !admin.state.feeCollector) return false;
+    const owner = admin.state.owner.toLowerCase();
+    const collector = admin.state.feeCollector.toLowerCase();
+    const acct = account.toLowerCase();
+    if (owner === collector) return false;
+    return acct === collector && acct !== owner && admin.canWithdraw;
+  }, [chainId, account, admin.state.owner, admin.state.feeCollector, admin.canWithdraw]);
 
   const feeDisplay = useMemo(() => {
     if (!admin.state.fee) return `0 ${nativeSymbol}`;
@@ -131,6 +150,20 @@ export function AdminPage() {
     const ok = await admin.setFeeCollector(collectorInput);
     setActionNotice(ok ? "Fee collector updated." : "Set fee collector failed.");
     if (ok) setCollectorInput("");
+  };
+
+  const handleTransferOwnership = async () => {
+    setActionNotice(null);
+    if (!transferOwnerInput.trim()) {
+      setActionNotice("Enter the new owner address (e.g. your Universal Profile).");
+      return;
+    }
+    const ok = await admin.transferOwnership(transferOwnerInput);
+    setActionNotice(
+      ok
+        ? "Ownership transferred. If you use the UP extension, reconnect — admin should match your profile address now."
+        : "Transfer ownership failed."
+    );
   };
 
   return (
@@ -261,9 +294,63 @@ export function AdminPage() {
           </section>
         )}
 
+        {isAdminChain && isConnected && (admin.isOwner || admin.canWithdraw) && admin.state.owner && (
+          <GlassCard>
+            <h3 className="text-sm font-semibold text-theme-text">Your wallet vs contract roles</h3>
+            <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+              <div>
+                <dt className="text-theme-text-dim">Connected (eth_accounts)</dt>
+                <dd className="break-all font-mono text-theme-text">{account}</dd>
+              </div>
+              <div>
+                <dt className="text-theme-text-dim">Handshake owner()</dt>
+                <dd className="break-all font-mono text-theme-text">{admin.state.owner}</dd>
+              </div>
+              <div>
+                <dt className="text-theme-text-dim">feeCollector()</dt>
+                <dd className="break-all font-mono text-theme-text">{admin.state.feeCollector ?? "—"}</dd>
+              </div>
+            </dl>
+          </GlassCard>
+        )}
+
         {isAdminChain && (admin.isOwner || admin.canWithdraw) && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-theme-text">Admin actions</h2>
+
+            {luksoUpSignerMismatch && (
+              <GlassCard>
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+                  <div className="space-y-2 text-sm">
+                    <p className="font-semibold text-theme-text">
+                      Why owner tools are missing (Universal Profile on LUKSO)
+                    </p>
+                    <p className="text-theme-text-muted">
+                      On-chain <span className="font-semibold text-theme-text">owner()</span> is your{" "}
+                      <span className="font-semibold text-theme-text">controller</span> wallet{" "}
+                      <span className="font-mono text-theme-text">{admin.state.owner}</span>, but you are connected as
+                      your profile <span className="font-mono text-theme-text">{account}</span>. The UP extension sends
+                      transactions from the profile address, so <code className="rounded bg-theme-surface-strong px-1 text-xs">onlyOwner</code>{" "}
+                      checks fail unless <span className="font-mono">msg.sender</span> equals the owner.
+                    </p>
+                    <p className="text-theme-text-muted">
+                      <span className="font-semibold text-theme-text">Withdraw</span> works because your profile is the
+                      fee collector.
+                    </p>
+                    <p className="text-theme-text-muted">
+                      <span className="font-semibold text-theme-text">Fix:</span> connect once with the controller key (
+                      <span className="font-mono">{shortAddr(admin.state.owner)}</span>) in MetaMask or another EOA
+                      wallet, open this page, and use <span className="font-semibold">Transfer contract ownership</span>{" "}
+                      to set owner to your Universal Profile (
+                      <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span> is pre-filled if it
+                      matches your collector). Then reconnect with the UP extension — full admin will work from your
+                      profile.
+                    </p>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
 
             {(admin.txError || admin.error || actionNotice) && (
               <div
@@ -305,56 +392,85 @@ export function AdminPage() {
             </GlassCard>
 
             {admin.isOwner && (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <GlassCard>
-                  <h3 className="text-base font-semibold text-theme-text">Update vouch fee</h3>
-                  <p className="mt-1 text-sm text-theme-text-muted">
-                    Amount in {nativeSymbol}. Current:{" "}
-                    <span className="font-mono">{feeDisplay}</span>
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder={`e.g. 0.001 ${nativeSymbol}`}
-                      value={feeInput}
-                      onChange={(e) => setFeeInput(e.target.value)}
-                      className="min-w-[180px] flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none"
-                    />
-                    <GlowButton
-                      variant="secondary"
-                      disabled={admin.txPending}
-                      onClick={handleSetFee}
-                    >
-                      Set fee
-                    </GlowButton>
-                  </div>
-                </GlassCard>
+              <>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <GlassCard>
+                    <h3 className="text-base font-semibold text-theme-text">Update vouch fee</h3>
+                    <p className="mt-1 text-sm text-theme-text-muted">
+                      Amount in {nativeSymbol}. Current:{" "}
+                      <span className="font-mono">{feeDisplay}</span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={`e.g. 0.001 ${nativeSymbol}`}
+                        value={feeInput}
+                        onChange={(e) => setFeeInput(e.target.value)}
+                        className="min-w-[180px] flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none"
+                      />
+                      <GlowButton
+                        variant="secondary"
+                        disabled={admin.txPending}
+                        onClick={handleSetFee}
+                      >
+                        Set fee
+                      </GlowButton>
+                    </div>
+                  </GlassCard>
+
+                  <GlassCard>
+                    <h3 className="text-base font-semibold text-theme-text">Update fee collector</h3>
+                    <p className="mt-1 text-sm text-theme-text-muted">
+                      Current:{" "}
+                      <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="0x…"
+                        value={collectorInput}
+                        onChange={(e) => setCollectorInput(e.target.value)}
+                        className="min-w-[180px] flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none"
+                      />
+                      <GlowButton
+                        variant="secondary"
+                        disabled={admin.txPending}
+                        onClick={handleSetCollector}
+                      >
+                        Set collector
+                      </GlowButton>
+                    </div>
+                  </GlassCard>
+                </div>
 
                 <GlassCard>
-                  <h3 className="text-base font-semibold text-theme-text">Update fee collector</h3>
+                  <h3 className="text-base font-semibold text-theme-text">Transfer contract ownership</h3>
                   <p className="mt-1 text-sm text-theme-text-muted">
-                    Current:{" "}
-                    <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span>
+                    Moves Ownable admin to a new address. Use this to set <span className="font-semibold">owner</span>{" "}
+                    to your Universal Profile so the UP browser extension can run set-fee and other owner calls. Fee
+                    collector is unchanged unless you update it above.
                   </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="0x…"
-                      value={collectorInput}
-                      onChange={(e) => setCollectorInput(e.target.value)}
-                      className="min-w-[180px] flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none"
-                    />
-                    <GlowButton
-                      variant="secondary"
-                      disabled={admin.txPending}
-                      onClick={handleSetCollector}
-                    >
-                      Set collector
+                  <div className="mt-3 flex flex-wrap items-end gap-2">
+                    <div className="min-w-[200px] flex-1">
+                      <label htmlFor="admin-new-owner" className="sr-only">
+                        New owner address
+                      </label>
+                      <input
+                        id="admin-new-owner"
+                        type="text"
+                        placeholder="0x… new owner (e.g. your UP)"
+                        value={transferOwnerInput}
+                        onChange={(e) => setTransferOwnerInput(e.target.value)}
+                        className="w-full rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none"
+                      />
+                    </div>
+                    <GlowButton variant="secondary" disabled={admin.txPending} onClick={handleTransferOwnership}>
+                      Transfer ownership
                     </GlowButton>
                   </div>
                 </GlassCard>
-              </div>
+              </>
             )}
           </section>
         )}
