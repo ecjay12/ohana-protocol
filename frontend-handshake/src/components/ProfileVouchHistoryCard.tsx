@@ -5,7 +5,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, EyeOff, Eye } from "lucide-react";
+import { Trash2, EyeOff, Eye, Check, X } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 
@@ -48,6 +48,10 @@ interface ProfileVouchHistoryCardProps {
   onHideVouch?: (voucher: string) => void | Promise<void>;
   /** Called when user unhides a received vouch. Only shown when isConnectedProfile. */
   onUnhideVouch?: (voucher: string) => void | Promise<void>;
+  /** Called when user accepts a pending received vouch. Only shown when isConnectedProfile. */
+  onAcceptVouch?: (voucher: string) => void | Promise<void>;
+  /** Called when user denies a pending received vouch. Only shown when isConnectedProfile. */
+  onDenyVouch?: (voucher: string) => void | Promise<void>;
   txPending?: boolean;
   disabled?: boolean;
 }
@@ -61,6 +65,8 @@ export function ProfileVouchHistoryCard({
   onRemoveVouch,
   onHideVouch,
   onUnhideVouch,
+  onAcceptVouch,
+  onDenyVouch,
   txPending = false,
   disabled = false,
 }: ProfileVouchHistoryCardProps) {
@@ -201,6 +207,31 @@ export function ProfileVouchHistoryCard({
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Revoke
                   </GlowButton>
+                )}
+                {row.type === "received" && row.status === 1 && isConnectedProfile && (onAcceptVouch || onDenyVouch) && (
+                  <div className="flex gap-2 shrink-0">
+                    {onAcceptVouch && (
+                      <GlowButton
+                        variant="primary"
+                        disabled={disabled || txPending}
+                        onClick={() => onAcceptVouch(row.vouchKey ?? row.address)}
+                      >
+                        <Check className="mr-1 h-3.5 w-3.5" />
+                        Accept
+                      </GlowButton>
+                    )}
+                    {onDenyVouch && (
+                      <GlowButton
+                        variant="secondary"
+                        disabled={disabled || txPending}
+                        onClick={() => onDenyVouch(row.vouchKey ?? row.address)}
+                        className="border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                      >
+                        <X className="mr-1 h-3.5 w-3.5" />
+                        Deny
+                      </GlowButton>
+                    )}
+                  </div>
                 )}
                 {row.type === "received" && row.status === 2 && isConnectedProfile && (
                   <div className="flex gap-2 shrink-0">

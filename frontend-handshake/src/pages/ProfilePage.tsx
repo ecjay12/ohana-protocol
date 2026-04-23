@@ -115,6 +115,8 @@ export function ProfilePage() {
 
   const {
     vouch,
+    acceptVouch,
+    denyVouch,
     removeVouch,
     hideVouch,
     unhideVouch,
@@ -407,6 +409,46 @@ export function ProfilePage() {
     [account, provider, unhideVouch, chainId]
   );
 
+  const handleAcceptVouch = useCallback(
+    async (keyOrVoucher: string) => {
+      if (!account || !provider) return;
+      const parsed = parseReceivedVouchKey(keyOrVoucher);
+      const voucherAddr = parsed?.voucher ?? keyOrVoucher;
+      if (parsed && parsed.chainId !== chainId) {
+        const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
+        window.alert(`Please switch your wallet to ${name}, then try accepting the vouch again.`);
+        return;
+      }
+      try {
+        await acceptVouch(voucherAddr);
+        window.location.reload();
+      } catch (e) {
+        console.error("Failed to accept vouch:", e);
+      }
+    },
+    [account, provider, acceptVouch, chainId]
+  );
+
+  const handleDenyVouch = useCallback(
+    async (keyOrVoucher: string) => {
+      if (!account || !provider) return;
+      const parsed = parseReceivedVouchKey(keyOrVoucher);
+      const voucherAddr = parsed?.voucher ?? keyOrVoucher;
+      if (parsed && parsed.chainId !== chainId) {
+        const name = CHAINS[parsed.chainId as keyof typeof CHAINS]?.name ?? "the correct network";
+        window.alert(`Please switch your wallet to ${name}, then try denying the vouch again.`);
+        return;
+      }
+      try {
+        await denyVouch(voucherAddr);
+        window.location.reload();
+      } catch (e) {
+        console.error("Failed to deny vouch:", e);
+      }
+    },
+    [account, provider, denyVouch, chainId]
+  );
+
   const handleRemoveGivenVouch = useCallback(
     async (keyOrTarget: string) => {
       if (!account || !provider) return;
@@ -540,6 +582,8 @@ export function ProfilePage() {
               }
               onHideVouch={isOwnProfile && account ? handleHideVouch : undefined}
               onUnhideVouch={isOwnProfile && account ? handleUnhideVouch : undefined}
+              onAcceptVouch={isOwnProfile && account ? handleAcceptVouch : undefined}
+              onDenyVouch={isOwnProfile && account ? handleDenyVouch : undefined}
               txPending={txPending}
               disabled={!account || !isOwnProfile}
             />
