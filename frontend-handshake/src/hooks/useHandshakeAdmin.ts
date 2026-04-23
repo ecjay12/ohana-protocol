@@ -40,6 +40,8 @@ export interface UseHandshakeAdminResult {
   handshakeAddress: string | null;
   isSupported: boolean;
   isOwner: boolean;
+  /** Address returned by provider.getSigner().getAddress() — often the UP controller while eth_accounts[0] is the profile. */
+  signerAddress: string | null;
   canWithdraw: boolean;
   feeFormatted: string;
   accumulatedFeesFormatted: string;
@@ -90,6 +92,7 @@ export function useHandshakeAdmin(
   const [txError, setTxError] = useState<string | null>(null);
   const [handshakeOwnerIsLsp6ControllerOfUp, setHandshakeOwnerIsLsp6ControllerOfUp] = useState(false);
   const [lsp6ControllerCheckLoading, setLsp6ControllerCheckLoading] = useState(false);
+  const [signerAddress, setSignerAddress] = useState<string | null>(null);
 
   const reqIdRef = useRef(0);
 
@@ -151,6 +154,30 @@ export function useHandshakeAdmin(
     refresh();
   }, [refresh]);
 
+  /**
+   * Universal Profile browser extension: eth_accounts[0] is often the profile, while
+   * getSigner().getAddress() is the controller that signs — Handshake owner() may match the latter.
+   */
+  useEffect(() => {
+    if (!provider) {
+      setSignerAddress(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const signer = await provider.getSigner();
+        const addr = await signer.getAddress();
+        if (!cancelled) setSignerAddress(getAddress(addr));
+      } catch {
+        if (!cancelled) setSignerAddress(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, account, chainId]);
+
   useEffect(() => {
     let cancelled = false;
     const onLukso = chainId === LUKSO_MAIN || chainId === LUKSO_TEST;
@@ -184,18 +211,21 @@ export function useHandshakeAdmin(
   }, [chainId, account, state.owner, rpc, options.signerIsUniversalProfileOnChain]);
 
   const isOwner = useMemo(() => {
-    if (!account || !state.owner) return false;
-    return account.toLowerCase() === state.owner.toLowerCase();
-  }, [account, state.owner]);
+    if (!state.owner) return false;
+    const o = state.owner.toLowerCase();
+    if (account && account.toLowerCase() === o) return true;
+    if (signerAddress && signerAddress.toLowerCase() === o) return true;
+    return false;
+  }, [account, signerAddress, state.owner]);
 
   const canWithdraw = useMemo(() => {
-    if (!account) return false;
     if (isOwner) return true;
-    if (state.feeCollector && account.toLowerCase() === state.feeCollector.toLowerCase()) {
-      return true;
-    }
+    if (!state.feeCollector) return false;
+    const fc = state.feeCollector.toLowerCase();
+    if (account && account.toLowerCase() === fc) return true;
+    if (signerAddress && signerAddress.toLowerCase() === fc) return true;
     return false;
-  }, [account, isOwner, state.feeCollector]);
+  }, [account, signerAddress, isOwner, state.feeCollector]);
 
   const getSigner = useCallback(async () => {
     if (!provider || !handshakeAddress) return null;
@@ -296,6 +326,7 @@ export function useHandshakeAdmin(
     handshakeAddress,
     isSupported,
     isOwner,
+    signerAddress,
     canWithdraw,
     feeFormatted: formatEther(state.fee),
     accumulatedFeesFormatted: formatEther(state.accumulatedFees),

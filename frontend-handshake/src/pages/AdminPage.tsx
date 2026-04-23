@@ -109,16 +109,17 @@ export function AdminPage() {
     transferOwnerPrefilled.current = true;
   }, [admin.state.feeCollector]);
 
-  /** LUKSO: owner is controller EOA, fee collector is often the UP — connected UP can withdraw but not onlyOwner. */
+  /** LUKSO: profile in eth_accounts vs controller as owner() — only when not already owner via getSigner(). */
   const luksoUpSignerMismatch = useMemo(() => {
     if (chainId !== 42 && chainId !== 4201) return false;
     if (!account || !admin.state.owner || !admin.state.feeCollector) return false;
+    if (admin.isOwner) return false;
     const owner = admin.state.owner.toLowerCase();
     const collector = admin.state.feeCollector.toLowerCase();
     const acct = account.toLowerCase();
     if (owner === collector) return false;
     return acct === collector && acct !== owner && admin.canWithdraw;
-  }, [chainId, account, admin.state.owner, admin.state.feeCollector, admin.canWithdraw]);
+  }, [chainId, account, admin.state.owner, admin.state.feeCollector, admin.canWithdraw, admin.isOwner]);
 
   const feeDisplay = useMemo(() => {
     if (!admin.state.fee) return `0 ${nativeSymbol}`;
@@ -308,10 +309,21 @@ export function AdminPage() {
           admin.state.owner && (
           <GlassCard>
             <h3 className="text-sm font-semibold text-theme-text">Your wallet vs contract roles</h3>
-            <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+            <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <dt className="text-theme-text-dim">Connected (eth_accounts)</dt>
                 <dd className="break-all font-mono text-theme-text">{account}</dd>
+              </div>
+              <div>
+                <dt className="text-theme-text-dim">Signing address (getSigner)</dt>
+                <dd className="break-all font-mono text-theme-text">
+                  {admin.signerAddress ?? "—"}
+                  {admin.signerAddress &&
+                    admin.state.owner &&
+                    admin.signerAddress.toLowerCase() === admin.state.owner.toLowerCase() && (
+                      <span className="ml-1 text-emerald-600">· matches owner()</span>
+                    )}
+                </dd>
               </div>
               <div>
                 <dt className="text-theme-text-dim">Handshake owner()</dt>
@@ -322,6 +334,11 @@ export function AdminPage() {
                 <dd className="break-all font-mono text-theme-text">{admin.state.feeCollector ?? "—"}</dd>
               </div>
             </dl>
+            <p className="mt-2 text-[11px] text-theme-text-dim">
+              On LUKSO, the Universal Profile extension often exposes your profile in{" "}
+              <span className="font-mono">eth_accounts</span> while contract calls are signed by your controller — we
+              resolve the latter with <span className="font-mono">getSigner().getAddress()</span> for admin checks.
+            </p>
           </GlassCard>
         )}
 
