@@ -14,6 +14,7 @@ import {
   Users,
   LifeBuoy,
   Wallet,
+  KeyRound,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
@@ -25,6 +26,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
+import { useHandshakeAdmin } from "@/hooks/useHandshakeAdmin";
 
 interface SidebarProps {
   chainId: number;
@@ -74,6 +76,10 @@ export function Sidebar({
   const { theme, setTheme } = useTheme();
   const logoSrc = THEME_LOGOS[theme];
   const [themeExpanded, setThemeExpanded] = useState(true);
+
+  /** Show "Admin" link only for contract owner/fee collector on the current chain. */
+  const admin = useHandshakeAdmin(null, chainId, account ?? null);
+  const showAdminLink = isConnected && (admin.isOwner || admin.canWithdraw);
 
   const headerAddress = profileHeaderAddress || account;
   const showSigningKeyHint = Boolean(
@@ -243,6 +249,9 @@ export function Sidebar({
           { to: "/integrate", icon: BookOpen, label: "Integrate" },
           { to: "/about", icon: Info, label: "About" },
           { to: "/help", icon: LifeBuoy, label: "How It Works" },
+          ...(showAdminLink
+            ? [{ to: "/admin", icon: KeyRound, label: "Admin" } as const]
+            : []),
         ].map(({ to, icon: Icon, label }) => (
           <Link key={to} to={to} className={navItemClass(to)} onClick={handleNavClick}>
             <Icon className="h-4 w-4 shrink-0" />

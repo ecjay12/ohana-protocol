@@ -37,6 +37,7 @@ const HelpPage = lazy(() => import("./pages/HelpPage").then((m) => ({ default: m
 const ThemeDemoPage = lazy(() =>
   import("./pages/ThemeDemoPage").then((m) => ({ default: m.ThemeDemoPage }))
 );
+const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })));
 
 function RouteLoading() {
   return (
@@ -752,6 +753,7 @@ function App() {
             <Route path="/miniapp" element={<MiniappPage />} />
             <Route path="/app" element={dashboardContent} />
             <Route path="/theme-demo" element={<ThemeDemoPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/" element={<HomePage />} />
           </Routes>
         </Suspense>
