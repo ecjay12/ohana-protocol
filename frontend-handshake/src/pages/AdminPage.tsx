@@ -235,10 +235,10 @@ export function AdminPage() {
             <div className="flex items-start gap-3">
               <Lock className="h-5 w-5 shrink-0 text-theme-accent" />
               <div>
-                <p className="text-sm font-semibold text-theme-text">Connect your wallet</p>
+                <p className="text-sm font-semibold text-theme-text">Connect</p>
                 <p className="mt-1 text-sm text-theme-text-muted">
-                  Connect the wallet that owns the Handshake contract on {chainName} to see admin
-                  controls.
+                  Connect your Universal Profile (or other wallet) on {chainName} to open the admin
+                  dashboard.
                 </p>
               </div>
             </div>
@@ -357,16 +357,15 @@ export function AdminPage() {
                       ). The app uses that to confirm you&apos;re the right operator for this deployment.
                     </p>
                     <p>
-                      <span className="font-semibold text-theme-text">Important:</span> Handshake still uses
-                      OpenZeppelin <span className="font-semibold">Ownable</span>. On-chain{" "}
-                      <span className="font-semibold">setFee</span> /{" "}
-                      <span className="font-semibold">setFeeCollector</span> require{" "}
-                      <span className="font-mono">msg.sender == owner()</span> on the Handshake contract. Calls routed
-                      through your UP use your <span className="font-semibold">profile</span> as the sender for those
-                      inner calls, so <span className="font-semibold">owner()</span> should be your profile address for
-                      owner tools to work from the UP extension — use{" "}
-                      <span className="font-semibold">Transfer contract ownership</span> once from the controller
-                      wallet, or connect with the controller for owner transactions.
+                      <span className="font-semibold text-theme-text">Important:</span> Handshake uses OpenZeppelin{" "}
+                      <span className="font-semibold">Ownable</span>. Owner actions check{" "}
+                      <span className="font-mono">msg.sender == owner()</span> on the Handshake contract. When you use the
+                      Universal Profile browser extension, calls into Handshake use your{" "}
+                      <span className="font-semibold">profile address</span> as <span className="font-mono">msg.sender</span>.
+                      So for <span className="font-semibold">set fee</span> / <span className="font-semibold">set collector</span>{" "}
+                      to work from the UP only, on-chain <span className="font-mono">owner()</span> must{" "}
+                      <span className="font-semibold">be your profile</span>. If it still shows another address below, that
+                      is a one-time contract configuration issue (see the yellow note), not something the app can override.
                     </p>
                   </div>
                 </div>
@@ -379,28 +378,40 @@ export function AdminPage() {
                   <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
                   <div className="space-y-2 text-sm">
                     <p className="font-semibold text-theme-text">
-                      Why owner tools are missing (Universal Profile on LUKSO)
+                      You’re on your Universal Profile — here’s why some owner buttons stay disabled
                     </p>
                     <p className="text-theme-text-muted">
-                      On-chain <span className="font-semibold text-theme-text">owner()</span> is your{" "}
-                      <span className="font-semibold text-theme-text">controller</span> wallet{" "}
-                      <span className="font-mono text-theme-text">{admin.state.owner}</span>, but you are connected as
-                      your profile <span className="font-mono text-theme-text">{account}</span>. The UP extension sends
-                      transactions from the profile address, so <code className="rounded bg-theme-surface-strong px-1 text-xs">onlyOwner</code>{" "}
-                      checks fail unless <span className="font-mono">msg.sender</span> equals the owner.
+                      This Handshake deployment still has <span className="font-semibold text-theme-text">owner()</span>{" "}
+                      set to <span className="font-mono text-theme-text">{admin.state.owner}</span>, while you are
+                      connected as your profile{" "}
+                      <span className="font-mono text-theme-text">{account}</span>. The UP extension sends interactions as
+                      your profile, so Handshake sees <span className="font-mono">msg.sender</span> as your profile — not
+                      as the current <span className="font-mono">owner()</span> address. OpenZeppelin{" "}
+                      <code className="rounded bg-theme-surface-strong px-1 text-xs">onlyOwner</code> then blocks{" "}
+                      <span className="font-semibold">set fee</span> / <span className="font-semibold">set collector</span>{" "}
+                      until <span className="font-mono">owner()</span> is updated to match how you sign (your profile).
                     </p>
                     <p className="text-theme-text-muted">
-                      <span className="font-semibold text-theme-text">Withdraw</span> works because your profile is the
-                      fee collector.
+                      <span className="font-semibold text-theme-text">Withdraw</span> can still work when your profile is
+                      the fee collector — that path does not require being <span className="font-mono">owner()</span>.
                     </p>
                     <p className="text-theme-text-muted">
-                      <span className="font-semibold text-theme-text">Fix:</span> connect once with the controller key (
-                      <span className="font-mono">{shortAddr(admin.state.owner)}</span>) in MetaMask or another EOA
-                      wallet, open this page, and use <span className="font-semibold">Transfer contract ownership</span>{" "}
-                      to set owner to your Universal Profile (
-                      <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span> is pre-filled if it
-                      matches your collector). Then reconnect with the UP extension — full admin will work from your
-                      profile.
+                      <span className="font-semibold text-theme-text">What has to happen (one on-chain change):</span>{" "}
+                      <span className="font-mono">transferOwnership</span> must be executed{" "}
+                      <span className="font-semibold">as the current owner</span> (
+                      <span className="font-mono">{admin.state.owner}</span>), with the new owner set to{" "}
+                      <span className="font-bold text-theme-text">your profile</span>{" "}
+                      <span className="font-mono">{account}</span>. The Universal Profile extension{" "}
+                      <span className="font-semibold">cannot</span> impersonate that old owner address — so if you truly
+                      never use a separate wallet and only use this UP, whoever controls the address that is still{" "}
+                      <span className="font-mono">owner()</span> (deployer, multisig, org wallet, etc.) must submit that
+                      single transaction. After <span className="font-mono">owner()</span> equals your profile,{" "}
+                      <span className="font-semibold">everything in admin can run from the UP only</span>.
+                    </p>
+                    <p className="text-xs text-theme-text-dim">
+                      If no one can sign as the current <span className="font-mono">owner()</span>, the contract cannot
+                      be retargeted without governance / upgrade / redeployment — the frontend cannot bypass{" "}
+                      <span className="font-mono">onlyOwner</span>.
                     </p>
                   </div>
                 </div>
@@ -502,9 +513,12 @@ export function AdminPage() {
                 <GlassCard>
                   <h3 className="text-base font-semibold text-theme-text">Transfer contract ownership</h3>
                   <p className="mt-1 text-sm text-theme-text-muted">
-                    Moves Ownable admin to a new address. Use this to set <span className="font-semibold">owner</span>{" "}
-                    to your Universal Profile so the UP browser extension can run set-fee and other owner calls. Fee
-                    collector is unchanged unless you update it above.
+                    Moves Handshake <span className="font-semibold">owner()</span> to a new address. Set it to{" "}
+                    <span className="font-semibold">your profile address</span> if you want every owner action to work
+                    from the Universal Profile extension only. This button only succeeds when your{" "}
+                    <span className="font-semibold">current</span> connected signer is already{" "}
+                    <span className="font-mono">owner()</span> on-chain (see the addresses above). Fee collector is
+                    unchanged unless you update it separately.
                   </p>
                   <div className="mt-3 flex flex-wrap items-end gap-2">
                     <div className="min-w-[200px] flex-1">
