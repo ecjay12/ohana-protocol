@@ -4,6 +4,8 @@
  * @see https://indexer.sigmacore.io/docs/quickstart
  */
 
+import { getAddress } from "ethers";
+
 const DEFAULT_GRAPHQL = "https://indexer.sigmacore.io/v1/graphql";
 
 const indexerBatchCache = new Map<
@@ -14,6 +16,11 @@ const indexerBatchCache = new Map<
 function indexerUrl(): string {
   const u = import.meta.env.VITE_INDEXER_URL;
   return u && String(u).trim().length > 0 ? String(u).trim() : DEFAULT_GRAPHQL;
+}
+
+/** Browser cannot always call the GraphQL indexer (CORS); same-origin /api/* proxies. */
+function useIndexerHttpProxy(): boolean {
+  return typeof globalThis !== "undefined" && typeof (globalThis as { window?: unknown }).window !== "undefined";
 }
 
 /** ipfs://… and ipfs://CID/path → https://ipfs.io/ipfs/… */
@@ -80,6 +87,103 @@ type GqlResponse = {
   data?: { universal_profile?: GqlRow[] };
   errors?: { message: string }[];
 };
+
+/** Escape user text for PostgreSQL ILIKE so `%` / `_` / `\` are literal. */
+function escapeIlikePattern(fragment: string): string {
+  return fragment.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+const NAME_SEARCH_QUERY = `
+query ProfileSearchByName($pattern: String!, $lim: Int!) {
+  universal_profile(
+    where: { lsp3Profile: { name: { value: { _ilike: $pattern } } } }
+    limit: $lim
+  ) {
+    address
+    lsp3Profile {
+      name { value }
+    }
+  }
+}
+`;
+
+export type ProfileNameSearchHit = {
+  address: string;
+  name: string | null;
+};
+
+/**
+ * Search indexed LUKSO Universal Profiles by LSP3 display name (case-insensitive substring).
+ * Uses the same Hasura indexer as leaderboard enrichment.
+ */
+export async function searchUniversalProfilesByLsp3Name(
+  rawName: string,
+  opts?: { limit?: number; signal?: AbortSignal }
+): Promise<ProfileNameSearchHit[]> {
+  const trimmed = rawName.trim();
+  if (trimmed.length < 2) return [];
+
+  const lim = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
+  const pattern = `%${escapeIlikePattern(trimmed)}%`;
+
+  type GqlNameRow = {
+    address: string;
+    lsp3Profile: null | { name: null | { value: string | null } };
+  };
+  type GqlNameResponse = {
+    data?: { universal_profile?: GqlNameRow[] };
+    errors?: { message: string }[];
+  };
+
+  if (useIndexerHttpProxy()) {
+    try {
+      const u = new URL("/api/profile-search", window.location.origin);
+      u.searchParams.set("q", trimmed);
+      u.searchParams.set("limit", String(lim));
+      const res = await fetch(u.toString(), {
+        signal: opts?.signal,
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as { hits?: ProfileNameSearchHit[]; error?: string };
+      if (json.error) return [];
+      if (!Array.isArray(json.hits)) return [];
+      return json.hits;
+    } catch {
+      /* try direct */
+    }
+  }
+
+  try {
+    const res = await fetch(indexerUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: NAME_SEARCH_QUERY,
+        variables: { pattern, lim },
+      }),
+      signal: opts?.signal,
+    });
+    if (!res.ok) return [];
+
+    const json = (await res.json()) as GqlNameResponse;
+    if (json.errors?.length) return [];
+
+    const rows = json.data?.universal_profile ?? [];
+    return rows.map((row) => {
+      let address = row.address;
+      try {
+        address = getAddress(row.address);
+      } catch {
+        /* keep indexer form */
+      }
+      const name = row.lsp3Profile?.name?.value?.trim() || null;
+      return { address, name };
+    });
+  } catch {
+    return [];
+  }
+}
 
 const QUERY = `
 query LeaderboardProfiles($addresses: [String!]!) {
@@ -165,6 +269,32 @@ export async function fetchLuksoProfilesFromIndexer(
     if (hit && Date.now() - hit.fetchedAt < ttl) {
       if (opts?.signal?.aborted) return {};
       return { ...hit.data };
+    }
+  }
+
+  if (useIndexerHttpProxy()) {
+    try {
+      const res = await fetch(`${window.location.origin}/api/indexer-profiles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ addresses: unique }),
+        signal: opts?.signal,
+      });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          profiles?: Record<string, IndexerLeaderboardProfile>;
+          error?: string;
+        };
+        if (!json.error && json.profiles) {
+          const out = json.profiles;
+          if (ttl != null && ttl > 0 && !opts?.signal?.aborted) {
+            indexerBatchCache.set(cacheKey, { fetchedAt: Date.now(), data: { ...out } });
+          }
+          return { ...out };
+        }
+      }
+    } catch {
+      /* direct indexer below */
     }
   }
 

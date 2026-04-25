@@ -47,6 +47,9 @@ export function apiDevPlugin(): Plugin {
         const handlers: Record<string, () => Promise<HandlerMod>> = {
           "/api/vouches": () => import("./api/vouches.js"),
           "/api/vouch-leaderboard": () => import("./api/vouch-leaderboard.js"),
+          "/api/handshake-activity": () => import("./api/handshake-activity.js"),
+          "/api/profile-search": () => import("./api/profile-search.js"),
+          "/api/indexer-profiles": () => import("./api/indexer-profiles.js"),
         };
         const load = handlers[pathname];
         if (!load) {

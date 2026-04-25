@@ -2,12 +2,14 @@
  * Read-only vouch history for a profile: Given and Received tabs, with search.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, EyeOff, Eye, Check, X } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface CategoryOption {
   value: number;
@@ -76,6 +78,26 @@ export function ProfileVouchHistoryCard({
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const list = activeTab === "given" ? vouchesGiven : vouchesReceived;
+
+  const allHistoryAddresses = useMemo(() => {
+    const s = new Set<string>();
+    for (const row of vouchesGiven) s.add(row.address);
+    for (const row of vouchesReceived) s.add(row.address);
+    return [...s];
+  }, [vouchesGiven, vouchesReceived]);
+
+  const indexerLabels = useIndexerDisplayNames(allHistoryAddresses, {
+    enabled: allHistoryAddresses.length > 0,
+  });
+
+  const formatAddress = (addr: string) =>
+    `${addr.slice(0, 10)}…${addr.slice(-8)}`;
+
+  const displayForAddr = useCallback(
+    (addr: string) => indexerLabels[addr.toLowerCase()] ?? formatAddress(addr),
+    [indexerLabels]
+  );
+
   const filteredList = useMemo(() => {
     let result = list;
     // Filter hidden (for received only)
@@ -88,14 +110,15 @@ export function ProfileVouchHistoryCard({
     }
     const q = searchQuery.trim().toLowerCase();
     if (!q) return result;
-    return result.filter((row) => row.address.toLowerCase().includes(q));
-  }, [list, activeTab, filterStatus, searchQuery]);
+    return result.filter((row) => {
+      const a = row.address.toLowerCase();
+      const name = indexerLabels[a]?.toLowerCase();
+      return a.includes(q) || (name != null && name.includes(q));
+    });
+  }, [list, activeTab, filterStatus, searchQuery, indexerLabels]);
 
   const categoryLabel = (cat: number) =>
     categories.find((c) => c.value === cat)?.label ?? String(cat);
-
-  const formatAddress = (addr: string) =>
-    `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
   const formatDate = (timestamp: bigint) => {
     const date = new Date(Number(timestamp) * 1000);
@@ -146,11 +169,11 @@ export function ProfileVouchHistoryCard({
         )}
         <input
           type="text"
-          placeholder="Search by address…"
+          placeholder="Search by name or address…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1 min-w-[140px] rounded-lg border border-theme-border bg-theme-surface px-3 py-2 font-mono text-sm text-theme-text placeholder:text-theme-dim focus:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent-soft"
-          aria-label="Search vouch history by address"
+          aria-label="Search vouch history by name or address"
         />
       </div>
 
@@ -165,7 +188,9 @@ export function ProfileVouchHistoryCard({
       ) : (
         <ul className="space-y-2 max-h-[400px] overflow-y-auto">
           <AnimatePresence>
-            {filteredList.map((row, i) => (
+            {filteredList.map((row, i) => {
+              const line = displayForAddr(row.address);
+              return (
               <motion.li
                 key={`${row.chainId ?? 0}-${row.type}-${row.address}-${row.vouchKey ?? i}-${i}`}
                 initial={{ opacity: 0, y: 8 }}
@@ -179,9 +204,12 @@ export function ProfileVouchHistoryCard({
                 <button
                   type="button"
                   onClick={() => navigate(`/profile/${row.address}`)}
-                  className="font-mono text-sm text-theme-text hover:text-theme-accent transition-colors text-left"
+                  className={`text-left text-sm text-theme-text hover:text-theme-accent transition-colors ${
+                    isShortAddressLabel(line) ? "font-mono" : "font-medium"
+                  }`}
+                  title={row.address}
                 >
-                  {formatAddress(row.address)}
+                  {line}
                 </button>
                 <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                   {categoryLabel(row.category)}
@@ -262,7 +290,8 @@ export function ProfileVouchHistoryCard({
                   </div>
                 )}
               </motion.li>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </ul>
       )}

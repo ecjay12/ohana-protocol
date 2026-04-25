@@ -2,6 +2,15 @@
   "functions": {
     "api/vouch-leaderboard.js": {
       "maxDuration": 60
+    },
+    "api/handshake-activity.js": {
+      "maxDuration": 30
+    },
+    "api/profile-search.js": {
+      "maxDuration": 15
+    },
+    "api/indexer-profiles.js": {
+      "maxDuration": 20
     }
   },
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]

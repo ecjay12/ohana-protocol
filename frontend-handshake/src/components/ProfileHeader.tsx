@@ -15,6 +15,7 @@ import {
   Music2,
 } from "lucide-react";
 import type { ProfileData } from "@/lib/lsp4Profile";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface ProfileHeaderProps {
   profileData: ProfileData | null;
@@ -25,6 +26,8 @@ interface ProfileHeaderProps {
   hasGitHubVerified?: boolean;
   /** Vouch count from Handshake contract — shown as "X vouches via Handshake" when > 0 */
   acceptedCount?: number;
+  /** When on-chain name is missing, LSP3 name from LUKSO indexer (sidebar / fast path). */
+  indexerFallbackName?: string | null;
 }
 
 function getLinkIcon(title: string, url: string) {
@@ -46,13 +49,17 @@ export function ProfileHeader({
   isOwnProfile: _isOwnProfile = false,
   hasGitHubVerified = false,
   acceptedCount,
+  indexerFallbackName = null,
 }: ProfileHeaderProps) {
   const formatAddress = (addr: string) => `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
   const displayName = useMemo(() => {
     const n = profileData?.name?.trim();
-    return n || formatAddress(address);
-  }, [profileData, address]);
+    if (n) return n;
+    const fb = indexerFallbackName?.trim();
+    if (fb && !isShortAddressLabel(fb)) return fb;
+    return formatAddress(address);
+  }, [profileData, address, indexerFallbackName]);
 
   const displayAvatar = profileData?.avatar ?? null;
   const displayBackground = profileData?.background ?? null;
@@ -140,7 +147,11 @@ export function ProfileHeader({
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-semibold text-theme-text sm:text-2xl">{displayName}</h2>
+          <h2
+            className={`text-xl font-semibold text-theme-text sm:text-2xl ${isShortAddressLabel(displayName) ? "font-mono tracking-tight" : ""}`}
+          >
+            {displayName}
+          </h2>
           {hasGitHubVerified && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-theme-surface-strong px-2 py-0.5 text-xs font-medium text-theme-text"

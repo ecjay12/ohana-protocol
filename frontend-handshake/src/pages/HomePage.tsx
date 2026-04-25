@@ -24,6 +24,7 @@ import { GlowButton } from "@/components/GlowButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import { ProofOfWordScroll } from "@/components/ProofOfWordScroll";
+import { LuksoActivitySection } from "@/components/LuksoActivitySection";
 
 const container = {
   hidden: { opacity: 0 },
@@ -255,6 +256,15 @@ export function HomePage() {
               </div>
             ))}
           </div>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.32 }}
+          className="space-y-4"
+        >
+          <LuksoActivitySection />
         </motion.section>
 
         {/* Social Human Verification */}

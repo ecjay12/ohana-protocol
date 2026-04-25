@@ -13,6 +13,7 @@ import { hasERC8004Support } from "./lib/erc8004";
 import { submitVouchAsFeedback } from "./lib/syncHandshakeToERC8004";
 import { AppLayout } from "./layout/AppLayout";
 import { HeroSection } from "./components/HeroSection";
+import { LuksoActivitySection } from "./components/LuksoActivitySection";
 import { AgentDashboardCard } from "./components/AgentDashboardCard";
 import { VouchCard } from "./components/VouchCard";
 import { PendingVouchesCard } from "./components/PendingVouchesCard";
@@ -576,15 +577,18 @@ function App() {
           </motion.div>
         )}
         {!isSupported ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6"
-          >
-            <p className="text-amber-200">
-              Handshake isn&apos;t available on this network. Switch to LUKSO, Base, LUKSO Testnet, or Base Sepolia.
-            </p>
-          </motion.div>
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6"
+            >
+              <p className="text-amber-200">
+                Handshake isn&apos;t available on this network. Switch to LUKSO, Base, LUKSO Testnet, or Base Sepolia.
+              </p>
+            </motion.div>
+            <LuksoActivitySection compact />
+          </>
         ) : (
           <>
             {incoming.length > 0 && !pendingBannerDismissed && (
@@ -661,63 +665,71 @@ function App() {
                 )}
               </motion.div>
             )}
-            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
-              <VouchCard
-                feeLabel={feeLabel}
-                categories={CATEGORIES}
-                txPending={txPending}
-                onVouch={handleVouch}
-                disabled={!isConnected}
-                initialAddress={vouchAddressFromUrl}
-              />
-              <div data-pending-vouches>
-                <PendingVouchesCard
-                  incoming={incoming}
+            <div className="flex flex-col gap-5 sm:gap-6">
+              <div className="grid gap-5 sm:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                {/* z-index so profile-search dropdown stacks above History / next rows */}
+                <div className="relative z-40 min-w-0">
+                  <VouchCard
+                    feeLabel={feeLabel}
+                    categories={CATEGORIES}
+                    txPending={txPending}
+                    onVouch={handleVouch}
+                    disabled={!isConnected}
+                    initialAddress={vouchAddressFromUrl}
+                  />
+                </div>
+                <div data-pending-vouches>
+                  <PendingVouchesCard
+                    incoming={incoming}
+                    loading={loading}
+                    txPending={txPending}
+                    categories={CATEGORIES}
+                    onAccept={handleAccept}
+                    onDeny={handleDeny}
+                    onRefresh={refresh}
+                    pendingTargetAddress={pendingTargetAddress}
+                    disabled={!isConnected}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
+                <HistoryCard
+                  chainId={chainId}
+                  account={account}
+                  provider={provider}
+                  vouchesGiven={historyVouchesGiven}
+                  vouchesReceived={historyVouchesReceived}
                   loading={loading}
                   txPending={txPending}
+                  statusLabels={STATUS_LABELS as Record<number, string>}
                   categories={CATEGORIES}
-                  onAccept={handleAccept}
-                  onDeny={handleDeny}
+                  hiddenVouchers={new Set([...hiddenVouchers, ...hiddenVouchersLSP2])}
+                  onHideVouch={handleHideAcceptedVouch}
+                  onUnhideVouch={handleUnhideAcceptedVouch}
+                  onRemoveVouch={handleRemoveVouch}
                   onRefresh={refresh}
-                  pendingTargetAddress={pendingTargetAddress}
+                  disabled={!isConnected}
+                  hasERC8004Support={hasERC8004Support(chainId)}
+                  onPublishToERC8004={handlePublishToERC8004}
+                  crossNetworkSummary={crossNetworkHistorySummary}
+                  viewProfileAddress={profilePathAddress}
+                />
+                <AcceptedVouchesCard
+                  vouchersForMe={vouchersForMe}
+                  vouchStatuses={vouchStatuses}
+                  loading={loading}
+                  categories={CATEGORIES}
+                  hiddenVouchers={new Set([...hiddenVouchers, ...hiddenVouchersLSP2])}
+                  onHideVouch={handleHideAcceptedVouch}
+                  onUnhideVouch={handleUnhideAcceptedVouch}
+                  onRemoveVouch={handleRemoveVouch}
+                  provider={provider}
+                  account={account}
+                  onRefresh={refresh}
                   disabled={!isConnected}
                 />
               </div>
-              <HistoryCard
-                chainId={chainId}
-                account={account}
-                provider={provider}
-                vouchesGiven={historyVouchesGiven}
-                vouchesReceived={historyVouchesReceived}
-                loading={loading}
-                txPending={txPending}
-                statusLabels={STATUS_LABELS as Record<number, string>}
-                categories={CATEGORIES}
-                hiddenVouchers={new Set([...hiddenVouchers, ...hiddenVouchersLSP2])}
-                onHideVouch={handleHideAcceptedVouch}
-                onUnhideVouch={handleUnhideAcceptedVouch}
-                onRemoveVouch={handleRemoveVouch}
-                onRefresh={refresh}
-                disabled={!isConnected}
-                hasERC8004Support={hasERC8004Support(chainId)}
-                onPublishToERC8004={handlePublishToERC8004}
-                crossNetworkSummary={crossNetworkHistorySummary}
-                viewProfileAddress={profilePathAddress}
-              />
-              <AcceptedVouchesCard
-                vouchersForMe={vouchersForMe}
-                vouchStatuses={vouchStatuses}
-                loading={loading}
-                categories={CATEGORIES}
-                hiddenVouchers={new Set([...hiddenVouchers, ...hiddenVouchersLSP2])}
-                onHideVouch={handleHideAcceptedVouch}
-                onUnhideVouch={handleUnhideAcceptedVouch}
-                onRemoveVouch={handleRemoveVouch}
-                provider={provider}
-                account={account}
-                onRefresh={refresh}
-                disabled={!isConnected}
-              />
+              <LuksoActivitySection compact />
             </div>
           </>
         )}

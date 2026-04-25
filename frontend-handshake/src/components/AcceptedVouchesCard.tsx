@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw, ShieldCheck, EyeOff, Eye, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +7,8 @@ import { GlowButton } from "./GlowButton";
 import type { VouchData } from "@/types/handshake";
 import type { BrowserProvider } from "ethers";
 import { displayAddressFromReceivedKey } from "@/lib/vouchAggregationKeys";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface CategoryOption {
   value: number;
@@ -58,6 +61,12 @@ export function AcceptedVouchesCard({
     return isOnChainHidden || isInHiddenList;
   });
 
+  const displayKeys = useMemo(
+    () => accepted.map((addr) => displayAddressFromReceivedKey(addr)),
+    [accepted]
+  );
+  const indexerLabels = useIndexerDisplayNames(displayKeys, { enabled: displayKeys.length > 0 });
+
   return (
     <GlassCard>
       <div className="mb-3 flex items-center justify-between">
@@ -106,6 +115,9 @@ export function AcceptedVouchesCard({
             {visible.map((vAddr, i) => {
               const v = vouchStatuses[vAddr];
               const displayAddr = displayAddressFromReceivedKey(vAddr);
+              const line =
+                indexerLabels[displayAddr.toLowerCase()] ??
+                `${displayAddr.slice(0, 10)}…${displayAddr.slice(-8)}`;
               const catLabel = v ? categories.find((c) => c.value === v.category)?.label ?? v.category : "";
               return (
                 <motion.li
@@ -118,9 +130,12 @@ export function AcceptedVouchesCard({
                   <button
                     type="button"
                     onClick={() => navigate(`/profile/${displayAddr}`)}
-                    className="font-mono text-sm text-theme-text hover:text-theme-accent transition-colors text-left"
+                    className={`text-left text-sm text-theme-text hover:text-theme-accent transition-colors ${
+                      isShortAddressLabel(line) ? "font-mono" : "font-medium"
+                    }`}
+                    title={displayAddr}
                   >
-                    {displayAddr.slice(0, 10)}…{displayAddr.slice(-8)}
+                    {line}
                   </button>
                   <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                     {catLabel}
@@ -151,6 +166,9 @@ export function AcceptedVouchesCard({
                 {hidden.map((vAddr, i) => {
                   const v = vouchStatuses[vAddr];
                   const displayAddr = displayAddressFromReceivedKey(vAddr);
+                  const line =
+                    indexerLabels[displayAddr.toLowerCase()] ??
+                    `${displayAddr.slice(0, 10)}…${displayAddr.slice(-8)}`;
                   const catLabel = v ? categories.find((c) => c.value === v.category)?.label ?? v.category : "";
                   return (
                     <motion.li
@@ -163,9 +181,12 @@ export function AcceptedVouchesCard({
                       <button
                         type="button"
                         onClick={() => navigate(`/profile/${displayAddr}`)}
-                        className="font-mono text-sm text-theme-text hover:text-theme-accent transition-colors text-left"
+                        className={`text-left text-sm text-theme-text hover:text-theme-accent transition-colors ${
+                          isShortAddressLabel(line) ? "font-mono" : "font-medium"
+                        }`}
+                        title={displayAddr}
                       >
-                        {displayAddr.slice(0, 10)}…{displayAddr.slice(-8)}
+                        {line}
                       </button>
                       <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                         {catLabel}

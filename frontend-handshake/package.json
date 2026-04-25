@@ -12,7 +12,8 @@
     "dev": "vite --open",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:apis": "node scripts/verify-apis.mjs"
   },
   "dependencies": {
     "@erc725/erc725.js": "^0.28.2",

@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, RefreshCw } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface CategoryOption {
   value: number;
@@ -36,6 +39,9 @@ export function PendingVouchesCard({
   disabled = false,
   pendingTargetAddress = null,
 }: PendingVouchesCardProps) {
+  const voucherAddrs = useMemo(() => incoming.map((i) => i.voucher), [incoming]);
+  const indexerLabels = useIndexerDisplayNames(voucherAddrs, { enabled: incoming.length > 0 });
+
   return (
     <GlassCard>
       <div className="mb-3 flex items-center justify-between">
@@ -74,8 +80,15 @@ export function PendingVouchesCard({
                 transition={{ delay: i * 0.05 }}
                 className="flex flex-wrap items-center gap-2 rounded-xl border border-theme-border bg-theme-surface p-3"
               >
-                <span className="font-mono text-sm text-theme-text">
-                  {voucher.slice(0, 10)}…{voucher.slice(-8)}
+                <span
+                  className={
+                    isShortAddressLabel(indexerLabels[voucher.toLowerCase()] ?? "")
+                      ? "font-mono text-sm text-theme-text"
+                      : "text-sm font-medium text-theme-text"
+                  }
+                  title={voucher}
+                >
+                  {indexerLabels[voucher.toLowerCase()] ?? `${voucher.slice(0, 10)}…${voucher.slice(-8)}`}
                 </span>
                 <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                   {categoryLabel(categories, cat)}

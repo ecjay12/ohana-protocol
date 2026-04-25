@@ -317,6 +317,33 @@ select option {
     border: 1px solid var(--theme-border);
     border-radius: var(--radius-2xl);
   }
+
+  /**
+   * Profile search / LSP3 picker dropdown — must be fully opaque and readable
+   * on all themes (including where .bg-theme-background is transparent for layout).
+   */
+  .profile-lookup-panel {
+    color: var(--theme-text);
+    background-color: var(--theme-bg);
+    border: 2px solid var(--theme-border-strong, var(--theme-border));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 0 0 1px var(--theme-border), 0 16px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  [data-theme="light"] .profile-lookup-panel,
+  [data-theme="lyx"] .profile-lookup-panel {
+    background-color: #ffffff;
+    color: var(--theme-text);
+    box-shadow: 0 0 0 1px var(--theme-border-strong), 0 16px 40px rgba(15, 23, 42, 0.12);
+  }
+
+  [data-theme="cyberpunk"] .profile-lookup-panel {
+    background-color: #0d0d14;
+    color: var(--theme-text);
+    box-shadow: 0 0 0 1px var(--theme-border-strong), 0 0 28px rgba(255, 0, 255, 0.2),
+      0 16px 48px rgba(0, 0, 0, 0.55);
+  }
 }
 
 /* Theme utility classes */

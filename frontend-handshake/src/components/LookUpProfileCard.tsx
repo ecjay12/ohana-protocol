@@ -20,7 +20,7 @@ export function LookUpProfileCard({ compact = false }: LookUpProfileCardProps) {
       </div>
       {!compact && (
         <p className="mb-4 text-sm text-theme-text-muted">
-          Enter a Universal Profile address to view their vouches and profile.
+          Search by address or by LSP3 display name (indexed LUKSO profiles). Names are matched case-insensitively.
         </p>
       )}
       <ProfileSearch compact={compact} />

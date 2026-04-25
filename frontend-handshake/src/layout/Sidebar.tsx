@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
@@ -17,7 +17,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
+import { HANDSHAKE_CHAIN_IDS, getHandshakeAddress } from "@/config/contracts";
 import { GlowButton } from "@/components/GlowButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { LookUpProfileCard } from "@/components/LookUpProfileCard";
@@ -26,8 +26,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
-import { useHandshakeAdmin } from "@/hooks/useHandshakeAdmin";
-
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 interface SidebarProps {
   chainId: number;
   chains: Record<number, { name: string; rpc: string }>;
@@ -63,7 +63,7 @@ export function Sidebar({
   userProfileData,
   userProfileLoading = false,
   profileHeaderAddress,
-  userIsUP = false,
+  userIsUP: _userIsUP = false,
   onConnect,
   onConnectWith,
   onSwitchChain,
@@ -77,14 +77,8 @@ export function Sidebar({
   const logoSrc = THEME_LOGOS[theme];
   const [themeExpanded, setThemeExpanded] = useState(true);
 
-  const LUKSO_MAIN = 42;
-  const LUKSO_TEST = 4201;
-  /** LSP6: also show Admin when Handshake owner is a controller of the connected UP (see useHandshakeAdmin). */
-  const admin = useHandshakeAdmin(null, chainId, account ?? null, {
-    signerIsUniversalProfileOnChain: userIsUP && (chainId === LUKSO_MAIN || chainId === LUKSO_TEST),
-  });
-  const showAdminLink =
-    isConnected && (admin.isOwner || admin.canWithdraw || admin.handshakeOwnerIsLsp6ControllerOfUp);
+  /** Nav entry is not an auth check — AdminPage gates actions. Avoid hiding the link while contract reads are in flight. */
+  const showAdminLink = isConnected && Boolean(getHandshakeAddress(chainId));
 
   const headerAddress = profileHeaderAddress || account;
   const showSigningKeyHint = Boolean(
@@ -92,6 +86,13 @@ export function Sidebar({
       profileHeaderAddress &&
       profileHeaderAddress.toLowerCase() !== account.toLowerCase()
   );
+
+  const indexerAddressList = useMemo(
+    () =>
+      [headerAddress, account, profileHeaderAddress].filter((a): a is string => Boolean(a && a.trim())),
+    [headerAddress, account, profileHeaderAddress]
+  );
+  const indexerLabels = useIndexerDisplayNames(indexerAddressList, { enabled: isConnected });
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -146,16 +147,37 @@ export function Sidebar({
                 address={headerAddress}
                 isOwnProfile={true}
                 loading={userProfileLoading}
+                indexerFallbackName={
+                  headerAddress ? indexerLabels[headerAddress.toLowerCase()] ?? null : null
+                }
               />
             </div>
           )}
           {showSigningKeyHint ? (
-            <div className="space-y-0.5 font-mono text-xs text-theme-text-muted">
+            <div className="space-y-0.5 text-xs text-theme-text-muted">
               <div>Signing wallet</div>
-              <div>{shortAddress}</div>
+              <div
+                className={
+                  account && !isShortAddressLabel(indexerLabels[account.toLowerCase()] ?? shortAddress)
+                    ? "font-medium text-theme-text"
+                    : "font-mono"
+                }
+                title={account}
+              >
+                {account ? indexerLabels[account.toLowerCase()] ?? shortAddress : shortAddress}
+              </div>
             </div>
           ) : (
-            <div className="font-mono text-xs text-theme-text-muted">{shortAddress}</div>
+            <div
+              className={`text-xs text-theme-text-muted ${
+                account && !isShortAddressLabel(indexerLabels[account.toLowerCase()] ?? shortAddress)
+                  ? "font-medium text-theme-text"
+                  : "font-mono"
+              }`}
+              title={account}
+            >
+              {account ? indexerLabels[account.toLowerCase()] ?? shortAddress : shortAddress}
+            </div>
           )}
           <div className="flex gap-2">
             {headerAddress && (

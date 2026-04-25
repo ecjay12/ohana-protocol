@@ -3,7 +3,7 @@
  * Replaces GivenVouchesCard with comprehensive history view and CSV export.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, Download, EyeOff, Eye, Trash2, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -13,6 +13,8 @@ import { exportVouchesToCSV, type VouchHistoryRow } from "@/lib/csvExport";
 import { getStoredAgentId } from "@/lib/agentIdStorage";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import type { BrowserProvider } from "ethers";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface CategoryOption {
   value: number;
@@ -110,6 +112,18 @@ export function HistoryCard({
     return { givenAccepted, receivedAccepted, receivedPending };
   }, [vouchesGiven, vouchesReceived]);
 
+  const allHistoryAddresses = useMemo(() => {
+    const s = new Set<string>();
+    for (const v of vouchesGiven) s.add(v.address);
+    for (const v of vouchesReceived) s.add(v.address);
+    if (account) s.add(account);
+    if (viewProfileAddress) s.add(viewProfileAddress);
+    return [...s];
+  }, [vouchesGiven, vouchesReceived, account, viewProfileAddress]);
+  const indexerLabels = useIndexerDisplayNames(allHistoryAddresses, {
+    enabled: allHistoryAddresses.length > 0,
+  });
+
   const filteredVouches = useMemo(() => {
     const list = activeTab === "given" ? vouchesGiven : vouchesReceived;
     return list.filter((v) => {
@@ -158,10 +172,16 @@ export function HistoryCard({
     exportVouchesToCSV(allVouches);
   };
 
-  const formatAddress = (addr: string) => {
-    // Security: Only display, don't execute
+  const formatAddress = useCallback((addr: string) => {
     return `${addr.slice(0, 10)}…${addr.slice(-8)}`;
-  };
+  }, []);
+
+  const displayForAddr = useCallback(
+    (addr: string) => {
+      return indexerLabels[addr.toLowerCase()] ?? formatAddress(addr);
+    },
+    [indexerLabels, formatAddress]
+  );
 
   const formatDate = (timestamp: bigint) => {
     const date = new Date(Number(timestamp) * 1000);
@@ -309,7 +329,16 @@ export function HistoryCard({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="font-mono text-sm text-theme-text">{formatAddress(vouch.address)}</span>
+                    <span
+                      className={
+                        isShortAddressLabel(displayForAddr(vouch.address))
+                          ? "font-mono text-sm text-theme-text"
+                          : "text-sm font-medium text-theme-text"
+                      }
+                      title={vouch.address}
+                    >
+                      {displayForAddr(vouch.address)}
+                    </span>
                     {vouch.address.toLowerCase() === account.toLowerCase() && (
                       <span className="rounded-full bg-theme-accent/20 px-2 py-0.5 text-xs font-medium text-theme-accent">
                         You
