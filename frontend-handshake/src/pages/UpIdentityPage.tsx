@@ -17,6 +17,8 @@ import {
   useProfileNamesForAddresses,
   getGraphProfileNameLookupChainIds,
 } from "@/hooks/useProfileNamesForAddresses";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
+import { labelTextClass } from "@/lib/upDisplayLabel";
 import { AppLayout } from "@/layout/AppLayout";
 import { GlowButton } from "@/components/GlowButton";
 import { UpIdentityWalletDashboard } from "@/components/UpIdentityWalletDashboard";
@@ -49,7 +51,7 @@ export function UpIdentityPage() {
     error: walletError,
   } = useInjectedWallet();
   const account = accounts[0] ?? null;
-  const shortAddr = account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "";
+  const shortAddr = useWalletDisplayLabel(account);
 
   const { getUPForEOA } = useHandshake(provider, chainId, account);
   const [linkedUP, setLinkedUP] = useState<string | null>(null);
@@ -367,7 +369,8 @@ export function UpIdentityPage() {
                 >
                   {linkedUP}
                 </Link>
-                . You&apos;re signed in with <span className="font-mono text-theme-text">{shortAddr}</span>.
+                . You&apos;re signed in with{" "}
+                <span className={`text-theme-text ${labelTextClass(shortAddr)}`}>{shortAddr}</span>.
               </span>
             </p>
           )}

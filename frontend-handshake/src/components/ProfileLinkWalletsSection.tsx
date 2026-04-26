@@ -17,6 +17,8 @@ import {
   type HandshakeRegistryDiagnostics,
 } from "@/lib/handshakeRegistryDiagnostics";
 import type { IdentityVouchStat } from "@/lib/profileWalletVouchStats";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 interface ProfileLinkWalletsSectionProps {
   /** Checksummed profile address from URL */
@@ -263,6 +265,22 @@ export function ProfileLinkWalletsSection({
   const miniappBase =
     import.meta.env.VITE_MINIAPP_URL ?? "https://handshake.ohana.gg";
 
+  const allWalletDisplayAddresses = useMemo(() => {
+    const s = new Set<string>();
+    if (account) s.add(account);
+    if (profileAddress) s.add(profileAddress);
+    (identityVouchStats ?? []).forEach((r) => s.add(r.address));
+    linkedEoas.forEach((a) => s.add(a));
+    return [...s];
+  }, [account, profileAddress, identityVouchStats, linkedEoas]);
+
+  const { labels: walletIndexerLabels, avatarUrls: walletIndexerAvatars } = useIndexerLuksoFields(
+    allWalletDisplayAddresses,
+    {
+      enabled: allWalletDisplayAddresses.length > 0,
+    }
+  );
+
   /** Others’ EOA profiles: nothing to show here */
   if (!isOwnProfile && !isProfileUP) {
     return null;
@@ -278,11 +296,23 @@ export function ProfileLinkWalletsSection({
       {showLinkedWalletsCard && (
         <div className="glass-card rounded-2xl border border-theme-border bg-theme-surface p-4 sm:p-6">
           {showConnectedInBrowserBanner && isOwnProfile && account && (
-            <div className="mb-4 rounded-xl border border-theme-accent/35 bg-theme-accent-soft px-3 py-2.5 sm:px-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-theme-text-muted">
-                {plainLanguage ? "Wallet you're using" : "Signed in with"}
-              </p>
-              <p className="mt-1 select-all break-all font-mono text-sm text-theme-text">{account}</p>
+            <div className="mb-4 flex gap-3 rounded-xl border border-theme-accent/35 bg-theme-accent-soft px-3 py-2.5 sm:px-4">
+              {walletIndexerAvatars[account.toLowerCase()]?.trim() && (
+                <div className="h-10 w-10 shrink-0 self-start overflow-hidden rounded-full ring-2 ring-white/20">
+                  <img
+                    src={walletIndexerAvatars[account.toLowerCase()]!}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-theme-text-muted">
+                  {plainLanguage ? "Wallet you're using" : "Signed in with"}
+                </p>
+                <p className="mt-1 select-all break-all font-mono text-sm text-theme-text">{account}</p>
+              </div>
             </div>
           )}
           <h2 className="text-lg font-semibold text-theme-text">
@@ -328,20 +358,46 @@ export function ProfileLinkWalletsSection({
                         row.address.toLowerCase() === profileAddress.toLowerCase();
                       const isSession =
                         !!account && row.address.toLowerCase() === account.toLowerCase();
+                      const idxLabel = walletIndexerLabels[row.address.toLowerCase()];
+                      const idxAvatar = walletIndexerAvatars[row.address.toLowerCase()]?.trim();
+                      const showIdxName = Boolean(idxLabel && !isShortAddressLabel(idxLabel));
                       return (
                         <tr
                           key={row.address}
                           className="border-b border-theme-border/80 last:border-0"
                         >
                           <td className="px-3 py-2.5 align-top text-theme-text">
+                            <div className="flex gap-2">
+                              {idxAvatar ? (
+                                <div className="mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-theme-border/70">
+                                  <img
+                                    src={idxAvatar}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              ) : null}
+                              <div className="flex min-w-0 flex-col gap-0.5">
+                              {showIdxName && (
+                                <span className="text-sm font-semibold text-theme-text break-all">
+                                  {idxLabel}
+                                </span>
+                              )}
                             <div className="flex flex-wrap items-center gap-2">
                               {isUPRow ? (
                                 <span className="font-medium">
                                   {plainLanguage ? "Main profile" : "Universal Profile"}
                                 </span>
                               ) : (
-                                <span className="font-mono text-xs break-all sm:text-sm">
-                                  {row.address}
+                                <span
+                                  className={`font-mono break-all text-theme-text ${
+                                    showIdxName
+                                      ? "text-[11px] text-theme-text-muted sm:text-xs"
+                                      : "text-xs sm:text-sm"
+                                  }`}
+                                >
+                                  {showIdxName ? shortAddr(row.address) : row.address}
                                 </span>
                               )}
                               {isUPRow && (
@@ -354,6 +410,8 @@ export function ProfileLinkWalletsSection({
                                   {plainLanguage ? "This login" : "This wallet"}
                                 </span>
                               )}
+                            </div>
+                            </div>
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-right tabular-nums text-theme-text">
@@ -398,12 +456,31 @@ export function ProfileLinkWalletsSection({
               {linkedEoas.map((eoa) => {
                 const isThisSession =
                   account && eoa.toLowerCase() === account.toLowerCase();
+                const idxEoa = walletIndexerLabels[eoa.toLowerCase()];
+                const eoaFace = walletIndexerAvatars[eoa.toLowerCase()]?.trim();
+                const showEoaName = Boolean(idxEoa && !isShortAddressLabel(idxEoa));
                 return (
                   <li
                     key={eoa}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-background/60 px-3 py-2 font-mono text-sm text-theme-text"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-theme-border bg-theme-background/60 px-3 py-2 text-sm text-theme-text"
                   >
-                    <span className="break-all">{eoa}</span>
+                    <div className="flex min-w-0 items-start gap-2">
+                      {eoaFace ? (
+                        <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-theme-border/70">
+                          <img src={eoaFace} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        </div>
+                      ) : null}
+                    <div className="min-w-0">
+                      {showEoaName && (
+                        <div className="mb-0.5 font-medium break-all text-theme-text">{idxEoa}</div>
+                      )}
+                      <span
+                        className={`break-all ${showEoaName ? "font-mono text-xs text-theme-text-muted" : "font-mono"}`}
+                      >
+                        {showEoaName ? shortAddr(eoa) : eoa}
+                      </span>
+                    </div>
+                    </div>
                     {isThisSession && (
                       <span className="shrink-0 rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                         {plainLanguage ? "This login" : "This wallet"}
@@ -437,7 +514,20 @@ export function ProfileLinkWalletsSection({
               <>
                 <p className="mt-10 text-center text-3xl font-black uppercase tracking-wide text-theme-text sm:text-4xl">
                   Current wallet:
-                  <span className="ml-2 break-all font-mono text-lg sm:text-2xl">{shortAddr(account)}</span>
+                  {(() => {
+                    const w = walletIndexerLabels[account.toLowerCase()];
+                    const hasName = Boolean(w && !isShortAddressLabel(w));
+                    return hasName ? (
+                      <span className="ml-2 inline-flex flex-col items-center gap-1 text-center align-middle sm:inline-flex sm:flex-row sm:items-baseline sm:gap-2">
+                        <span className="break-all text-lg font-semibold normal-case sm:text-2xl">{w}</span>
+                        <span className="font-mono text-sm font-normal normal-case text-theme-text-muted sm:text-lg">
+                          {shortAddr(account)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="ml-2 break-all font-mono text-lg sm:text-2xl">{shortAddr(account)}</span>
+                    );
+                  })()}
                 </p>
                 {!userIsUP && (
                   <p className="mt-3 text-center text-base font-bold uppercase tracking-wide text-theme-text sm:text-lg">

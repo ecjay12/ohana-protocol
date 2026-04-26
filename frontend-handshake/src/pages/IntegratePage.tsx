@@ -9,6 +9,7 @@ import { HANDSHAKE_ADDRESSES, HANDSHAKE_CHAIN_IDS, getHandshakeAddress } from "@
 import { GITHUB_REPO_URL, getIntegrationExampleBaseUrl } from "@/config/publicDev";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
 import { useProfileData } from "@/hooks/useProfileData";
 
 const CHAIN_NAMES: Record<number, string> = {
@@ -39,6 +40,7 @@ export function IntegratePage() {
   const wallet = useInjectedWallet();
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
+  const walletDisplayLabel = useWalletDisplayLabel(wallet.accounts[0] ?? null);
   /** Production Handshake app base — for integrators (not localhost; override with `VITE_PUBLIC_APP_URL`). */
   const appOrigin = getIntegrationExampleBaseUrl();
 
@@ -46,7 +48,7 @@ export function IntegratePage() {
     <AppLayout
       chainId={wallet.chainId}
       chains={wallet.chains as Record<number, { name: string; rpc: string }>}
-      shortAddress={wallet.accounts[0] ? `${wallet.accounts[0].slice(0, 6)}…${wallet.accounts[0].slice(-4)}` : ""}
+      shortAddress={walletDisplayLabel}
       account={wallet.accounts[0]}
       isConnected={wallet.isConnected}
       hasInjected={wallet.hasInjected}

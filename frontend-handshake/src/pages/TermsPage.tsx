@@ -7,18 +7,20 @@ import { motion } from "framer-motion";
 import { ArrowLeft, FileText } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
 import { useProfileData } from "@/hooks/useProfileData";
 
 export function TermsPage() {
   const wallet = useInjectedWallet();
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
+  const walletDisplayLabel = useWalletDisplayLabel(wallet.accounts[0] ?? null);
 
   return (
     <AppLayout
       chainId={wallet.chainId}
       chains={wallet.chains as Record<number, { name: string; rpc: string }>}
-      shortAddress={wallet.accounts[0] ? `${wallet.accounts[0].slice(0, 6)}…${wallet.accounts[0].slice(-4)}` : ""}
+      shortAddress={walletDisplayLabel}
       account={wallet.accounts[0]}
       isConnected={wallet.isConnected}
       hasInjected={wallet.hasInjected}

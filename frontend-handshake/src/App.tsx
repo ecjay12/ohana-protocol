@@ -22,6 +22,7 @@ import { AcceptedVouchesCard } from "./components/AcceptedVouchesCard";
 import { GlowButton } from "./components/GlowButton";
 import { VouchRedirect } from "./components/VouchRedirect";
 import { useActivityToast } from "./contexts/ActivityToastContext";
+import { useWalletDisplayLabel } from "./hooks/useWalletDisplayLabel";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
@@ -66,7 +67,7 @@ function App() {
 
   const account = accounts[0] ?? "";
   const chainName = chains[chainId as keyof typeof chains]?.name ?? `Chain ${chainId}`;
-  const shortAddr = account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "";
+  const shortAddr = useWalletDisplayLabel(accounts[0] ?? null);
 
   const {
     error: handshakeError,

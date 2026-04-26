@@ -8,8 +8,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, EyeOff, Eye, Check, X } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
-import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
-import { isShortAddressLabel } from "@/lib/upDisplayLabel";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
+import {
+  getGraphProfileNameLookupChainIds,
+  useProfileNamesForAddresses,
+} from "@/hooks/useProfileNamesForAddresses";
+import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { isShortAddressLabel, mergeRpcAndIndexerLabels } from "@/lib/upDisplayLabel";
 
 interface CategoryOption {
   value: number;
@@ -73,6 +78,7 @@ export function ProfileVouchHistoryCard({
   disabled = false,
 }: ProfileVouchHistoryCardProps) {
   const navigate = useNavigate();
+  const { chainId } = useInjectedWallet();
   const [activeTab, setActiveTab] = useState<"given" | "received">("given");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -86,16 +92,26 @@ export function ProfileVouchHistoryCard({
     return [...s];
   }, [vouchesGiven, vouchesReceived]);
 
-  const indexerLabels = useIndexerDisplayNames(allHistoryAddresses, {
-    enabled: allHistoryAddresses.length > 0,
+  const { labels: indexerLabels, avatarUrls: indexerAvatars } = useIndexerLuksoFields(
+    allHistoryAddresses,
+    { enabled: allHistoryAddresses.length > 0 }
+  );
+
+  const rpcLabels = useProfileNamesForAddresses(allHistoryAddresses, chainId, {
+    chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
   });
+
+  const mergedLabels = useMemo(
+    () => mergeRpcAndIndexerLabels(indexerLabels, rpcLabels, allHistoryAddresses),
+    [indexerLabels, rpcLabels, allHistoryAddresses]
+  );
 
   const formatAddress = (addr: string) =>
     `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
   const displayForAddr = useCallback(
-    (addr: string) => indexerLabels[addr.toLowerCase()] ?? formatAddress(addr),
-    [indexerLabels]
+    (addr: string) => mergedLabels[addr.toLowerCase()] ?? formatAddress(addr),
+    [mergedLabels]
   );
 
   const filteredList = useMemo(() => {
@@ -112,10 +128,10 @@ export function ProfileVouchHistoryCard({
     if (!q) return result;
     return result.filter((row) => {
       const a = row.address.toLowerCase();
-      const name = indexerLabels[a]?.toLowerCase();
+      const name = mergedLabels[a]?.toLowerCase();
       return a.includes(q) || (name != null && name.includes(q));
     });
-  }, [list, activeTab, filterStatus, searchQuery, indexerLabels]);
+  }, [list, activeTab, filterStatus, searchQuery, mergedLabels]);
 
   const categoryLabel = (cat: number) =>
     categories.find((c) => c.value === cat)?.label ?? String(cat);
@@ -190,6 +206,7 @@ export function ProfileVouchHistoryCard({
           <AnimatePresence>
             {filteredList.map((row, i) => {
               const line = displayForAddr(row.address);
+              const face = indexerAvatars[row.address.toLowerCase()]?.trim();
               return (
               <motion.li
                 key={`${row.chainId ?? 0}-${row.type}-${row.address}-${row.vouchKey ?? i}-${i}`}
@@ -201,16 +218,23 @@ export function ProfileVouchHistoryCard({
                   row.hidden ? "border-amber-500/30 bg-amber-500/5" : "border-theme-border bg-theme-surface"
                 }`}
               >
+                <div className="flex min-w-0 max-w-full items-center gap-2">
+                  {face ? (
+                    <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full ring-1 ring-theme-border/70">
+                      <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </div>
+                  ) : null}
                 <button
                   type="button"
                   onClick={() => navigate(`/profile/${row.address}`)}
-                  className={`text-left text-sm text-theme-text hover:text-theme-accent transition-colors ${
+                  className={`min-w-0 text-left text-sm text-theme-text hover:text-theme-accent transition-colors ${
                     isShortAddressLabel(line) ? "font-mono" : "font-medium"
                   }`}
                   title={row.address}
                 >
                   {line}
                 </button>
+                </div>
                 <span className="rounded-full bg-theme-accent-soft px-2 py-0.5 text-xs font-medium text-theme-accent">
                   {categoryLabel(row.category)}
                 </span>

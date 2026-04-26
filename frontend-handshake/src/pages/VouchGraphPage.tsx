@@ -3,6 +3,7 @@
  * Profile-centered graph lives on /profile/:address.
  */
 
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Info } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
@@ -10,6 +11,9 @@ import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useProfileData } from "@/hooks/useProfileData";
 import { useGlobalVouchGraph } from "@/hooks/useGlobalVouchGraph";
 import { useProfileNamesForAddresses } from "@/hooks/useProfileNamesForAddresses";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
+import { mergeRpcAndIndexerLabels } from "@/lib/upDisplayLabel";
 import { LUKSO_SOCIAL_GRAPH_CHAIN_ID } from "@/lib/luksoHandshakeVouchGraph";
 import { VouchGraph3D } from "@/components/VouchGraph3D";
 
@@ -24,19 +28,27 @@ export function VouchGraphPage() {
         centerAddress: null as string | null,
       }
     : { nodes: [] as string[], edges: [] as { voucher: string; target: string; strength: number }[], centerAddress: null as string | null };
-  const nodeLabels = useProfileNamesForAddresses(
+  const rpcNodeLabels = useProfileNamesForAddresses(
     graphPayload.nodes,
     LUKSO_SOCIAL_GRAPH_CHAIN_ID,
     { chainIdsForLookup: [LUKSO_SOCIAL_GRAPH_CHAIN_ID, 4201] }
   );
+  const indexerNodeLabels = useIndexerDisplayNames(graphPayload.nodes, {
+    enabled: graphPayload.nodes.length > 0,
+  });
+  const nodeLabels = useMemo(
+    () => mergeRpcAndIndexerLabels(indexerNodeLabels, rpcNodeLabels, graphPayload.nodes),
+    [indexerNodeLabels, rpcNodeLabels, graphPayload.nodes]
+  );
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, account, wallet.chainId);
+  const walletDisplayLabel = useWalletDisplayLabel(account);
 
   return (
     <AppLayout
       chainId={wallet.chainId}
       chains={wallet.chains as Record<number, { name: string; rpc: string }>}
-      shortAddress={account ? `${account.slice(0, 6)}…${account.slice(-4)}` : ""}
+      shortAddress={walletDisplayLabel}
       account={account}
       isConnected={wallet.isConnected}
       hasInjected={wallet.hasInjected}

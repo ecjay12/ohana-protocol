@@ -28,6 +28,8 @@ interface ProfileHeaderProps {
   acceptedCount?: number;
   /** When on-chain name is missing, LSP3 name from LUKSO indexer (sidebar / fast path). */
   indexerFallbackName?: string | null;
+  /** When on-chain avatar is missing, LSP3 profile image from LUKSO indexer. */
+  indexerFallbackAvatarUrl?: string | null;
 }
 
 function getLinkIcon(title: string, url: string) {
@@ -50,6 +52,7 @@ export function ProfileHeader({
   hasGitHubVerified = false,
   acceptedCount,
   indexerFallbackName = null,
+  indexerFallbackAvatarUrl = null,
 }: ProfileHeaderProps) {
   const formatAddress = (addr: string) => `${addr.slice(0, 10)}…${addr.slice(-8)}`;
 
@@ -61,7 +64,7 @@ export function ProfileHeader({
     return formatAddress(address);
   }, [profileData, address, indexerFallbackName]);
 
-  const displayAvatar = profileData?.avatar ?? null;
+  const displayAvatar = profileData?.avatar ?? indexerFallbackAvatarUrl ?? null;
   const displayBackground = profileData?.background ?? null;
 
   const displayDescription = useMemo(() => profileData?.description?.trim() ?? "", [profileData]);
@@ -80,7 +83,11 @@ export function ProfileHeader({
 
   const mergedLinks = profileData?.links ?? [];
 
-  const showNoMetadataHint = !loading && !profileData;
+  const hasIndexerLsp3 =
+    (indexerFallbackName?.trim() && !isShortAddressLabel(indexerFallbackName)) ||
+    Boolean(indexerFallbackAvatarUrl?.trim());
+
+  const showNoMetadataHint = !loading && !profileData && !hasIndexerLsp3;
 
   if (loading) {
     return (

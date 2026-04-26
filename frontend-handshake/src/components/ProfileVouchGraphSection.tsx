@@ -1,12 +1,15 @@
 /**
  * Ego vouch graph for /profile/:address — same data model as the app, centered on this profile.
  */
+import { useMemo } from "react";
 import { useProfileVouches } from "@/hooks/useProfileVouches";
 import { useVouchGraphData } from "@/hooks/useVouchGraphData";
 import {
   getGraphProfileNameLookupChainIds,
   useProfileNamesForAddresses,
 } from "@/hooks/useProfileNamesForAddresses";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { mergeRpcAndIndexerLabels } from "@/lib/upDisplayLabel";
 import { VouchGraph3D } from "@/components/VouchGraph3D";
 
 interface ProfileVouchGraphSectionProps {
@@ -30,9 +33,16 @@ export function ProfileVouchGraphSection({
     vouchersForTarget,
     targetsVouchedBy
   );
-  const nodeLabels = useProfileNamesForAddresses(graphData.nodes, chainId, {
+  const rpcNodeLabels = useProfileNamesForAddresses(graphData.nodes, chainId, {
     chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
   });
+  const indexerNodeLabels = useIndexerDisplayNames(graphData.nodes, {
+    enabled: graphData.nodes.length > 0,
+  });
+  const nodeLabels = useMemo(
+    () => mergeRpcAndIndexerLabels(indexerNodeLabels, rpcNodeLabels, graphData.nodes),
+    [indexerNodeLabels, rpcNodeLabels, graphData.nodes]
+  );
 
   return (
     <div className="glass-card overflow-hidden rounded-2xl border border-theme-border bg-theme-surface">

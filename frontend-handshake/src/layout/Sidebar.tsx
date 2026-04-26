@@ -26,7 +26,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
 import type { ProfileData } from "@/lib/lsp4Profile";
-import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
 import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 interface SidebarProps {
   chainId: number;
@@ -92,7 +92,10 @@ export function Sidebar({
       [headerAddress, account, profileHeaderAddress].filter((a): a is string => Boolean(a && a.trim())),
     [headerAddress, account, profileHeaderAddress]
   );
-  const indexerLabels = useIndexerDisplayNames(indexerAddressList, { enabled: isConnected });
+  const { labels: indexerLabels, avatarUrls: indexerAvatars } = useIndexerLuksoFields(
+    indexerAddressList,
+    { enabled: isConnected }
+  );
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -149,6 +152,9 @@ export function Sidebar({
                 loading={userProfileLoading}
                 indexerFallbackName={
                   headerAddress ? indexerLabels[headerAddress.toLowerCase()] ?? null : null
+                }
+                indexerFallbackAvatarUrl={
+                  headerAddress ? indexerAvatars[headerAddress.toLowerCase()] ?? null : null
                 }
               />
             </div>

@@ -2,11 +2,11 @@
  * LUKSO Universal Profile lookup: type a name (debounced) or paste 0x address.
  * Picker list uses the same Hasura indexer as profile search in the sidebar.
  */
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { getAddress } from "ethers";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, User, X } from "lucide-react";
 import { searchUniversalProfilesByLsp3Name, type ProfileNameSearchHit } from "@/lib/lspIndexerProfiles";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
 
 const DEBOUNCE_MS = 360;
 
@@ -57,6 +57,11 @@ export function Lsp3ProfileLookupInput({
   valueRef.current = value;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showNoResults, setShowNoResults] = useState(false);
+
+  const hitAddresses = useMemo(() => hits.map((h) => h.address), [hits]);
+  const { avatarUrls: hitAvatars } = useIndexerLuksoFields(hitAddresses, {
+    enabled: hits.length > 0,
+  });
 
   const inputClass =
     size === "lg"
@@ -232,25 +237,31 @@ export function Lsp3ProfileLookupInput({
           {!loading &&
             hits.map((h) => {
               const label = h.name?.trim() || shortAddr(h.address);
+              const face = hitAvatars[h.address.toLowerCase()]?.trim();
               return (
                 <li key={h.address} role="option" className="border-b border-theme-border/70 last:border-0">
-                  <div className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 transition-colors sm:px-3 hover:bg-theme-surface-strong">
-                    <Link
-                      to={`/profile/${h.address}`}
-                      className="min-w-0 flex-1 truncate text-left text-sm font-medium text-theme-accent hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {label}
-                    </Link>
-                    <span className="font-mono text-[10px] text-theme-dim sm:text-xs">{h.address}</span>
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-lg border border-theme-accent/40 bg-theme-accent-soft px-2 py-1 text-xs font-medium text-theme-accent hover:bg-theme-accent/20"
-                      onClick={() => pick(h)}
-                    >
-                      Vouch
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors sm:px-3 hover:bg-theme-surface-strong"
+                    onClick={() => pick(h)}
+                  >
+                    {face ? (
+                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-theme-border/80">
+                        <img src={face} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-theme-surface-strong text-theme-dim ring-1 ring-theme-border/60"
+                        aria-hidden
+                      >
+                        <User className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1 text-left">
+                      <div className="truncate text-sm font-medium text-theme-accent">{label}</div>
+                      <div className="mt-0.5 truncate font-mono text-[10px] text-theme-dim sm:text-xs">{h.address}</div>
+                    </div>
+                  </button>
                 </li>
               );
             })}

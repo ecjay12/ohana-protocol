@@ -11,6 +11,8 @@ import {
   type VouchLeaderboardRow,
 } from "@/lib/vouchLeaderboard";
 import type { IndexerLeaderboardProfile } from "@/lib/lspIndexerProfiles";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
+import { isShortAddressLabel } from "@/lib/upDisplayLabel";
 
 export type { VouchLeaderboardRow };
 
@@ -38,6 +40,14 @@ export function VouchLeaderboardCard({
   const limitKey = useMemo(
     () => Math.min(VOUCH_LEADERBOARD_TOP, Math.max(1, limit)),
     [limit]
+  );
+
+  const rowAddresses = useMemo(() => rows.map((r) => r.address), [rows]);
+  const { labels: indexerNameByAddr, avatarUrls: indexerAvatarByAddr } = useIndexerLuksoFields(
+    rowAddresses,
+    {
+      enabled: rowAddresses.length > 0,
+    }
   );
 
   const reqSeq = useRef(0);
@@ -92,10 +102,14 @@ export function VouchLeaderboardCard({
         <ol className={`divide-y divide-theme-border/80 ${compact ? "text-sm" : ""}`}>
           {rows.map((r, i) => {
             const idx = profilesByAddr[r.address.toLowerCase()];
-            const name = idx?.name?.trim() || shortAddr(r.address);
+            const fromApi = idx?.name?.trim();
+            const fromIndexer = indexerNameByAddr[r.address.toLowerCase()];
+            const name = fromApi || fromIndexer || shortAddr(r.address);
             const followers = idx ? idx.followerCount.toLocaleString() : "—";
             const following = idx ? idx.followingCount.toLocaleString() : "—";
             const vouches = r.acceptedVouches.toLocaleString();
+            const avatarUrl =
+              idx?.avatarUrl?.trim() || indexerAvatarByAddr[r.address.toLowerCase()]?.trim() || null;
 
             return (
               <li key={`${r.address}-${i}`}>
@@ -108,9 +122,9 @@ export function VouchLeaderboardCard({
                   >
                     {i + 1}
                   </span>
-                  {idx?.avatarUrl ? (
+                  {avatarUrl ? (
                     <img
-                      src={idx.avatarUrl}
+                      src={avatarUrl}
                       alt=""
                       className={`shrink-0 rounded-full object-cover ring-1 ring-theme-border ${compact ? "h-7 w-7" : "h-9 w-9"}`}
                       loading="lazy"
@@ -123,7 +137,7 @@ export function VouchLeaderboardCard({
                   )}
                   <div className="min-w-0 flex-1">
                     <div
-                      className={`truncate text-theme-text ${idx?.name ? "font-medium" : "font-mono text-sm"}`}
+                      className={`truncate text-theme-text ${!isShortAddressLabel(name) ? "font-medium" : "font-mono text-sm"}`}
                     >
                       {name}
                     </div>

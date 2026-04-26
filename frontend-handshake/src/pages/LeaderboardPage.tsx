@@ -4,15 +4,14 @@
 
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
 import { useProfileData } from "@/hooks/useProfileData";
 import { VouchLeaderboardCard } from "@/components/VouchLeaderboardCard";
 
 export function LeaderboardPage() {
   const wallet = useInjectedWallet();
   const account = wallet.accounts[0] ?? null;
-  const shortAddr = account
-    ? `${account.slice(0, 6)}…${account.slice(-4)}`
-    : "";
+  const shortAddr = useWalletDisplayLabel(account);
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, account, wallet.chainId);
 

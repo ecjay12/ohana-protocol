@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
 import { useProfileData } from "@/hooks/useProfileData";
 import { GlowButton } from "@/components/GlowButton";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -45,6 +46,7 @@ export function HomePage() {
   const logoSrc = THEME_LOGOS[theme];
   const { profileData: userProfileData, isUP: userIsUP, loading: userProfileLoading } =
     useProfileData(wallet.provider, wallet.accounts[0] ?? null, wallet.chainId);
+  const walletDisplayLabel = useWalletDisplayLabel(wallet.accounts[0] ?? null);
 
   /** Warm cache for the dashboard route (same SPA shell; helps repeat visits feel instant). */
   useEffect(() => {
@@ -61,7 +63,7 @@ export function HomePage() {
     <AppLayout
       chainId={wallet.chainId}
       chains={wallet.chains as Record<number, { name: string; rpc: string }>}
-      shortAddress={wallet.accounts[0] ? `${wallet.accounts[0].slice(0, 6)}…${wallet.accounts[0].slice(-4)}` : ""}
+      shortAddress={walletDisplayLabel}
       account={wallet.accounts[0]}
       isConnected={wallet.isConnected}
       hasInjected={wallet.hasInjected}

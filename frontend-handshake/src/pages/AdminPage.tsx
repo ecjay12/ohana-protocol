@@ -3,7 +3,7 @@
  * Shows contract state, fee balances, withdraw controls, and scannable
  * protocol-wide metrics for the currently selected chain.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -24,7 +24,10 @@ import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { useHandshakeAdmin } from "@/hooks/useHandshakeAdmin";
 import { useProtocolMetrics } from "@/hooks/useProtocolMetrics";
 import { useSessionSidebarProfile } from "@/hooks/useSessionSidebarProfile";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
+import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
 import { useHandshake } from "@/hooks/useHandshake";
+import { isShortAddressLabel, labelTextClass } from "@/lib/upDisplayLabel";
 import { HANDSHAKE_CHAIN_IDS } from "@/config/contracts";
 import { AppLayout } from "@/layout/AppLayout";
 import { GlassCard } from "@/components/GlassCard";
@@ -41,6 +44,27 @@ const NATIVE_SYMBOLS: Record<number, string> = {
 function shortAddr(addr: string | null | undefined): string {
   if (!addr) return "—";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function AdminAddrDd({
+  address,
+  labels,
+}: {
+  address: string | null | undefined;
+  labels: Record<string, string>;
+}) {
+  if (address == null || address === "") {
+    return <dd className="font-mono text-theme-text">—</dd>;
+  }
+  const nice = labels[address.toLowerCase()];
+  return (
+    <dd>
+      {nice && !isShortAddressLabel(nice) && (
+        <div className="mb-0.5 break-all text-sm font-medium text-theme-text">{nice}</div>
+      )}
+      <div className="break-all font-mono text-theme-text">{address}</div>
+    </dd>
+  );
 }
 
 function MetricTile({
@@ -83,7 +107,7 @@ export function AdminPage() {
   } = useInjectedWallet();
   const account = accounts[0] ?? null;
   const chainName = chains[chainId as keyof typeof chains]?.name ?? `Chain ${chainId}`;
-  const shortAddrWallet = account ? shortAddr(account) : "";
+  const shortAddrWallet = useWalletDisplayLabel(account);
   const nativeSymbol = NATIVE_SYMBOLS[chainId] ?? "ETH";
 
   const { getUPForEOA } = useHandshake(provider, chainId, account);
@@ -94,6 +118,42 @@ export function AdminPage() {
       sidebarSession.signerIsUPOnWalletChain && (chainId === 42 || chainId === 4201),
   });
   const metricsHook = useProtocolMetrics(chainId);
+
+  const adminIndexerAddrs = useMemo(() => {
+    const s = new Set<string>();
+    const add = (x: string | null | undefined) => {
+      const t = x?.trim();
+      if (t && t.startsWith("0x") && t.length >= 42) s.add(t);
+    };
+    add(account);
+    add(admin.state.owner);
+    add(admin.state.feeCollector);
+    add(admin.signerAddress);
+    add(admin.handshakeAddress);
+    add(admin.state.ohanaPointsHub);
+    return [...s];
+  }, [
+    account,
+    admin.state.owner,
+    admin.state.feeCollector,
+    admin.signerAddress,
+    admin.handshakeAddress,
+    admin.state.ohanaPointsHub,
+  ]);
+
+  const adminIndexerLabels = useIndexerDisplayNames(adminIndexerAddrs, {
+    enabled: adminIndexerAddrs.length > 0,
+  });
+
+  const displayFor = useCallback(
+    (addr: string | null | undefined) => {
+      if (addr == null || addr === "") return "—";
+      const n = adminIndexerLabels[addr.toLowerCase()];
+      if (n && !isShortAddressLabel(n)) return n;
+      return n || shortAddr(addr);
+    },
+    [adminIndexerLabels]
+  );
 
   const [feeInput, setFeeInput] = useState("");
   const [collectorInput, setCollectorInput] = useState("");
@@ -257,11 +317,19 @@ export function AdminPage() {
               <div>
                 <p className="text-sm font-semibold text-theme-text">Not authorized</p>
                 <p className="mt-1 text-sm text-theme-text-muted">
-                  The connected wallet <span className="font-mono">{shortAddrWallet}</span> is not
+                  The connected wallet{" "}
+                  <span className={labelTextClass(account ? displayFor(account) : "—")}>
+                    {account ? displayFor(account) : "—"}
+                  </span>{" "}
+                  is not
                   the owner{" "}
                   {admin.state.owner ? (
                     <>
-                      (<span className="font-mono">{shortAddr(admin.state.owner)}</span>)
+                      (
+                      <span className={labelTextClass(displayFor(admin.state.owner))}>
+                        {displayFor(admin.state.owner)}
+                      </span>
+                      )
                     </>
                   ) : (
                     ""
@@ -297,8 +365,8 @@ export function AdminPage() {
             <MetricTile
               icon={KeyRound}
               label="Owner"
-              value={shortAddr(admin.state.owner)}
-              hint={admin.state.feeCollector ? `Collector ${shortAddr(admin.state.feeCollector)}` : undefined}
+              value={admin.state.owner ? displayFor(admin.state.owner) : "—"}
+              hint={admin.state.feeCollector ? `Collector ${displayFor(admin.state.feeCollector)}` : undefined}
             />
           </section>
         )}
@@ -312,26 +380,39 @@ export function AdminPage() {
             <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <dt className="text-theme-text-dim">Connected (eth_accounts)</dt>
-                <dd className="break-all font-mono text-theme-text">{account}</dd>
+                <AdminAddrDd address={account} labels={adminIndexerLabels} />
               </div>
               <div>
                 <dt className="text-theme-text-dim">Signing address (getSigner)</dt>
-                <dd className="break-all font-mono text-theme-text">
-                  {admin.signerAddress ?? "—"}
-                  {admin.signerAddress &&
-                    admin.state.owner &&
-                    admin.signerAddress.toLowerCase() === admin.state.owner.toLowerCase() && (
-                      <span className="ml-1 text-emerald-600">· matches owner()</span>
-                    )}
+                <dd>
+                  {admin.signerAddress ? (
+                    <div>
+                      {(() => {
+                        const sn = adminIndexerLabels[admin.signerAddress.toLowerCase()];
+                        return sn && !isShortAddressLabel(sn) ? (
+                          <div className="mb-0.5 break-all text-sm font-medium text-theme-text">{sn}</div>
+                        ) : null;
+                      })()}
+                      <div className="break-all font-mono text-theme-text">
+                        {admin.signerAddress}
+                        {admin.state.owner &&
+                          admin.signerAddress.toLowerCase() === admin.state.owner.toLowerCase() && (
+                            <span className="ml-1 text-emerald-600">· matches owner()</span>
+                          )}
+                      </div>
+                    </div>
+                  ) : (
+                    "—"
+                  )}
                 </dd>
               </div>
               <div>
                 <dt className="text-theme-text-dim">Handshake owner()</dt>
-                <dd className="break-all font-mono text-theme-text">{admin.state.owner}</dd>
+                <AdminAddrDd address={admin.state.owner} labels={adminIndexerLabels} />
               </div>
               <div>
                 <dt className="text-theme-text-dim">feeCollector()</dt>
-                <dd className="break-all font-mono text-theme-text">{admin.state.feeCollector ?? "—"}</dd>
+                <AdminAddrDd address={admin.state.feeCollector} labels={adminIndexerLabels} />
               </div>
             </dl>
             <p className="mt-2 text-[11px] text-theme-text-dim">
@@ -455,7 +536,10 @@ export function AdminPage() {
                   </h3>
                   <p className="mt-1 text-sm text-theme-text-muted">
                     Sends the on-contract balance to the current fee collector (
-                    <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span>).
+                    <span className={labelTextClass(displayFor(admin.state.feeCollector))}>
+                      {admin.state.feeCollector ? displayFor(admin.state.feeCollector) : "—"}
+                    </span>
+                    ).
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -506,7 +590,9 @@ export function AdminPage() {
                     <h3 className="text-base font-semibold text-theme-text">Update fee collector</h3>
                     <p className="mt-1 text-sm text-theme-text-muted">
                       Current:{" "}
-                      <span className="font-mono">{shortAddr(admin.state.feeCollector)}</span>
+                      <span className={labelTextClass(displayFor(admin.state.feeCollector))}>
+                        {admin.state.feeCollector ? displayFor(admin.state.feeCollector) : "—"}
+                      </span>
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <input
@@ -679,7 +765,11 @@ export function AdminPage() {
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-theme-text-dim">Address</dt>
-                  <dd className="font-mono text-theme-text">{admin.handshakeAddress ?? "—"}</dd>
+                  {admin.handshakeAddress ? (
+                    <AdminAddrDd address={admin.handshakeAddress} labels={adminIndexerLabels} />
+                  ) : (
+                    <dd className="font-mono text-theme-text">—</dd>
+                  )}
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-theme-text-dim">Chain</dt>
@@ -689,19 +779,21 @@ export function AdminPage() {
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-theme-text-dim">Owner</dt>
-                  <dd className="font-mono text-theme-text">{admin.state.owner ?? "—"}</dd>
+                  <AdminAddrDd address={admin.state.owner} labels={adminIndexerLabels} />
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-theme-text-dim">Fee collector</dt>
-                  <dd className="font-mono text-theme-text">{admin.state.feeCollector ?? "—"}</dd>
+                  <AdminAddrDd address={admin.state.feeCollector} labels={adminIndexerLabels} />
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-xs uppercase tracking-wide text-theme-text-dim">
                     Ohana Points hub
                   </dt>
-                  <dd className="font-mono text-theme-text">
-                    {admin.state.ohanaPointsHub ?? "Not linked"}
-                  </dd>
+                  {admin.state.ohanaPointsHub == null || admin.state.ohanaPointsHub === "" ? (
+                    <dd className="font-mono text-theme-text">Not linked</dd>
+                  ) : (
+                    <AdminAddrDd address={admin.state.ohanaPointsHub} labels={adminIndexerLabels} />
+                  )}
                 </div>
               </dl>
             </GlassCard>

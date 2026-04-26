@@ -26,6 +26,8 @@ import {
   useProfileNamesForAddresses,
   getGraphProfileNameLookupChainIds,
 } from "@/hooks/useProfileNamesForAddresses";
+import { useIndexerLuksoFields } from "@/hooks/useIndexerDisplayNames";
+import { mergeRpcAndIndexerLabels } from "@/lib/upDisplayLabel";
 import { useGitHubAttestation } from "@/hooks/useGitHubAttestation";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import type { ProfileVouchRow } from "@/components/ProfileVouchHistoryCard";
@@ -83,7 +85,6 @@ export function ProfilePage() {
     error: walletError,
   } = useInjectedWallet();
   const account = accounts[0] ?? null;
-  const shortAddr = account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "";
 
   const normalizedAddress = useMemo(() => {
     if (!address) return null;
@@ -293,6 +294,37 @@ export function ProfilePage() {
     chainIdsForLookup: getGraphProfileNameLookupChainIds(chainId),
   });
 
+  const profileAndHistoryAddresses = useMemo(() => {
+    const s = new Set<string>();
+    if (normalizedAddress) s.add(normalizedAddress);
+    for (const a of nameLookupAddresses) s.add(a);
+    return [...s];
+  }, [normalizedAddress, nameLookupAddresses]);
+
+  const { labels: indexerNameMap, avatarUrls: indexerAvatarMap } = useIndexerLuksoFields(
+    profileAndHistoryAddresses,
+    {
+      enabled: profileAndHistoryAddresses.length > 0,
+    }
+  );
+
+  const namesByAddressMerged = useMemo(
+    () => mergeRpcAndIndexerLabels(indexerNameMap, namesByAddress, nameLookupAddresses),
+    [indexerNameMap, namesByAddress, nameLookupAddresses]
+  );
+
+  const indexerFallbackName = normalizedAddress
+    ? indexerNameMap[normalizedAddress.toLowerCase()] ?? null
+    : null;
+
+  const indexerFallbackAvatarUrl = normalizedAddress
+    ? indexerAvatarMap[normalizedAddress.toLowerCase()] ?? null
+    : null;
+
+  const shortAddr = account
+    ? indexerNameMap[account.toLowerCase()] ?? `${account.slice(0, 6)}…${account.slice(-4)}`
+    : "";
+
   const upProfileLabel =
     headerProfileData?.name?.trim() ||
     (normalizedAddress
@@ -300,7 +332,7 @@ export function ProfilePage() {
       : "");
 
   const sessionWalletLabel =
-    (account && namesByAddress[account.toLowerCase()]) ||
+    (account && namesByAddressMerged[account.toLowerCase()]) ||
     (account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "");
 
   const displayAcceptedCount =
@@ -528,6 +560,8 @@ export function ProfilePage() {
           isOwnProfile={isOwnProfile}
           hasGitHubVerified={hasGitHubVerified}
           acceptedCount={displayAcceptedCount}
+          indexerFallbackName={indexerFallbackName}
+          indexerFallbackAvatarUrl={indexerFallbackAvatarUrl}
         />
 
         {!isOwnProfile && account && isSupported && (
@@ -598,7 +632,7 @@ export function ProfilePage() {
             account={account}
             sessionWalletLabel={sessionWalletLabel}
             upProfileLabel={upProfileLabel}
-            namesByAddress={namesByAddress}
+            namesByAddress={namesByAddressMerged}
             identityVisible={identityVouchStats}
             identityFull={identityVouchStatsFull}
             statsLoading={loading}

@@ -33,15 +33,21 @@ export async function fetchVouchLeaderboardFromApi(
     signal: opts?.signal,
     headers: { Accept: "application/json" },
   });
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try {
-      const j = (await res.json()) as { error?: string };
-      if (j?.error) msg = j.error;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg);
+  const text = await res.text();
+  let data: VouchLeaderboardApiResponse;
+  try {
+    data = JSON.parse(text) as VouchLeaderboardApiResponse;
+  } catch {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    throw new Error(
+      text.trimStart().startsWith("<")
+        ? "Leaderboard returned HTML, not JSON — usually /api is rewritten to the SPA. Redeploy with updated vercel.json."
+        : "Invalid response from /api/vouch-leaderboard."
+    );
   }
-  return res.json() as Promise<VouchLeaderboardApiResponse>;
+  if (!res.ok) {
+    const msg = data?.error;
+    throw new Error(typeof msg === "string" && msg.length > 0 ? msg : `HTTP ${res.status}`);
+  }
+  return data;
 }

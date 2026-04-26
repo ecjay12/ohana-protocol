@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/layout/AppLayout";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
+import { useWalletDisplayLabel } from "@/hooks/useWalletDisplayLabel";
 import { useProfileData } from "@/hooks/useProfileData";
 
 const COMMON_GROUND_URL = "https://app.cg/c/OhanaDao/";
@@ -98,16 +99,13 @@ export function HelpPage() {
   const profileLink = wallet.accounts[0]
     ? `/profile/${wallet.accounts[0]}`
     : "/app";
+  const walletDisplayLabel = useWalletDisplayLabel(wallet.accounts[0] ?? null);
 
   return (
     <AppLayout
       chainId={wallet.chainId}
       chains={wallet.chains as Record<number, { name: string; rpc: string }>}
-      shortAddress={
-        wallet.accounts[0]
-          ? `${wallet.accounts[0].slice(0, 6)}…${wallet.accounts[0].slice(-4)}`
-          : ""
-      }
+      shortAddress={walletDisplayLabel}
       account={wallet.accounts[0]}
       isConnected={wallet.isConnected}
       hasInjected={wallet.hasInjected}
