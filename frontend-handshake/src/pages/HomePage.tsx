@@ -260,15 +260,6 @@ export function HomePage() {
           </div>
         </motion.section>
 
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32 }}
-          className="space-y-4"
-        >
-          <LuksoActivitySection />
-        </motion.section>
-
         {/* Social Human Verification */}
         <motion.section
           initial={{ opacity: 0 }}
@@ -559,6 +550,15 @@ export function HomePage() {
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             </a>
           </p>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="space-y-4"
+        >
+          <LuksoActivitySection />
         </motion.section>
       </motion.div>
     </AppLayout>
