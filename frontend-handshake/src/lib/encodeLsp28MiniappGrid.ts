@@ -32,7 +32,7 @@ export function buildMiniappGridJson(upAddress: string, miniappBaseUrl: string, 
               src: `${base}/?address=${encodeURIComponent(upAddress)}${chainQs}`,
               allow: "accelerometer; autoplay; clipboard-write",
               sandbox:
-                "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
+                "allow-forms allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation",
               allowfullscreen: true,
               referrerpolicy: "no-referrer",
             },

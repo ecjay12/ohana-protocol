@@ -48,23 +48,25 @@ function NoProfileSetup() {
         <p className="mb-4 text-sm text-theme-text-muted">
           <strong>Standalone:</strong> Enter a Universal Profile address to view vouches:
         </p>
-        <div className="mb-4 flex gap-2">
+        <form
+          className="mb-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleTryAddress();
+          }}
+        >
           <input
             type="text"
             placeholder="0x..."
             value={addressInput}
             onChange={(e) => setAddressInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleTryAddress()}
+            autoComplete="off"
             className="flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text placeholder:text-theme-text-dim focus:border-theme-accent focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={handleTryAddress}
-            className="miniapp-btn-primary rounded-lg px-4 py-2 text-sm font-medium"
-          >
+          <button type="submit" className="miniapp-btn-primary rounded-lg px-4 py-2 text-sm font-medium">
             View
           </button>
-        </div>
+        </form>
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
         <p className="mb-2 text-xs font-medium text-theme-text">Add to your Grid:</p>

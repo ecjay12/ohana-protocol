@@ -37,7 +37,9 @@ function buildGridJson(upAddress: string, handshakeChainId: number): string {
             properties: {
               src: `${MINIAPP_PRODUCTION_URL}/?address=${encodeURIComponent(upAddress)}${chainQs}`,
               allow: "accelerometer; autoplay; clipboard-write",
-              sandbox: "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
+              // HTML: sandbox tokens must be space-separated (semicolons make invalid tokens → flags ignored).
+              sandbox:
+                "allow-forms allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation",
               allowfullscreen: true,
               referrerpolicy: "no-referrer",
             },
