@@ -16,12 +16,9 @@ test.describe("miniapp mobile smoke", () => {
     await expect(page.getByText("Given", { exact: true })).toBeVisible({ timeout: 30_000 });
   });
 
-  test("?address= shows grid banner with link to add-to-grid flow", async ({ page }) => {
+  test("?address= shows link to add-to-grid flow", async ({ page }) => {
     await page.goto(`/?address=${encodeURIComponent(SAMPLE_UP)}&chainId=42`);
-    await expect(page.getByRole("region", { name: /Add Handshake to your profile/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole("link", { name: /Add to my Grid/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Add to my profile/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test("add-to-grid route loads", async ({ page }) => {

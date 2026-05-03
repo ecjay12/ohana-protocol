@@ -12,7 +12,6 @@ import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
 import { useLuksoHandshakeChainInference } from "@/hooks/useLuksoHandshakeChainInference";
 import { useProfileData } from "@/hooks/useProfileData";
 import { ProfileWidgetCard } from "@/components/ProfileWidgetCard";
-import { GridUpdateBanner } from "@/components/GridUpdateBanner";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { getAddress } from "ethers";
@@ -79,11 +78,11 @@ function NoProfileSetup() {
         {inGridIframe ? (
           <a
             href={addToGridAbsoluteUrl()}
-            target="_blank"
+            target="_top"
             rel="noopener noreferrer"
             className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
           >
-            Add to my profile (opens in browser)
+            Add to my profile (full page)
           </a>
         ) : (
           <Link
@@ -229,7 +228,6 @@ export function MiniappPage() {
           inGrid ? "min-h-0 w-full justify-start p-3 sm:p-5" : "min-h-screen min-h-[100dvh] justify-center p-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-6"
         }`}
       >
-        <GridUpdateBanner embedded={inGrid} className={inGrid ? "shrink-0" : ""} />
         <ProfileWidgetCard
           profileAddress={profileAddress}
           handshakeChainId={effectiveChainId}

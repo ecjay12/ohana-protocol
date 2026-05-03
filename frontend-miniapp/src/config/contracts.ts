@@ -42,14 +42,19 @@ export function getHandshakeAddress(chainId: number): string | null {
 
 /**
  * Absolute `/add-to-grid` URL for this deployment.
- * When the miniapp runs inside a profile Grid iframe, open this with `target="_blank"` so the
- * injected wallet (MetaMask / UP extension) is available — it is often not exposed to cross-origin iframes.
+ * When running inside a profile Grid iframe, open with `target="_top"` so the **whole tab/WebView**
+ * loads this URL (wallet injectors are usually unavailable inside cross-origin iframes, and many
+ * mobile apps block `target="_blank"` popups).
  */
 export function addToGridAbsoluteUrl(): string {
-  const base = trimOrigin(
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : (import.meta.env.VITE_MINIAPP_PUBLIC_ORIGIN as string | undefined)
-  );
+  let fromWindow = "";
+  if (typeof window !== "undefined" && window.location?.origin) {
+    const proto = window.location.protocol;
+    if (proto === "http:" || proto === "https:") {
+      fromWindow = trimOrigin(window.location.origin);
+    }
+  }
+  const fromEnv = trimOrigin(import.meta.env.VITE_MINIAPP_PUBLIC_ORIGIN as string | undefined);
+  const base = fromWindow || fromEnv;
   return base ? `${base}/add-to-grid` : "/add-to-grid";
 }

@@ -453,7 +453,7 @@ export function ProfileWidgetCard({
           {compact ? (
             <a
               href={addToGridAbsoluteUrl()}
-              target="_blank"
+              target="_top"
               rel="noopener noreferrer"
               className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
             >
