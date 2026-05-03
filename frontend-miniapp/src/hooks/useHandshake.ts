@@ -43,8 +43,8 @@ function isOpaqueSimulationFailure(extracted: string): boolean {
 
 
 export const CATEGORIES = [
-  { value: 0, label: "Agent/Bot" },
   { value: 1, label: "Human" },
+  { value: 0, label: "Agent/Bot" },
 ] as const;
 
 export type VouchStatus = 0 | 1 | 2 | 3;

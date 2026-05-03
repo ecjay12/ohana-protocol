@@ -38,7 +38,7 @@ export function VouchCard({
   const [targetAddress, setTargetAddress] = useState(initialAddress);
   /** Set when user picks a profile from indexer search (non-compact). */
   const [pickedAddress, setPickedAddress] = useState<string | null>(null);
-  const [category, setCategory] = useState(0);
+  const [category, setCategory] = useState(1);
   const compactTarget = initialAddress.trim();
 
   const effectiveTargetAddress = useMemo(() => {
