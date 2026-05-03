@@ -9,8 +9,6 @@ import { countVouchesWithStatus } from "./lib/vouchStatusCounts";
 import { VOUCH_FEE_DISPLAY } from "./config/contracts";
 import { getHiddenVouchesFromUP, addHiddenVoucherToUP, removeHiddenVoucherFromUP } from "./lib/upHiddenVouches";
 import { getHiddenVouchers } from "./lib/hiddenVouchersStorage";
-import { hasERC8004Support } from "./lib/erc8004";
-import { submitVouchAsFeedback } from "./lib/syncHandshakeToERC8004";
 import { AppLayout } from "./layout/AppLayout";
 import { HeroSection } from "./components/HeroSection";
 import { LuksoActivitySection } from "./components/LuksoActivitySection";
@@ -514,22 +512,6 @@ function App() {
     [removeVouch, refresh]
   );
 
-  const handlePublishToERC8004 = useCallback(
-    async (_targetAddress: string, category: number, targetAgentId: number) => {
-      if (!provider || !account) return;
-      const signer = await provider.getSigner();
-      await submitVouchAsFeedback({
-        signer,
-        chainId,
-        targetAgentId,
-        category,
-      });
-      refresh();
-      showToast("Published to ERC-8004!", { type: "success" });
-    },
-    [provider, account, chainId, refresh, showToast]
-  );
-
   const feeDisplay = VOUCH_FEE_DISPLAY[chainId];
   const feeLabel = feeDisplay
     ? `${feeDisplay.amount} ${feeDisplay.symbol}`
@@ -710,8 +692,6 @@ function App() {
                   onRemoveVouch={handleRemoveVouch}
                   onRefresh={refresh}
                   disabled={!isConnected}
-                  hasERC8004Support={hasERC8004Support(chainId)}
-                  onPublishToERC8004={handlePublishToERC8004}
                   crossNetworkSummary={crossNetworkHistorySummary}
                   viewProfileAddress={profilePathAddress}
                 />

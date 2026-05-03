@@ -5,12 +5,11 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, Download, EyeOff, Eye, Trash2, Share2 } from "lucide-react";
+import { RefreshCw, Download, EyeOff, Eye, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GlassCard } from "./GlassCard";
 import { GlowButton } from "./GlowButton";
 import { exportVouchesToCSV, type VouchHistoryRow } from "@/lib/csvExport";
-import { getStoredAgentId } from "@/lib/agentIdStorage";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import type { BrowserProvider } from "ethers";
 import { useIndexerDisplayNames } from "@/hooks/useIndexerDisplayNames";
@@ -48,8 +47,6 @@ interface HistoryCardProps {
   onRemoveVouch?: (target: string) => void;
   onRefresh: () => void;
   disabled?: boolean;
-  hasERC8004Support?: boolean;
-  onPublishToERC8004?: (targetAddress: string, category: number, targetAgentId: number) => Promise<void>;
   /**
    * When set, headline + tab totals match multi-chain aggregation (same as profile).
    * Rows below still reflect `vouchesGiven` / `vouchesReceived` (this network only).
@@ -81,19 +78,12 @@ export function HistoryCard({
   onRemoveVouch,
   onRefresh,
   disabled = false,
-  hasERC8004Support = false,
-  onPublishToERC8004,
   crossNetworkSummary,
   viewProfileAddress,
 }: HistoryCardProps) {
   const [activeTab, setActiveTab] = useState<"given" | "received">("given");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [expandedPublishTarget, setExpandedPublishTarget] = useState<string | null>(null);
-  const [agentIdInputs, setAgentIdInputs] = useState<Record<string, string>>({});
-  const [publishPending, setPublishPending] = useState(false);
-
-  const storedMyAgentId = account ? getStoredAgentId(chainId, account) : null;
 
   const categoryLabel = (cat: number) => categories.find((c) => c.value === cat)?.label ?? String(cat);
 
@@ -352,86 +342,6 @@ export function HistoryCard({
                   </div>
                   {activeTab === "given" && (
                     <div className="flex flex-wrap items-center gap-2">
-                      {vouch.status === 2 && hasERC8004Support && onPublishToERC8004 && (
-                        <>
-                          {expandedPublishTarget === vouch.address ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <input
-                                type="number"
-                                min={0}
-                                placeholder={
-                                  vouch.address.toLowerCase() === account.toLowerCase()
-                                    ? storedMyAgentId ?? "Your Agent ID"
-                                    : "Agent ID"
-                                }
-                                value={agentIdInputs[vouch.address] ?? ""}
-                                onChange={(e) =>
-                                  setAgentIdInputs((prev) => ({ ...prev, [vouch.address]: e.target.value }))
-                                }
-                                className="w-24 rounded-lg border border-theme-border bg-theme-surface px-2 py-1 text-sm focus:border-theme-accent focus:outline-none"
-                              />
-                              <GlowButton
-                                variant="primary"
-                                className="px-3 py-1.5 text-sm"
-                                disabled={
-                                  disabled ||
-                                  publishPending ||
-                                  txPending ||
-                                  !(
-                                    agentIdInputs[vouch.address]?.trim() ||
-                                    (vouch.address.toLowerCase() === account.toLowerCase() ? storedMyAgentId : null)
-                                  )
-                                }
-                                onClick={async () => {
-                                  const agentIdStr =
-                                    agentIdInputs[vouch.address]?.trim() ||
-                                    (vouch.address.toLowerCase() === account.toLowerCase() ? storedMyAgentId : null);
-                                  if (!agentIdStr) return;
-                                  const agentId = parseInt(agentIdStr, 10);
-                                  if (Number.isNaN(agentId) || agentId < 0) return;
-                                  setPublishPending(true);
-                                  try {
-                                    await onPublishToERC8004(vouch.address, vouch.category, agentId);
-                                    setExpandedPublishTarget(null);
-                                    setAgentIdInputs((prev) => {
-                                      const next = { ...prev };
-                                      delete next[vouch.address];
-                                      return next;
-                                    });
-                                  } finally {
-                                    setPublishPending(false);
-                                  }
-                                }}
-                              >
-                                {publishPending ? "Publishing…" : "Publish"}
-                              </GlowButton>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExpandedPublishTarget(null);
-                                  setAgentIdInputs((prev) => {
-                                    const next = { ...prev };
-                                    delete next[vouch.address];
-                                    return next;
-                                  });
-                                }}
-                                className="text-xs text-theme-text-muted hover:text-theme-text"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <GlowButton
-                              variant="secondary"
-                              disabled={disabled || txPending}
-                              onClick={() => setExpandedPublishTarget(vouch.address)}
-                            >
-                              <Share2 className="h-3.5 w-3.5 mr-1" />
-                              Publish to ERC-8004
-                            </GlowButton>
-                          )}
-                        </>
-                      )}
                       {onRemoveVouch && (
                         <GlowButton
                           variant="secondary"

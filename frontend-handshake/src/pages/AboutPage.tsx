@@ -259,10 +259,6 @@ export function AboutPage() {
               <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" />
               Embed your vouch count as a badge on any site
             </li>
-            <li className="flex gap-2">
-              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-theme-accent" />
-              Publish Agent/Bot vouches to ERC-8004
-            </li>
           </ul>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
