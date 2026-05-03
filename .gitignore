@@ -20,6 +20,10 @@ coverage.json
 *.pem
 secrets/
 
+# OAuth / credential exports (keep copies outside the repo, e.g. %USERPROFILE%\ohana-protocol-local-secrets)
+Consumer Key.txt
+**/Consumer Key.txt
+
 # Local setup (private, not committed)
 local/
 
