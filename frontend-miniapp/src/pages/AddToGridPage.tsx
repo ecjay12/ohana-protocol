@@ -10,6 +10,7 @@ import LSP0 from "@lukso/lsp-smart-contracts/artifacts/LSP0ERC725Account.json";
 import { Contract, keccak256, toUtf8Bytes } from "ethers";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { MINIAPP_PRODUCTION_URL } from "@/config/contracts";
+import { formatTransactionError } from "@/lib/miniappUserErrors";
 
 const LSP28_KEY = "0x724141d9918ce69e6b8afcf53a91748466086ba2c74b94cab43c649ae2ac23ff";
 
@@ -96,7 +97,7 @@ export function AddToGridPage() {
       setStatus("success");
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : String(e));
+      setError(formatTransactionError(e));
     }
   };
 

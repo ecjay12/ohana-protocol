@@ -3,6 +3,7 @@
  */
 import { useCallback, useState, useEffect } from "react";
 import { BrowserProvider, type Eip1193Provider } from "ethers";
+import { formatWalletConnectError } from "@/lib/miniappUserErrors";
 import chainConfig from "@shared/chainConfig.json";
 
 const chainsRaw = chainConfig.chains as Record<string, { name: string; rpc: string }>;
@@ -117,7 +118,7 @@ export function useInjectedWallet() {
     } catch (e) {
       setState((s) => ({
         ...s,
-        error: e instanceof Error ? e.message : "Connection failed",
+        error: formatWalletConnectError(e),
       }));
     }
   }, []);
@@ -160,7 +161,7 @@ export function useInjectedWallet() {
       });
       setState((s) => ({ ...s, chainId }));
     } catch (e) {
-      setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Switch chain failed" }));
+      setState((s) => ({ ...s, error: formatWalletConnectError(e) }));
     }
   }, [state.provider]);
 

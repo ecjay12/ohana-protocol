@@ -8,73 +8,14 @@ import { getHandshakeAddress } from "@/config/contracts";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import { agentDebugLog } from "@/lib/agentDebugLog";
 
-const OPAQUE_REVERT_USER_MESSAGE =
-  "[Handshake miniapp] No revert reason was returned (common on UP mobile). Check: LUKSO mainnet vs testnet matches this profile, you have enough LYX for the vouch fee plus gas, and you have not already vouched. If you see this text (not raw “missing revert data”), the latest miniapp is loaded.";
+import {
+  combinedErrorText,
+  extractRevertText,
+  formatTransactionError,
+  isLikelyOpaqueWalletRevert,
+} from "@/lib/miniappUserErrors";
 
-function jsonSnippetForMatching(e: unknown): string {
-  try {
-    const s = JSON.stringify(e, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
-    return s.length > 1800 ? s.slice(0, 1800) : s;
-  } catch {
-    return "";
-  }
-}
-
-function extractRevertText(e: unknown): string {
-  if (e instanceof Error) {
-    const err = e as Error & {
-      code?: string | number;
-      reason?: string;
-      shortMessage?: string;
-      data?: string;
-      info?: { error?: { message?: string; data?: string }; reason?: string };
-    };
-    const codeStr = err.code != null ? String(err.code) : "";
-    const nested =
-      err.info && typeof err.info === "object" && err.info.error?.message
-        ? String(err.info.error.message)
-        : "";
-    const dataStr =
-      err.info && typeof err.info === "object" && err.info.error?.data
-        ? String(err.info.error.data)
-        : err.data
-          ? String(err.data)
-          : "";
-    return [codeStr, err.reason, nested, dataStr, err.shortMessage, err.message].filter(Boolean).join(" ");
-  }
-  if (e && typeof e === "object" && "message" in (e as object)) {
-    return String((e as { message: unknown }).message);
-  }
-  return String(e ?? "");
-}
-
-/** Concatenate every string we can get from an thrown value (wallet + ethers vary a lot on mobile). */
-function combinedErrorText(e: unknown): string {
-  const parts = [extractRevertText(e), jsonSnippetForMatching(e)].filter(Boolean);
-  return parts.join(" ").trim() || "Transaction failed";
-}
-
-/** True when the RPC/wallet didn’t return Solidity revert data (typical UP mobile + ethers). */
-function isLikelyOpaqueWalletRevert(raw: string): boolean {
-  const lower = raw.toLowerCase();
-  if (lower.includes("revert data missing")) return true;
-  if (lower.includes("missing revert data")) return true;
-  if (lower.includes("missing revert data in transaction")) return true;
-  if (lower.includes("missing revert")) return true;
-  if (lower.includes("missing response")) return true;
-  if (lower.includes("no revert data")) return true;
-  if (lower.includes("could not coalesce error")) return true;
-  if (lower.includes("transaction reverted without a reason")) return true;
-  if (lower.includes("execution reverted") && lower.includes("unknown custom error")) return true;
-  if (
-    lower.includes("missing") &&
-    lower.includes("revert") &&
-    (lower.includes("data") || lower.includes("reason"))
-  ) {
-    return true;
-  }
-  return false;
-}
+export { userFacingHandshakeError } from "@/lib/miniappUserErrors";
 
 /** Prefer wallet-reported chain for LUKSO (fixes UP app when `chainId` prop is briefly wrong vs actual network). */
 async function resolveLuksoExecutionChainId(
@@ -100,48 +41,6 @@ function isOpaqueSimulationFailure(extracted: string): boolean {
   return t.trim().length === 0;
 }
 
-function getRevertReason(e: unknown): string {
-  const raw = combinedErrorText(e);
-  const friendly = toFriendlyError(raw);
-  if (isLikelyOpaqueWalletRevert(raw) || isLikelyOpaqueWalletRevert(friendly)) {
-    return OPAQUE_REVERT_USER_MESSAGE;
-  }
-  return friendly;
-}
-
-/** Map any user-visible Handshake / wallet error to a friendly line (opaque RPC → branded copy). */
-export function userFacingHandshakeError(message: string | null | undefined): string | null {
-  if (message == null || message === "") return null;
-  if (isLikelyOpaqueWalletRevert(message)) return OPAQUE_REVERT_USER_MESSAGE;
-  return message;
-}
-
-function toFriendlyError(raw: string): string {
-  const lower = raw.toLowerCase();
-  if (isLikelyOpaqueWalletRevert(raw)) {
-    return OPAQUE_REVERT_USER_MESSAGE;
-  }
-  if (
-    lower.includes("429") ||
-    lower.includes("too many requests") ||
-    lower.includes("-32016")
-  ) {
-    return "The network is busy. Wait a moment and try again.";
-  }
-  if (lower.includes("insufficient funds")) {
-    return "Not enough LYX to cover the vouch fee plus gas.";
-  }
-  if (lower.includes("vouch exists")) return "You've already vouched for this profile.";
-  if (lower.includes("cannot vouch for self")) return "You can't vouch for yourself.";
-  if (lower.includes("invalid target") || lower.includes("invalid address")) return "Please enter a valid address.";
-  if (lower.includes("insufficient fee")) return "Please add enough to cover the vouch fee.";
-  if (lower.includes("not pending")) return "This vouch is no longer pending.";
-  if (lower.includes("user rejected") || lower.includes("user denied")) return "Transaction was cancelled.";
-  if (lower.includes("execution reverted") || lower.includes("call exception")) {
-    return "The transaction was rejected on-chain. Check that you’re on LUKSO (mainnet or testnet to match this profile) and have enough LYX.";
-  }
-  return raw.length > 80 ? "Transaction failed. Please try again." : raw;
-}
 
 export const CATEGORIES = [
   { value: 0, label: "Agent/Bot" },
@@ -293,7 +192,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
             );
             // #endregion
             if (!isOpaqueSimulationFailure(ext)) {
-              setError(toFriendlyError(ext) || "This wouldn’t go through. Check your balance and network.");
+              setError(formatTransactionError(ext));
               setTxPending(false);
               return;
             }
@@ -337,13 +236,13 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
           {
             combined: combinedErrorText(e),
             extract: extractRevertText(e),
-            friendly: getRevertReason(e),
-            friendlyStillRaw: getRevertReason(e).toLowerCase().includes("missing revert"),
+            friendly: formatTransactionError(e),
+            friendlyStillRaw: formatTransactionError(e).toLowerCase().includes("missing revert"),
           },
           "H1-H5"
         );
         // #endregion
-        setError(getRevertReason(e));
+        setError(formatTransactionError(e));
         throw e;
       } finally {
         setTxPending(false);
@@ -364,7 +263,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
-        setError(getRevertReason(e));
+        setError(formatTransactionError(e));
         throw e;
       } finally {
         setTxPending(false);
@@ -423,7 +322,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
-        setError(getRevertReason(e));
+        setError(formatTransactionError(e));
         throw e;
       } finally {
         setTxPending(false);
@@ -443,7 +342,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
-        setError(getRevertReason(e));
+        setError(formatTransactionError(e));
         throw e;
       } finally {
         setTxPending(false);

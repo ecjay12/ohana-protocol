@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Contract, JsonRpcProvider, getAddress } from "ethers";
 import { CHAINS } from "@/hooks/useInjectedWallet";
 import { getHandshakeAddress } from "@/config/contracts";
+import { formatReadStatsError } from "@/lib/miniappUserErrors";
 import HandshakeArtifact from "@contracts";
 
 const ABI = HandshakeArtifact?.abi ?? [];
@@ -46,7 +47,7 @@ export function useHandshakeReadOnly(chainId: number, profileAddress: string | n
       setReceived(Number(accepted));
       setGiven(targets.length);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      setError(formatReadStatsError(e));
     } finally {
       setLoading(false);
     }
