@@ -42,6 +42,11 @@ export function Header() {
                 Create
               </Link>
               {user && (
+                <Link to="/bulk-import" className={`text-sm font-medium transition-colors ${navLinkColor}`}>
+                  Bulk import
+                </Link>
+              )}
+              {user && (
                 <Link to="/profile" className={`text-sm font-medium transition-colors ${navLinkColor}`}>
                   Profile
                 </Link>

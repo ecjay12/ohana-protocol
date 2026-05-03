@@ -6,24 +6,140 @@ import { Contract, BrowserProvider, JsonRpcProvider, getAddress } from "ethers";
 import HandshakeArtifact from "@contracts";
 import { getHandshakeAddress } from "@/config/contracts";
 import { CHAINS } from "@/hooks/useInjectedWallet";
+import { agentDebugLog } from "@/lib/agentDebugLog";
+
+const OPAQUE_REVERT_USER_MESSAGE =
+  "[Handshake miniapp] No revert reason was returned (common on UP mobile). Check: LUKSO mainnet vs testnet matches this profile, you have enough LYX for the vouch fee plus gas, and you have not already vouched. If you see this text (not raw “missing revert data”), the latest miniapp is loaded.";
+
+function jsonSnippetForMatching(e: unknown): string {
+  try {
+    const s = JSON.stringify(e, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+    return s.length > 1800 ? s.slice(0, 1800) : s;
+  } catch {
+    return "";
+  }
+}
+
+function extractRevertText(e: unknown): string {
+  if (e instanceof Error) {
+    const err = e as Error & {
+      code?: string | number;
+      reason?: string;
+      shortMessage?: string;
+      data?: string;
+      info?: { error?: { message?: string; data?: string }; reason?: string };
+    };
+    const codeStr = err.code != null ? String(err.code) : "";
+    const nested =
+      err.info && typeof err.info === "object" && err.info.error?.message
+        ? String(err.info.error.message)
+        : "";
+    const dataStr =
+      err.info && typeof err.info === "object" && err.info.error?.data
+        ? String(err.info.error.data)
+        : err.data
+          ? String(err.data)
+          : "";
+    return [codeStr, err.reason, nested, dataStr, err.shortMessage, err.message].filter(Boolean).join(" ");
+  }
+  if (e && typeof e === "object" && "message" in (e as object)) {
+    return String((e as { message: unknown }).message);
+  }
+  return String(e ?? "");
+}
+
+/** Concatenate every string we can get from an thrown value (wallet + ethers vary a lot on mobile). */
+function combinedErrorText(e: unknown): string {
+  const parts = [extractRevertText(e), jsonSnippetForMatching(e)].filter(Boolean);
+  return parts.join(" ").trim() || "Transaction failed";
+}
+
+/** True when the RPC/wallet didn’t return Solidity revert data (typical UP mobile + ethers). */
+function isLikelyOpaqueWalletRevert(raw: string): boolean {
+  const lower = raw.toLowerCase();
+  if (lower.includes("revert data missing")) return true;
+  if (lower.includes("missing revert data")) return true;
+  if (lower.includes("missing revert data in transaction")) return true;
+  if (lower.includes("missing revert")) return true;
+  if (lower.includes("missing response")) return true;
+  if (lower.includes("no revert data")) return true;
+  if (lower.includes("could not coalesce error")) return true;
+  if (lower.includes("transaction reverted without a reason")) return true;
+  if (lower.includes("execution reverted") && lower.includes("unknown custom error")) return true;
+  if (
+    lower.includes("missing") &&
+    lower.includes("revert") &&
+    (lower.includes("data") || lower.includes("reason"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Prefer wallet-reported chain for LUKSO (fixes UP app when `chainId` prop is briefly wrong vs actual network). */
+async function resolveLuksoExecutionChainId(
+  provider: BrowserProvider | null,
+  fallBack: number
+): Promise<number> {
+  try {
+    if (provider) {
+      const nid = Number((await provider.getNetwork()).chainId);
+      if (nid === 42 || nid === 4201) return nid;
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallBack;
+}
+
+/** Public RPC eth_call failed without a revert reason (common on mobile) — don’t block the real wallet tx. */
+function isOpaqueSimulationFailure(extracted: string): boolean {
+  if (isLikelyOpaqueWalletRevert(extracted)) return true;
+  const t = extracted.toLowerCase();
+  if (t.includes("could not coalesce error")) return true;
+  return t.trim().length === 0;
+}
 
 function getRevertReason(e: unknown): string {
-  if (e instanceof Error) {
-    const err = e as Error & { reason?: string; shortMessage?: string };
-    const raw = err.reason || err.shortMessage || err.message || "Transaction failed";
-    return toFriendlyError(raw);
+  const raw = combinedErrorText(e);
+  const friendly = toFriendlyError(raw);
+  if (isLikelyOpaqueWalletRevert(raw) || isLikelyOpaqueWalletRevert(friendly)) {
+    return OPAQUE_REVERT_USER_MESSAGE;
   }
-  return "Something went wrong. Please try again.";
+  return friendly;
+}
+
+/** Map any user-visible Handshake / wallet error to a friendly line (opaque RPC → branded copy). */
+export function userFacingHandshakeError(message: string | null | undefined): string | null {
+  if (message == null || message === "") return null;
+  if (isLikelyOpaqueWalletRevert(message)) return OPAQUE_REVERT_USER_MESSAGE;
+  return message;
 }
 
 function toFriendlyError(raw: string): string {
   const lower = raw.toLowerCase();
+  if (isLikelyOpaqueWalletRevert(raw)) {
+    return OPAQUE_REVERT_USER_MESSAGE;
+  }
+  if (
+    lower.includes("429") ||
+    lower.includes("too many requests") ||
+    lower.includes("-32016")
+  ) {
+    return "The network is busy. Wait a moment and try again.";
+  }
+  if (lower.includes("insufficient funds")) {
+    return "Not enough LYX to cover the vouch fee plus gas.";
+  }
   if (lower.includes("vouch exists")) return "You've already vouched for this profile.";
   if (lower.includes("cannot vouch for self")) return "You can't vouch for yourself.";
   if (lower.includes("invalid target") || lower.includes("invalid address")) return "Please enter a valid address.";
   if (lower.includes("insufficient fee")) return "Please add enough to cover the vouch fee.";
   if (lower.includes("not pending")) return "This vouch is no longer pending.";
   if (lower.includes("user rejected") || lower.includes("user denied")) return "Transaction was cancelled.";
+  if (lower.includes("execution reverted") || lower.includes("call exception")) {
+    return "The transaction was rejected on-chain. Check that you’re on LUKSO (mainnet or testnet to match this profile) and have enough LYX.";
+  }
   return raw.length > 80 ? "Transaction failed. Please try again." : raw;
 }
 
@@ -76,8 +192,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
 
   const vouch = useCallback(
     async (target: string, category: number) => {
-      const c = await getSignerContract();
-      if (!c) return;
+      if (!provider || !account) return;
       setTxPending(true);
       setError(null);
       try {
@@ -87,25 +202,154 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
           setTxPending(false);
           return;
         }
-        // Read fee from readOnlyContract (JsonRpcProvider): UP Provider returns raw RPC format ethers can't parse
-        const feeContract = readOnlyContract ?? c;
+
+        const executionChainId = await resolveLuksoExecutionChainId(provider, chainId);
+        const execAddr = getHandshakeAddress(executionChainId);
+        if (!execAddr) {
+          setError("Handshake isn’t available on this network.");
+          setTxPending(false);
+          return;
+        }
+
+        let signerFromProvider = account ?? "";
+        try {
+          signerFromProvider = await provider.getSigner().then((s) => s.getAddress());
+        } catch {
+          /* keep account */
+        }
+        // #region agent log
+        agentDebugLog(
+          "useHandshake.ts:vouch:entry",
+          "vouch invoked",
+          {
+            chainIdProp: chainId,
+            executionChainId,
+            chainAligned: chainId === executionChainId,
+            handshakeContract: execAddr,
+            accountHook: account ?? null,
+            signerAddress: signerFromProvider,
+            signerMatchesHook:
+              !!account && !!signerFromProvider && account.toLowerCase() === signerFromProvider.toLowerCase(),
+            target: normalizedTarget,
+            category,
+            cachedFeeWei: fee.toString(),
+          },
+          "H1-H3-H5"
+        );
+        // #endregion
+
+        const rpc = CHAINS[executionChainId as keyof typeof CHAINS]?.rpc;
+        const readC = rpc
+          ? new Contract(execAddr, HandshakeArtifact.abi, new JsonRpcProvider(rpc))
+          : null;
+
         let currentFee: bigint;
         try {
-          currentFee = await feeContract.fee();
+          currentFee = readC ? await readC.fee() : fee;
         } catch {
           currentFee = fee;
         }
-        const tx = await c.vouch(normalizedTarget, category, { value: currentFee });
+        if (currentFee === 0n && readC) {
+          try {
+            const signer = await provider.getSigner();
+            const tmp = new Contract(execAddr, HandshakeArtifact.abi, signer);
+            currentFee = await tmp.fee();
+          } catch {
+            /* keep 0 */
+          }
+        }
+        // #region agent log
+        agentDebugLog(
+          "useHandshake.ts:vouch:fee",
+          "fee resolved",
+          {
+            currentFeeWei: currentFee.toString(),
+            feeZero: currentFee === 0n,
+            source: readC ? "publicRpc" : "cached",
+          },
+          "H3"
+        );
+        // #endregion
+
+        if (readC && account) {
+          try {
+            await readC.vouch.staticCall(normalizedTarget, category, { value: currentFee, from: account });
+            // #region agent log
+            agentDebugLog(
+              "useHandshake.ts:vouch:staticOk",
+              "staticCall simulation ok",
+              { from: account, chain: executionChainId },
+              "H4"
+            );
+            // #endregion
+          } catch (simErr) {
+            const ext = combinedErrorText(simErr);
+            // #region agent log
+            agentDebugLog(
+              "useHandshake.ts:vouch:staticFail",
+              "staticCall simulation failed",
+              { extract: ext, opaque: isOpaqueSimulationFailure(ext) },
+              "H4"
+            );
+            // #endregion
+            if (!isOpaqueSimulationFailure(ext)) {
+              setError(toFriendlyError(ext) || "This wouldn’t go through. Check your balance and network.");
+              setTxPending(false);
+              return;
+            }
+            // #region agent log
+            agentDebugLog(
+              "useHandshake.ts:vouch:staticOpaque",
+              "opaque simulation failure — continuing to wallet tx",
+              {},
+              "H4"
+            );
+            // #endregion
+          }
+        } else {
+          // #region agent log
+          agentDebugLog(
+            "useHandshake.ts:vouch:staticSkip",
+            "staticCall skipped",
+            { hasReadC: !!readC, hasAccount: !!account },
+            "H4-H5"
+          );
+          // #endregion
+        }
+
+        const signer = await provider.getSigner();
+        const cExec = new Contract(execAddr, HandshakeArtifact.abi, signer);
+
+        // #region agent log
+        agentDebugLog("useHandshake.ts:vouch:send", "sending vouch tx", { gasLimit: "450000", executionChainId }, "H1-H5");
+        // #endregion
+        const tx = await cExec.vouch(normalizedTarget, category, { value: currentFee, gasLimit: 450000n });
         await tx.wait();
+        // #region agent log
+        agentDebugLog("useHandshake.ts:vouch:success", "vouch tx mined", { hash: tx.hash }, "H1-H5");
+        // #endregion
         setError(null);
       } catch (e: unknown) {
+        // #region agent log
+        agentDebugLog(
+          "useHandshake.ts:vouch:error",
+          "vouch failed",
+          {
+            combined: combinedErrorText(e),
+            extract: extractRevertText(e),
+            friendly: getRevertReason(e),
+            friendlyStillRaw: getRevertReason(e).toLowerCase().includes("missing revert"),
+          },
+          "H1-H5"
+        );
+        // #endregion
         setError(getRevertReason(e));
         throw e;
       } finally {
         setTxPending(false);
       }
     },
-    [getSignerContract, readOnlyContract, fee, account, chainId, address]
+    [provider, fee, account, chainId]
   );
 
   const removeVouch = useCallback(
@@ -116,7 +360,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
       setError(null);
       try {
         const normalizedTarget = getAddress(target.trim());
-        const tx = await c.removeVouch(normalizedTarget);
+        const tx = await c.removeVouch(normalizedTarget, { gasLimit: 350000n });
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
@@ -175,7 +419,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
       setTxPending(true);
       setError(null);
       try {
-        const tx = await c.acceptVouch(getAddress(voucher.trim()));
+        const tx = await c.acceptVouch(getAddress(voucher.trim()), { gasLimit: 450000n });
         await tx.wait();
         setError(null);
       } catch (e: unknown) {
@@ -195,7 +439,7 @@ export function useHandshake(provider: BrowserProvider | null, chainId: number, 
       setTxPending(true);
       setError(null);
       try {
-        const tx = await c.denyVouch(getAddress(voucher.trim()));
+        const tx = await c.denyVouch(getAddress(voucher.trim()), { gasLimit: 350000n });
         await tx.wait();
         setError(null);
       } catch (e: unknown) {

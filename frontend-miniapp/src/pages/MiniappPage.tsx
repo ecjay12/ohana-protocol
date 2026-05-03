@@ -9,13 +9,15 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useUPProvider } from "@/hooks/useUPProvider";
 import { useHostAddress } from "@/hooks/useHostAddress";
 import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
+import { useLuksoHandshakeChainInference } from "@/hooks/useLuksoHandshakeChainInference";
 import { useProfileData } from "@/hooks/useProfileData";
 import { ProfileWidgetCard } from "@/components/ProfileWidgetCard";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { getAddress } from "ethers";
-import { MINIAPP_PRODUCTION_URL } from "@/config/contracts";
+import { MINIAPP_PRODUCTION_URL, getHandshakeAddress } from "@/config/contracts";
 import { Copy, Check } from "lucide-react";
+import { agentDebugLog } from "@/lib/agentDebugLog";
 
 function NoProfileSetup() {
   const [addressInput, setAddressInput] = useState("");
@@ -126,23 +128,42 @@ function GridLoading() {
   );
 }
 
+function handshakeChainFromQueryParam(chainIdParam: string | null): number | null {
+  if (chainIdParam == null || chainIdParam === "") return null;
+  const n = parseInt(chainIdParam, 10);
+  if (!Number.isFinite(n) || getHandshakeAddress(n) == null) return null;
+  return n;
+}
+
 export function MiniappPage() {
   const [searchParams] = useSearchParams();
+  const showDebug = searchParams.get("debug") === "1";
   const chainIdParam = searchParams.get("chainId");
-  const chainId = chainIdParam ? parseInt(chainIdParam, 10) : 4201;
+  const urlHandshakeChainId = handshakeChainFromQueryParam(chainIdParam);
 
   // Single source: profile to vouch for = contextAccount (from LUKSO Grid) or ?address= (standalone)
-  const { contextAccount, account: upAccount, provider: upProvider, chainId: upChainId, isInUPContext, isConnected: upConnected } = useUPProvider();
+  const {
+    contextAccount,
+    account: upAccount,
+    provider: upProvider,
+    chainId: upChainId,
+    isInUPContext,
+    isConnected: upConnected,
+  } = useUPProvider();
   const profileAddress = useHostAddress(contextAccount);
   const injectedWallet = useInjectedWallet();
-  // Prefer connected wallet's chain when standalone so we read from the correct network
-  const effectiveChainId = isInUPContext
-    ? upChainId
-    : injectedWallet.isConnected && [42, 4201].includes(injectedWallet.chainId)
-      ? injectedWallet.chainId
-      : [42, 4201].includes(chainId)
-        ? chainId
-        : 4201;
+
+  const injectedHandshakeChain =
+    injectedWallet.isConnected && getHandshakeAddress(injectedWallet.chainId) != null ? injectedWallet.chainId : null;
+
+  const { chainId: effectiveChainId, probing: chainProbing, inferenceDebug } = useLuksoHandshakeChainInference(
+    profileAddress,
+    urlHandshakeChainId,
+    isInUPContext,
+    upChainId,
+    inIframe,
+    injectedHandshakeChain
+  );
 
   const [waitingForContext, setWaitingForContext] = useState(inIframe && !profileAddress);
 
@@ -159,22 +180,23 @@ export function MiniappPage() {
     effectiveChainId,
     profileAddress
   );
+  useEffect(() => {
+    if (!error) return;
+    // #region agent log
+    agentDebugLog(
+      "MiniappPage:statsReadError",
+      "useHandshakeReadOnly error (stats still shown in card)",
+      { error, effectiveChainId, profileAddress },
+      "H1"
+    );
+    // #endregion
+  }, [error, effectiveChainId, profileAddress]);
+
   const { profile } = useProfileData(effectiveChainId, profileAddress);
 
   if (!profileAddress) {
     if (waitingForContext) return <GridLoading />;
     return <NoProfileSetup />;
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-6">
-        <div className="glass-card max-w-md rounded-2xl p-8 text-center">
-          <h1 className="mb-2 text-xl font-semibold text-theme-text">Handshake</h1>
-          <p className="text-red-500">{error}</p>
-        </div>
-      </div>
-    );
   }
 
   const inGrid = typeof window !== "undefined" && window.self !== window.top;
@@ -190,10 +212,12 @@ export function MiniappPage() {
       >
         <ProfileWidgetCard
           profileAddress={profileAddress}
+          handshakeChainId={effectiveChainId}
           received={received}
           given={given}
+          statsError={error}
           profileName={profile?.name}
-          loading={loading}
+          loading={loading || chainProbing}
           onRefetch={refetch}
           upProviderContext={{
             account: upAccount,
@@ -205,6 +229,36 @@ export function MiniappPage() {
           injectedWallet={injectedWallet}
         />
       </div>
+      {showDebug && (
+        <div className="fixed bottom-1 left-1 z-[100] max-h-[45vh] max-w-[min(100vw-0.5rem,24rem)] overflow-auto rounded-lg border border-theme-border bg-theme-surface p-2 text-left shadow-lg sm:bottom-2 sm:left-2">
+          <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-theme-accent">
+            Handshake miniapp debug (?debug=1)
+          </p>
+          <pre className="whitespace-pre-wrap break-all font-mono text-[9px] leading-snug text-theme-text opacity-90">
+            {JSON.stringify(
+              {
+                profileAddress,
+                contextAccount,
+                visitorAccount: upAccount,
+                profileFromUrlOnly: contextAccount == null && profileAddress != null,
+                upChainIdReportedByHost: upChainId,
+                urlChainId: urlHandshakeChainId,
+                effectiveHandshakeChainId: effectiveChainId,
+                chainProbing,
+                inIframe,
+                isInUPContext,
+                inference: inferenceDebug,
+                vouchTrace:
+                  typeof window !== "undefined"
+                    ? (window as Window & { __OHANA_MINIAPP_DBG__?: unknown }).__OHANA_MINIAPP_DBG__
+                    : undefined,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

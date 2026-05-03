@@ -21,7 +21,8 @@ const LSP28_SCHEMA = {
   valueContent: "VerifiableURI" as const,
 };
 
-function buildGridJson(upAddress: string): string {
+function buildGridJson(upAddress: string, handshakeChainId: number): string {
+  const chainQs = `&chainId=${handshakeChainId}`;
   const grid = {
     LSP28TheGrid: [
       {
@@ -34,7 +35,7 @@ function buildGridJson(upAddress: string): string {
             height: 2,
             type: "IFRAME",
             properties: {
-              src: `${MINIAPP_PRODUCTION_URL}/?address=${upAddress}`,
+              src: `${MINIAPP_PRODUCTION_URL}/?address=${encodeURIComponent(upAddress)}${chainQs}`,
               allow: "accelerometer; autoplay; clipboard-write",
               sandbox: "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
               allowfullscreen: true,
@@ -65,7 +66,7 @@ export function AddToGridPage() {
     setError(null);
     setStatus("encoding");
     try {
-      const gridJson = buildGridJson(account);
+      const gridJson = buildGridJson(account, chainId);
       const jsonHash = keccak256(toUtf8Bytes(gridJson));
       const base64 = btoa(unescape(encodeURIComponent(gridJson)));
       const dataUri = `data:application/json;base64,${base64}`;

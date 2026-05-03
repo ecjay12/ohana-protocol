@@ -24,6 +24,7 @@ export function EventsPage() {
   const [weekdayFilter, setWeekdayFilter] = useState("Weekdays");
   const [eventTypeFilter, setEventTypeFilter] = useState("Event Type");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
+  const [directoryOnly, setDirectoryOnly] = useState(searchParams.get("directory") === "1");
 
   const isDark = theme === "dark";
   const bgColor = isDark ? "bg-[#1a1a2e]" : "bg-[#E2E0FF]";
@@ -34,7 +35,7 @@ export function EventsPage() {
     if (isSupported && provider) {
       loadOnChainEvents();
     }
-  }, [isSupported, provider, selectedCategory]);
+  }, [isSupported, provider, selectedCategory, directoryOnly]);
 
   async function loadEvents() {
     try {
@@ -46,6 +47,10 @@ export function EventsPage() {
       // Filter by category if selected
       if (selectedCategory && selectedCategory !== "all") {
         query = query.eq("category", selectedCategory);
+      }
+
+      if (directoryOnly) {
+        query = query.eq("is_directory_listing", true);
       }
 
       const { data, error } = await query.order("created_at", { ascending: false });
@@ -116,7 +121,10 @@ export function EventsPage() {
     } else {
       newSearchParams.set("category", categoryId);
     }
-    window.history.replaceState({}, "", `/events?${newSearchParams.toString()}`);
+    if (directoryOnly) newSearchParams.set("directory", "1");
+    else newSearchParams.delete("directory");
+    const qs = newSearchParams.toString();
+    window.history.replaceState({}, "", qs ? `/events?${qs}` : "/events");
   };
 
   return (
@@ -153,7 +161,7 @@ export function EventsPage() {
               </p>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <FilterDropdown
               label="Weekdays"
               options={["Weekdays", "Weekends", "Any"]}
@@ -166,6 +174,29 @@ export function EventsPage() {
               value={eventTypeFilter}
               onChange={setEventTypeFilter}
             />
+            <button
+              type="button"
+              onClick={() => {
+                const next = !directoryOnly;
+                setDirectoryOnly(next);
+                const p = new URLSearchParams(searchParams);
+                if (next) p.set("directory", "1");
+                else p.delete("directory");
+                const qs = p.toString();
+                window.history.replaceState({}, "", qs ? `/events?${qs}` : "/events");
+              }}
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                directoryOnly
+                  ? isDark
+                    ? "border-violet-400 bg-violet-500/20 text-violet-200"
+                    : "border-violet-500 bg-violet-50 text-violet-800"
+                  : isDark
+                    ? "border-white/20 text-white/80 hover:bg-white/10"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {directoryOnly ? "Directory only ✓" : "Directory listings"}
+            </button>
           </div>
         </div>
 

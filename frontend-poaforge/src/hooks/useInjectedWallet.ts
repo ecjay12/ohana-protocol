@@ -34,11 +34,15 @@ export function useInjectedWallet() {
     hasInjected: typeof window !== "undefined" && !!window.ethereum,
   });
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<{
+    provider: BrowserProvider;
+    accounts: string[];
+    chainId: number;
+  } | null> => {
     const eth = window.ethereum;
     if (!eth) {
       setState((s) => ({ ...s, error: "No wallet found. Install MetaMask or another browser wallet." }));
-      return;
+      return null;
     }
     try {
       const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
@@ -60,8 +64,10 @@ export function useInjectedWallet() {
         const list = Array.isArray(accs) ? (accs as string[]) : [];
         setState((s) => ({ ...s, accounts: list, isConnected: list.length > 0, provider: list.length > 0 ? s.provider : null }));
       });
+      return { provider: ethersProvider, accounts, chainId };
     } catch (e) {
       setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Connection failed" }));
+      return null;
     }
   }, []);
 

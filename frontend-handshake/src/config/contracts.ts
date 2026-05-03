@@ -36,13 +36,17 @@ export function getHandshakeAddress(chainId: number): string | null {
  */
 export const ERC8004_IDENTITY_REGISTRY: Record<number, string> = {
   1: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",     // Ethereum Mainnet
+  42: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",    // LUKSO Mainnet
   8453: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",  // Base Mainnet
+  4201: "0x8004A818BFB912233c491871b3d84c89A494BD9e",  // LUKSO Testnet (same deploy as Base Sepolia)
   84532: "0x8004A818BFB912233c491871b3d84c89A494BD9e", // Base Sepolia
 };
 
 export const ERC8004_REPUTATION_REGISTRY: Record<number, string> = {
   1: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",     // Ethereum Mainnet
+  42: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",    // LUKSO Mainnet
   8453: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",  // Base Mainnet
+  4201: "0x8004B663056A597Dffe9eCcC1965A193B7388713",  // LUKSO Testnet (same deploy as Base Sepolia)
   84532: "0x8004B663056A597Dffe9eCcC1965A193B7388713", // Base Sepolia
 };
 

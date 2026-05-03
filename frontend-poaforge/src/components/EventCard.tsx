@@ -17,7 +17,10 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
   const textPrimary = isDark ? "text-white" : "text-slate-900";
   const textSecondary = isDark ? "text-white/70" : "text-slate-600";
 
-  const eventDate = event.created_at ? new Date(event.created_at) : new Date();
+  const eventDate = (() => {
+    const src = event.start_datetime || event.created_at;
+    return src ? new Date(src) : new Date();
+  })();
   const month = eventDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
   const day = eventDate.getDate();
 
@@ -94,6 +97,11 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
               >
                 {event.is_poap ? "POAP" : "Basic"}
               </span>
+              {event.is_directory_listing && (
+                <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                  Directory
+                </span>
+              )}
               {event.requires_approval && (
                 <span className={`rounded-full bg-slate-100 px-3 py-1 text-xs font-medium ${isDark ? "bg-slate-800/30 text-slate-300" : "text-slate-600"}`}>
                   Requires Approval

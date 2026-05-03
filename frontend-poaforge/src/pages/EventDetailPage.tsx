@@ -303,6 +303,11 @@ export function EventDetailPage() {
                 {event.title}
               </h1>
               <p className={`mb-6 text-lg ${textSecondary} sm:text-xl`}>{event.description}</p>
+              {event.is_directory_listing && (
+                <p className={`mb-4 text-sm ${textSecondary}`}>
+                  Curated directory listing — confirm date and details on the organizer's site.
+                </p>
+              )}
               <div className="flex flex-wrap gap-4">
                 <button
                   onClick={event.requires_approval ? handleRequestClaim : handleClaimDirect}
@@ -336,11 +341,22 @@ export function EventDetailPage() {
                     ? "Claim POAP"
                     : "Connect Wallet to Claim"}
                 </button>
-                <button
-                  className={`rounded-full border-2 ${isDark ? "border-white/30 bg-white/10" : "border-white/30 bg-white/10"} px-8 py-4 text-lg font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20`}
-                >
-                  Learn More
-                </button>
+                {event.source_url ? (
+                  <a
+                    href={event.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`rounded-full border-2 ${isDark ? "border-white/30 bg-white/10" : "border-white/30 bg-white/10"} px-8 py-4 text-lg font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20`}
+                  >
+                    Official page / tickets
+                  </a>
+                ) : (
+                  <span
+                    className={`cursor-default rounded-full border-2 border-white/20 px-8 py-4 text-lg font-medium text-white/60`}
+                  >
+                    Learn more
+                  </span>
+                )}
               </div>
             </div>
           </motion.div>

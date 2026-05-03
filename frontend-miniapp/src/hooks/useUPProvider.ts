@@ -37,7 +37,7 @@ export function useUPProvider(): UPProviderState {
   const [contextAccount, setContextAccount] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
-  const [chainId, setChainId] = useState<number>(4201);
+  const [chainId, setChainId] = useState<number>(42);
   const [isInUPContext, setIsInUPContext] = useState(false);
 
   const updateFromProvider = useCallback((upProvider: ReturnType<typeof createClientUPProvider> | null) => {
@@ -49,10 +49,10 @@ export function useUPProvider(): UPProviderState {
       const acc0 = acc?.[0] ?? null;
       setContextAccount(ctx0);
       setAccount(acc0);
-      const raw = upProvider.chainId ?? 4201;
+      const raw = upProvider.chainId ?? 42;
       const rawStr = String(raw);
       const num = rawStr.startsWith("0x") ? parseInt(rawStr, 16) : Number(raw);
-      setChainId(Number.isNaN(num) ? 4201 : num);
+      setChainId(Number.isNaN(num) ? 42 : num);
       setIsInUPContext(ctx != null && ctx.length > 0);
       if (acc0) {
         setProvider(new BrowserProvider(upProvider as unknown as import("ethers").Eip1193Provider));
@@ -93,10 +93,10 @@ export function useUPProvider(): UPProviderState {
     const     onChainChanged = () => {
       if (mounted && upProvider) {
         try {
-          const raw = upProvider.chainId ?? 4201;
+          const raw = upProvider.chainId ?? 42;
           const rawStr = String(raw);
           const num = rawStr.startsWith("0x") ? parseInt(rawStr, 16) : Number(raw);
-          setChainId(Number.isNaN(num) ? 4201 : num);
+          setChainId(Number.isNaN(num) ? 42 : num);
         } catch { /* ignore */ }
       }
     };

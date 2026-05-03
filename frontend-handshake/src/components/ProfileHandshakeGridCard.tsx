@@ -63,7 +63,7 @@ export function ProfileHandshakeGridCard({
         );
         return;
       }
-      const gridEncoded = encodeLsp28MiniappGridValue(upAddress, miniappBase);
+      const gridEncoded = encodeLsp28MiniappGridValue(upAddress, miniappBase, chainId);
       await setHandshakeReferenceAndGrid(signer, upAddress, payload, gridEncoded);
       setNotice("Done. Open your Universal Profile to see Handshake on your home screen.");
     } catch (e: unknown) {

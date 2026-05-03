@@ -40,6 +40,10 @@ export interface Event {
   end_datetime?: string; // Event end (ISO 8601)
   nft_contract_address?: string;
   token_contract_address?: string;
+  /** Original listing URL (tickets, official page) for curated directory entries */
+  source_url?: string;
+  /** Curated / bulk-imported directory listing vs organizer-created */
+  is_directory_listing?: boolean;
   created_at: string;
   updated_at: string;
 }

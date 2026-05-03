@@ -6,12 +6,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { WalletConnect } from "./WalletConnect";
-import { useHandshake, CATEGORIES } from "@/hooks/useHandshake";
+import { useHandshake, CATEGORIES, userFacingHandshakeError } from "@/hooks/useHandshake";
 import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL, FULL_APP_URL } from "@/config/contracts";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import { useTheme } from "@/components/ThemeSwitcher";
 import type { BrowserProvider } from "ethers";
 import type { WalletOption } from "@/hooks/useInjectedWallet";
+import { agentDebugLog } from "@/lib/agentDebugLog";
 const DOCS_URL = "https://docs.ohana.gg";
 const SUPPORT_URL = "https://discord.gg/ohana";
 const PRIVACY_URL = "https://ohana.gg/privacy";
@@ -40,8 +41,12 @@ interface InjectedWalletState {
 
 interface ProfileWidgetCardProps {
   profileAddress: string;
+  /** Chain used for Handshake read stats (may differ from tx chain when iframe `chainId=` overrides a wrong UP provider). */
+  handshakeChainId: number;
   received: number;
   given: number;
+  /** RPC/read failure for stats; card still shows last counts (often 0). */
+  statsError?: string | null;
   profileName?: string | null;
   loading: boolean;
   onRefetch: () => void;
@@ -56,8 +61,10 @@ function truncateAddress(addr: string): string {
 
 export function ProfileWidgetCard({
   profileAddress,
+  handshakeChainId,
   received,
   given,
+  statsError = null,
   profileName,
   loading,
   onRefetch,
@@ -82,13 +89,30 @@ export function ProfileWidgetCard({
   const useUP = isInUPContext;
   const account = useUP ? (upProviderContext?.account ?? null) : (accounts[0] ?? null);
   const provider = useUP ? upProviderContext?.provider : injProvider;
-  const chainId = useUP ? (upProviderContext?.chainId ?? 4201) : injChainId;
+  const txChainId = useUP ? (upProviderContext?.chainId ?? 42) : injChainId;
   const isConnected = useUP ? (upProviderContext?.isConnected ?? false) : injConnected;
   const { vouch, removeVouch, getVouch, getIncomingPending, acceptVouch, denyVouch, txPending, error: handshakeError, isSupported } = useHandshake(
     provider ?? null,
-    chainId,
+    txChainId,
     isConnected ? account : null
   );
+
+  useEffect(() => {
+    if (!handshakeError && !walletError) return;
+    // #region agent log
+    agentDebugLog(
+      "ProfileWidgetCard:displayErrors",
+      "wallet/handshake errors rendered",
+      {
+        handshakeRaw: handshakeError ?? null,
+        walletRaw: walletError ?? null,
+        handshakeShown: userFacingHandshakeError(handshakeError),
+        walletShown: userFacingHandshakeError(walletError),
+      },
+      "H3-H5"
+    );
+    // #endregion
+  }, [handshakeError, walletError]);
 
   const [canRevoke, setCanRevoke] = useState(false);
   const [vouchCategory, setVouchCategory] = useState(1);
@@ -134,6 +158,21 @@ export function ProfileWidgetCard({
 
   const handleVouch = async () => {
     if (!account || account.toLowerCase() === profileAddress.toLowerCase()) return;
+    // #region agent log
+    agentDebugLog(
+      "ProfileWidgetCard.tsx:handleVouch",
+      "user tapped vouch",
+      {
+        txChainId,
+        handshakeChainId,
+        useUP,
+        isConnected,
+        profileAddress,
+        category: vouchCategory,
+      },
+      "H1"
+    );
+    // #endregion
     try {
       await vouch(profileAddress, vouchCategory);
       onRefetch();
@@ -152,13 +191,16 @@ export function ProfileWidgetCard({
     }
   };
 
-  const feeDisplay = VOUCH_FEE_DISPLAY[chainId] ?? { amount: "0.1", symbol: "LYX" };
+  const feeDisplay = VOUCH_FEE_DISPLAY[txChainId] ?? { amount: "0.1", symbol: "LYX" };
   const handleDisplay = profileName ? (profileName.startsWith("@") ? profileName : `@${profileName}`) : null;
 
   const profileLabel = handleDisplay ?? truncateAddress(profileAddress);
   const isOwnProfile = isConnected && account && profileAddress && account.toLowerCase() === profileAddress.toLowerCase();
+  const displayHandshakeErr = userFacingHandshakeError(handshakeError);
+  const displayWalletErr = userFacingHandshakeError(walletError);
+  const displayActionError = displayHandshakeErr ?? displayWalletErr;
 
-  const gridUrl = `${MINIAPP_PRODUCTION_URL}/?address=${encodeURIComponent(profileAddress)}`;
+  const gridUrl = `${MINIAPP_PRODUCTION_URL}/?address=${encodeURIComponent(profileAddress)}&chainId=${handshakeChainId}`;
   const [copied, setCopied] = useState(false);
   const handleCopyGridUrl = async () => {
     try {
@@ -235,6 +277,14 @@ export function ProfileWidgetCard({
           </div>
         </div>
         {loading && <p className={`${compact ? "text-xs" : "text-[10px]"} text-theme-text-dim`}>Loading…</p>}
+        {statsError && (
+          <p
+            className={`text-center text-amber-600 dark:text-amber-400 ${compact ? "text-[10px] sm:text-xs" : "text-xs"}`}
+            role="status"
+          >
+            Couldn&apos;t refresh stats: {statsError}
+          </p>
+        )}
       </div>
 
       <>
@@ -375,8 +425,17 @@ export function ProfileWidgetCard({
             </div>
           )}
 
-        {(handshakeError || walletError) && (
-          <p className={`text-center text-red-500 ${compact ? "text-xs" : "text-sm"}`}>{handshakeError ?? walletError}</p>
+        {isInUPContext && handshakeChainId !== txChainId && (
+          <p
+            className={`text-center text-amber-600 dark:text-amber-400 ${compact ? "text-[10px]" : "text-xs"}`}
+          >
+            Stats use Handshake on {chains[handshakeChainId]?.name ?? `chain ${handshakeChainId}`}; transactions
+            follow the parent app ({chains[txChainId]?.name ?? `chain ${txChainId}`}).
+          </p>
+        )}
+
+        {displayActionError && (
+          <p className={`text-center text-red-500 ${compact ? "text-xs" : "text-sm"}`}>{displayActionError}</p>
         )}
       </>
 
@@ -422,7 +481,7 @@ export function ProfileWidgetCard({
 
       <footer className={`mt-auto flex flex-wrap items-center justify-between border-t border-theme-border ${compact ? "gap-1 pt-1.5" : "gap-2 pt-3"}`}>
         <select
-          value={chainId}
+          value={useUP ? handshakeChainId : injChainId}
           onChange={(e) => switchChain(Number(e.target.value))}
           className={`rounded border border-theme-border bg-theme-surface text-theme-text opacity-70 ${compact ? "px-2 py-1 text-xs sm:px-3 sm:py-1.5" : "px-2 py-1 text-xs"}`}
           disabled={upProviderContext?.isInUPContext}

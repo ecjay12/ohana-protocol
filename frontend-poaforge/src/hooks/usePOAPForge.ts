@@ -18,6 +18,65 @@ function toFriendlyError(raw: string): string {
 
 const FORGE_IFACE = new Interface(POAPForgeArtifact.abi);
 
+/** Parse EventCreated from a forge tx receipt (use after wallet connect before React re-renders). */
+export function parseEventCreatedFromReceipt(receipt: { logs?: Array<{ topics: string[]; data: string }> }) {
+  for (const log of receipt.logs ?? []) {
+    try {
+      const parsed = FORGE_IFACE.parseLog({ topics: log.topics as string[], data: log.data });
+      if (parsed?.name === "EventCreated") {
+        return {
+          nftContract: parsed.args[2] as string,
+          tokenContract: parsed.args[3] as string,
+        };
+      }
+    } catch {
+      // skip
+    }
+  }
+  return null;
+}
+
+/** Create on-chain event with an explicit provider (e.g. right after `connect()` returns). */
+export async function submitForgeCreateEvent(
+  provider: BrowserProvider,
+  chainId: number,
+  account: string,
+  eventId: string,
+  nftName: string,
+  nftSymbol: string,
+  tokenName: string,
+  tokenSymbol: string,
+  royaltyReceiver: string,
+  royaltyPercentBps: number
+) {
+  const forgeAddress = getPOAPForgeAddress(chainId);
+  if (!forgeAddress) throw new Error("POAP Forge is not deployed on this network");
+  const signer = await provider.getSigner();
+  const c = new Contract(forgeAddress, POAPForgeArtifact.abi, signer);
+  const rcvr = royaltyReceiver || account || "0x0000000000000000000000000000000000000000";
+  const tx = await c.createEvent(
+    eventId,
+    nftName,
+    nftSymbol,
+    tokenName,
+    tokenSymbol,
+    rcvr,
+    royaltyPercentBps
+  );
+  return tx.wait();
+}
+
+export async function submitSetMintSignerOnNft(
+  provider: BrowserProvider,
+  nftContractAddress: string,
+  mintSignerAddress: string
+) {
+  const signer = await provider.getSigner();
+  const nftContract = new Contract(nftContractAddress, POAPEventNFTArtifact.abi, signer);
+  const tx = await nftContract.setMintSigner(mintSignerAddress);
+  return tx.wait();
+}
+
 export interface ForgeEvent {
   nftContract: string;
   tokenContract: string;
@@ -41,12 +100,6 @@ export function usePOAPForge(provider: BrowserProvider | null, chainId: number, 
     setContract(new Contract(address, POAPForgeArtifact.abi, provider));
   }, [provider, address, account]);
 
-  const getSignerContract = useCallback(async () => {
-    if (!provider || !address) return null;
-    const signer = await provider.getSigner();
-    return new Contract(address, POAPForgeArtifact.abi, signer);
-  }, [provider, address]);
-
   const createEvent = useCallback(
     async (
       eventId: string,
@@ -57,25 +110,25 @@ export function usePOAPForge(provider: BrowserProvider | null, chainId: number, 
       royaltyReceiver: string,
       royaltyPercentBps: number
     ) => {
-      const c = await getSignerContract();
-      if (!c) {
+      if (!provider || !account) {
         setError("Wallet or contract not ready");
         return null;
       }
       setError(null);
       setTxPending(true);
       try {
-        const rcvr = royaltyReceiver || account || "0x0000000000000000000000000000000000000000";
-        const tx = await c.createEvent(
+        const receipt = await submitForgeCreateEvent(
+          provider,
+          chainId,
+          account,
           eventId,
           nftName,
           nftSymbol,
           tokenName,
           tokenSymbol,
-          rcvr,
+          royaltyReceiver,
           royaltyPercentBps
         );
-        const receipt = await tx.wait();
         setTxPending(false);
         return receipt;
       } catch (e: unknown) {
@@ -85,7 +138,7 @@ export function usePOAPForge(provider: BrowserProvider | null, chainId: number, 
         throw e;
       }
     },
-    [getSignerContract, account]
+    [provider, chainId, account]
   );
 
   const getEventCount = useCallback(async (): Promise<bigint> => {
@@ -129,39 +182,18 @@ export function usePOAPForge(provider: BrowserProvider | null, chainId: number, 
     return list.reverse();
   }, [getEventCount, getEvent]);
 
-  /** Parse EventCreated from receipt to get NFT and token contract addresses */
   const parseEventCreated = useCallback((receipt: { logs?: Array<{ topics: string[]; data: string }> }) => {
-    for (const log of receipt.logs ?? []) {
-      try {
-        const parsed = FORGE_IFACE.parseLog({ topics: log.topics as string[], data: log.data });
-        if (parsed?.name === "EventCreated") {
-          return {
-            nftContract: parsed.args[2] as string,
-            tokenContract: parsed.args[3] as string,
-          };
-        }
-      } catch {
-        // Skip logs that don't match
-      }
-    }
-    return null;
+    return parseEventCreatedFromReceipt(receipt);
   }, []);
 
   /** Set the mint signer on the NFT contract (for auto-claim). Only owner can call. */
   const setMintSigner = useCallback(
     async (nftContractAddress: string, signerAddress: string) => {
       if (!provider || !nftContractAddress || !signerAddress) return null;
-      const signer = await provider.getSigner();
-      const nftContract = new Contract(
-        nftContractAddress,
-        POAPEventNFTArtifact.abi,
-        signer
-      );
       setTxPending(true);
       setError(null);
       try {
-        const tx = await nftContract.setMintSigner(signerAddress);
-        await tx.wait();
+        await submitSetMintSignerOnNft(provider, nftContractAddress, signerAddress);
         setTxPending(false);
         return true;
       } catch (e: unknown) {

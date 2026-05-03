@@ -6,6 +6,7 @@ import { CreateEventPage } from "./pages/CreateEventPage";
 import { EventManagerPage } from "./pages/EventManagerPage";
 import { EventDetailPage } from "./pages/EventDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { BulkImportPage } from "./pages/BulkImportPage";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { StructuredData } from "./components/StructuredData";
@@ -23,6 +24,7 @@ function App() {
             <Route path="/events" element={<EventsPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/create" element={<CreateEventPage />} />
+            <Route path="/bulk-import" element={<BulkImportPage />} />
             <Route path="/manage/:eventId" element={<EventManagerPage />} />
             <Route path="/event/:eventId" element={<EventDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />

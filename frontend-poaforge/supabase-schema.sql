@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS events (
   end_datetime TIMESTAMPTZ, -- Event end date and time
   nft_contract_address TEXT, -- On-chain NFT contract (if upgraded)
   token_contract_address TEXT, -- On-chain token contract (if upgraded)
+  source_url TEXT, -- Official event / ticket URL for curated listings
+  is_directory_listing BOOLEAN DEFAULT false, -- Bulk-imported directory entry
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

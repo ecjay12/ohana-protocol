@@ -13,8 +13,10 @@ const LSP28_SCHEMA = {
   valueContent: "VerifiableURI" as const,
 };
 
-export function buildMiniappGridJson(upAddress: string, miniappBaseUrl: string): string {
+export function buildMiniappGridJson(upAddress: string, miniappBaseUrl: string, handshakeChainId?: number): string {
   const base = miniappBaseUrl.replace(/\/$/, "");
+  const chainQs =
+    handshakeChainId != null && Number.isFinite(handshakeChainId) ? `&chainId=${handshakeChainId}` : "";
   const grid = {
     LSP28TheGrid: [
       {
@@ -27,7 +29,7 @@ export function buildMiniappGridJson(upAddress: string, miniappBaseUrl: string):
             height: 2,
             type: "IFRAME",
             properties: {
-              src: `${base}/?address=${upAddress}`,
+              src: `${base}/?address=${encodeURIComponent(upAddress)}${chainQs}`,
               allow: "accelerometer; autoplay; clipboard-write",
               sandbox:
                 "allow-forms;allow-pointer-lock;allow-popups;allow-same-origin;allow-scripts;allow-top-navigation",
@@ -45,9 +47,10 @@ export function buildMiniappGridJson(upAddress: string, miniappBaseUrl: string):
 /** ERC725Y-encoded bytes for LSP28TheGrid (single key). */
 export function encodeLsp28MiniappGridValue(
   upAddress: string,
-  miniappBaseUrl: string
+  miniappBaseUrl: string,
+  handshakeChainId?: number
 ): string {
-  const gridJson = buildMiniappGridJson(upAddress, miniappBaseUrl);
+  const gridJson = buildMiniappGridJson(upAddress, miniappBaseUrl, handshakeChainId);
   const jsonHash = keccak256(toUtf8Bytes(gridJson));
   const base64 = btoa(unescape(encodeURIComponent(gridJson)));
   const dataUri = `data:application/json;base64,${base64}`;
