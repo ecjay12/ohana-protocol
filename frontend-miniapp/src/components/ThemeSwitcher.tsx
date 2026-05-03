@@ -70,7 +70,7 @@ export function ThemeSwitcher({ className = "" }: { className?: string }) {
     <select
       value={theme}
       onChange={handleChange}
-      className={`rounded border border-theme-border bg-theme-surface px-3 py-1.5 text-sm text-theme-text ${className}`}
+      className={`min-h-10 rounded border border-theme-border bg-theme-surface px-3 py-2 text-base text-theme-text sm:py-1.5 sm:text-sm ${className}`}
       aria-label="Select theme"
     >
       {THEMES.map((t) => (

@@ -114,12 +114,12 @@ export function AddToGridPage() {
             {availableWallets.length > 1 ? (
               <div className="flex flex-col gap-2">
                 {availableWallets.map((w) => (
-                  <button
-                    key={w.label}
-                    type="button"
-                    onClick={() => connectWith(w)}
-                    className="miniapp-btn-primary rounded-lg px-4 py-2.5 font-medium"
-                  >
+              <button
+                key={w.label}
+                type="button"
+                onClick={() => connectWith(w)}
+                className="miniapp-btn-primary min-h-11 rounded-lg px-4 py-2.5 font-medium"
+              >
                     Connect with {w.label}
                   </button>
                 ))}
@@ -128,7 +128,7 @@ export function AddToGridPage() {
               <button
                 type="button"
                 onClick={connect}
-                className="miniapp-btn-primary w-full rounded-lg px-4 py-2.5 font-medium"
+                className="miniapp-btn-primary min-h-11 w-full rounded-lg px-4 py-2.5 font-medium"
               >
                 Connect
               </button>
@@ -162,7 +162,7 @@ export function AddToGridPage() {
               type="button"
               onClick={handleSetGrid}
               disabled={status === "encoding" || status === "signing"}
-              className="miniapp-btn-primary w-full rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
+              className="miniapp-btn-primary min-h-11 w-full rounded-lg px-4 py-2.5 font-medium disabled:opacity-50"
             >
               {status === "encoding" && "Preparing…"}
               {status === "signing" && "Confirm in wallet…"}
@@ -179,7 +179,7 @@ export function AddToGridPage() {
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="mt-6 w-full text-center text-sm text-theme-text-muted hover:text-theme-accent"
+          className="mt-6 flex min-h-11 w-full items-center justify-center text-center text-sm text-theme-text-muted hover:text-theme-accent"
         >
           ← Back
         </button>

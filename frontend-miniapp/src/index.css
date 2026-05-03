@@ -407,6 +407,18 @@ html.miniapp-embedded #root {
   padding: 0;
 }
 
+/* Mobile: snappier taps, avoid double-tap zoom on primary controls */
+button,
+a.miniapp-btn-primary,
+a.miniapp-btn-secondary,
+input[type="submit"] {
+  touch-action: manipulation;
+}
+
+.miniapp-icon-btn {
+  touch-action: manipulation;
+}
+
 body > * {
   position: relative;
   z-index: 1;

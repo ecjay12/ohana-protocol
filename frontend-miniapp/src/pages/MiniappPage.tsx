@@ -12,6 +12,7 @@ import { useHandshakeReadOnly } from "@/hooks/useHandshakeReadOnly";
 import { useLuksoHandshakeChainInference } from "@/hooks/useLuksoHandshakeChainInference";
 import { useProfileData } from "@/hooks/useProfileData";
 import { ProfileWidgetCard } from "@/components/ProfileWidgetCard";
+import { GridUpdateBanner } from "@/components/GridUpdateBanner";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { getAddress } from "ethers";
@@ -49,7 +50,7 @@ function NoProfileSetup() {
           <strong>Standalone:</strong> Enter a Universal Profile address to view vouches:
         </p>
         <form
-          className="mb-4 flex gap-2"
+          className="mb-4 flex flex-col gap-2 sm:flex-row"
           onSubmit={(e) => {
             e.preventDefault();
             handleTryAddress();
@@ -61,9 +62,13 @@ function NoProfileSetup() {
             value={addressInput}
             onChange={(e) => setAddressInput(e.target.value)}
             autoComplete="off"
-            className="flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-sm text-theme-text placeholder:text-theme-text-dim focus:border-theme-accent focus:outline-none"
+            inputMode="text"
+            className="min-h-11 flex-1 rounded-lg border border-theme-border bg-theme-surface px-3 py-2 text-base text-theme-text placeholder:text-theme-text-dim focus:border-theme-accent focus:outline-none sm:text-sm"
           />
-          <button type="submit" className="miniapp-btn-primary rounded-lg px-4 py-2 text-sm font-medium">
+          <button
+            type="submit"
+            className="miniapp-btn-primary min-h-11 shrink-0 rounded-lg px-4 py-2 text-sm font-medium"
+          >
             View
           </button>
         </form>
@@ -208,10 +213,11 @@ export function MiniappPage() {
         <ThemeSwitcher />
       </div>
       <div
-        className={`flex flex-col items-center ${
-          inGrid ? "min-h-0 w-full justify-start p-3 sm:p-5" : "min-h-screen min-h-[100dvh] justify-center p-3 sm:p-6"
+        className={`flex flex-col items-center gap-3 ${
+          inGrid ? "min-h-0 w-full justify-start p-3 sm:p-5" : "min-h-screen min-h-[100dvh] justify-center p-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:p-6"
         }`}
       >
+        <GridUpdateBanner embedded={inGrid} className={inGrid ? "shrink-0" : ""} />
         <ProfileWidgetCard
           profileAddress={profileAddress}
           handshakeChainId={effectiveChainId}
