@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { WalletConnect } from "./WalletConnect";
 import { useHandshake, CATEGORIES, userFacingHandshakeError } from "@/hooks/useHandshake";
-import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL, FULL_APP_URL } from "@/config/contracts";
+import { VOUCH_FEE_DISPLAY, MINIAPP_PRODUCTION_URL, FULL_APP_URL, addToGridAbsoluteUrl } from "@/config/contracts";
 import { THEME_LOGOS } from "@/config/themeLogos";
 import { useTheme } from "@/components/ThemeSwitcher";
 import type { BrowserProvider } from "ethers";
@@ -450,12 +450,23 @@ export function ProfileWidgetCard({
           <ExternalLink className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
         </a>
         <div className={`flex flex-wrap items-center justify-center ${compact ? "gap-1" : "gap-2"}`}>
-          <Link
-            to="/add-to-grid"
-            className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
-          >
-            Add to my profile
-          </Link>
+          {compact ? (
+            <a
+              href={addToGridAbsoluteUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
+            >
+              Add to my profile
+            </a>
+          ) : (
+            <Link
+              to="/add-to-grid"
+              className={`miniapp-btn-primary flex items-center gap-1 font-medium ${compact ? "rounded-lg px-3 py-2 text-sm sm:px-4 sm:py-2.5" : "rounded px-2 py-1 text-xs"}`}
+            >
+              Add to my profile
+            </Link>
+          )}
           <button
             type="button"
             onClick={handleCopyGridUrl}

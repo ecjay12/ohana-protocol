@@ -4,6 +4,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { X, LayoutGrid } from "lucide-react";
+import { addToGridAbsoluteUrl } from "@/config/contracts";
 
 const STORAGE_EMBED = "ohana-miniapp-grid-banner-dismissed-embed-v2";
 const STORAGE_STANDALONE = "ohana-miniapp-grid-banner-dismissed-standalone-v2";
@@ -62,15 +63,26 @@ export function GridUpdateBanner({ embedded, className = "" }: GridUpdateBannerP
           </p>
           <p className="mt-1 text-xs leading-relaxed text-theme-text-muted">
             {embedded
-              ? "If you added Handshake a while ago, update once so your tile gets the latest iframe settings (one signed transaction)."
+              ? "If you added Handshake a while ago, update once so your tile gets the latest iframe settings (one signed transaction). Opens in a new tab so your wallet can connect."
               : "Put Handshake on your LUKSO home screen so visitors can vouch from your profile—works in the mobile app and on the web."}
           </p>
-          <Link
-            to="/add-to-grid"
-            className="miniapp-btn-primary mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center text-sm font-semibold sm:w-auto sm:min-w-[12rem]"
-          >
-            {embedded ? "Update Grid (one tap)" : "Add to my Grid"}
-          </Link>
+          {embedded ? (
+            <a
+              href={addToGridAbsoluteUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="miniapp-btn-primary mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center text-sm font-semibold sm:w-auto sm:min-w-[12rem]"
+            >
+              Update Grid (new tab)
+            </a>
+          ) : (
+            <Link
+              to="/add-to-grid"
+              className="miniapp-btn-primary mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-2.5 text-center text-sm font-semibold sm:w-auto sm:min-w-[12rem]"
+            >
+              Add to my Grid
+            </Link>
+          )}
         </div>
       </div>
     </div>

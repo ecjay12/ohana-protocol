@@ -16,7 +16,7 @@ import { GridUpdateBanner } from "@/components/GridUpdateBanner";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInjectedWallet } from "@/hooks/useInjectedWallet";
 import { getAddress } from "ethers";
-import { MINIAPP_PRODUCTION_URL, getHandshakeAddress } from "@/config/contracts";
+import { MINIAPP_PRODUCTION_URL, getHandshakeAddress, addToGridAbsoluteUrl } from "@/config/contracts";
 import { Copy, Check } from "lucide-react";
 import { agentDebugLog } from "@/lib/agentDebugLog";
 
@@ -27,6 +27,7 @@ function NoProfileSetup() {
   const navigate = useNavigate();
 
   const baseUrl = MINIAPP_PRODUCTION_URL;
+  const inGridIframe = typeof window !== "undefined" && window.self !== window.top;
 
   const handleTryAddress = () => {
     const trimmed = addressInput.trim();
@@ -75,12 +76,23 @@ function NoProfileSetup() {
         {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
         <p className="mb-2 text-xs font-medium text-theme-text">Add to your Grid:</p>
-        <Link
-          to="/add-to-grid"
-          className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
-        >
-          Add to my profile (one-click)
-        </Link>
+        {inGridIframe ? (
+          <a
+            href={addToGridAbsoluteUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
+          >
+            Add to my profile (opens in browser)
+          </a>
+        ) : (
+          <Link
+            to="/add-to-grid"
+            className="miniapp-btn-primary mb-3 block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium"
+          >
+            Add to my profile (one-click)
+          </Link>
+        )}
         <p className="mb-2 text-xs text-theme-text-muted">Or copy URL for manual setup:</p>
         <div className="mb-4 flex items-center gap-2 rounded bg-theme-surface-strong px-3 py-2">
           <code className="flex-1 break-all text-xs text-theme-text">
