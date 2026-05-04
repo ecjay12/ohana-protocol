@@ -166,8 +166,11 @@ export function Lsp3ProfileLookupInput({
 
   const pick = (h: ProfileNameSearchHit) => {
     endSearch();
-    onSelectedAddressChange(h.address);
+    // Apply value first, then selected address. Parents often clear the pick when the
+    // text changes (see VouchCard); that must run before we set the picked address
+    // or the last batched update leaves selectedAddress null.
     onValueChange(h.name?.trim() || shortAddr(h.address));
+    onSelectedAddressChange(h.address);
     setHits([]);
     setOpen(false);
   };
